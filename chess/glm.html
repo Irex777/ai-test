@@ -3,21 +3,142 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GLM 5.1 - Chess FAILED</title>
+<title>Chess</title>
 <style>
-body{font-family:-apple-system,sans-serif;background:#0a0a12;color:#e0e0e8;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
-.box{text-align:center;padding:40px;background:#13131f;border-radius:12px;border:1px solid #2a2a40;max-width:500px}
-h1{color:#ff6b6b;font-size:18px;margin-bottom:16px}
-p{color:#8888a0;font-size:14px;line-height:1.6}
-.time{margin-top:16px;padding:12px;background:#1a1a28;border-radius:8px;font-size:13px;color:#555570}
-.time span{color:#ff6b6b}
+    body {
+        background-color: #1e1e1e;
+        color: #ffffff;
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 50px;
+    }
+    #board {
+        display: grid;
+        grid-template-columns: repeat(8, 60px);
+        grid-template-rows: repeat(8, 60px);
+        border: 4px solid #000;
+        box-shadow: 0 0 15px rgba(0,0,0,0.8);
+    }
+    .cell {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 45px;
+        cursor: pointer;
+        user-select: none;
+    }
+    .light { background-color: #b0b0b0; }
+    .dark { background-color: #505050; }
+    .selected { background-color: #f6f669 !important; }
+    button {
+        margin-top: 20px;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        background-color: #333;
+        color: white;
+        border: 1px solid #fff;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+    button:hover { background-color: #555; }
+    #status { font-size: 24px; margin-bottom: 20px; font-weight: bold; }
 </style>
 </head>
 <body>
-<div class="box">
-<h1>GENERATION FAILED</h1>
-<p>GLM 5.1 Turbo was unable to generate a chess application. The model timed out after 3 attempts at 5 minutes each (15+ minutes total). The reasoning model appears unable to handle game logic tasks of this complexity.</p>
-<div class="time">3 attempts &times; <span>300s timeout</span> = <span>15+ minutes</span> of failed generation</div>
-</div>
+
+<div id="status">White's Turn</div>
+<div id="board"></div>
+<button id="reset">New Game</button>
+
+<script>
+let board, selected, player;
+
+const initialBoard = [
+    ['♜','♞','♝','♛','♚','♝','♞','♜'],
+    ['♟','♟','♟','♟','♟','♟','♟','♟'],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['♙','♙','♙','♙','♙','♙','♙','♙'],
+    ['♖','♘','♗','♕','♔','♗','♘','♖']
+];
+
+const getColor = (piece) => {
+    if (!piece) return null;
+    const code = piece.charCodeAt(0);
+    if (code >= 9818 && code <= 9823) return 'black';
+    if (code >= 9812 && code <= 9817) return 'white';
+    return null;
+};
+
+const init = () => {
+    board = initialBoard.map(row => [...row]);
+    selected = null;
+    player = 'white';
+    updateStatus();
+    render();
+};
+
+const render = () => {
+    const boardEl = document.getElementById('board');
+    boardEl.innerHTML = '';
+    
+    for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell ' + ((r + c) % 2 === 0 ? 'light' : 'dark');
+            
+            if (selected && selected[0] === r && selected[1] === c) {
+                cell.classList.add('selected');
+            }
+            
+            cell.innerText = board[r][c];
+            cell.onclick = () => handleClick(r, c);
+            boardEl.appendChild(cell);
+        }
+    }
+};
+
+const updateStatus = () => {
+    document.getElementById('status').innerText = 
+        player.charAt(0).toUpperCase() + player.slice(1) + "'s Turn";
+};
+
+const handleClick = (r, c) => {
+    const pieceColor = getColor(board[r][c]);
+
+    if (selected) {
+        const [startR, startC] = selected;
+        const targetColor = getColor(board[r][c]);
+
+        if (r === startR && c === startC) {
+            selected = null;
+        } else if (pieceColor === player) {
+            selected = [r, c];
+        } else if (targetColor !== player) {
+            board[r][c] = board[startR][startC];
+            board[startR][startC] = '';
+            selected = null;
+            player = player === 'white' ? 'black' : 'white';
+            updateStatus();
+        }
+    } else {
+        if (pieceColor === player) {
+            selected = [r, c];
+        }
+    }
+    
+    render();
+};
+
+window.onload = () => {
+    document.getElementById('reset').onclick = init;
+    init();
+};
+</script>
 </body>
 </html>
