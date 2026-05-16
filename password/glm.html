@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Password Generator</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #080c14;
+    --surface: #0f1520;
+    --surface-2: #151d2c;
+    --border: #1a2540;
+    --border-hover: #253456;
+    --text: #e2e8f0;
+    --text-dim: #546580;
+    --accent: #10b981;
+    --accent-hover: #34d399;
+    --accent-glow: rgba(16, 185, 129, 0.12);
+    --red: #ef4444;
+    --orange: #f59e0b;
+    --amber: #fbbf24;
+    --green: #10b981;
+    --bright: #06d6a0;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 2.5rem 1rem 4rem;
+    overflow-x: hidden;
+  }
+
+  /* Dot grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Ambient orbs */
+  .orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(110px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .orb-1 {
+    width: 520px; height: 520px;
+    background: rgba(16, 185, 129, 0.07);
+    top: -220px; right: -160px;
+    animation: orb1 28s ease-in-out infinite;
+  }
+  .orb-2 {
+    width: 400px; height: 400px;
+    background: rgba(251, 191, 36, 0.05);
+    bottom: -160px; left: -120px;
+    animation: orb2 32s ease-in-out infinite;
+  }
+  .orb-3 {
+    width: 300px; height: 300px;
+    background: rgba(16, 185, 129, 0.04);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    animation: orb3 24s ease-in-out infinite;
+  }
+  @keyframes orb1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(-50px, 70px) scale(1.08); }
+    66% { transform: translate(35px, -40px) scale(0.94); }
+  }
+  @keyframes orb2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(60px, -50px) scale(1.12); }
+    66% { transform: translate(-40px, 35px) scale(0.92); }
+  }
+  @keyframes orb3 {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-40%, -60%) scale(1.2); }
+  }
+
+  /* Container */
+  .container {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 540px;
+  }
+
+  /* Card */
+  .card {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2.25rem;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.02) inset;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 50%; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.6;
+    border-radius: 1px;
+  }
+
+  /* Header */
+  header { text-align: center; margin-bottom: 2rem; }
+  header h1 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+  }
+  header h1 span { color: var(--accent); }
+  header p {
+    color: var(--text-dim);
+    font-size: 0.875rem;
+    margin-top: 0.35rem;
+  }
+
+  /* Password display */
+  .pw-display {
+    position: relative;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.15rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 62px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    overflow: hidden;
+  }
+  .pw-display:hover { border-color: var(--border-hover); }
+  .pw-display.flash {
+    border-color: var(--accent);
+    box-shadow: 0 0 28px var(--accent-glow);
+  }
+
+  .pw-text {
+    flex: 1;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', 'Liberation Mono', monospace;
+    font-size: 1.08rem;
+    word-break: break-all;
+    line-height: 1.6;
+    min-height: 1.6em;
+    letter-spacing: 0.04em;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+  }
+  .pw-text.empty {
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 0.88rem;
+    letter-spacing: 0;
+    display: block;
+  }
+
+  /* Character type colors */
+  .ch-upper { color: #cbd5e1; }
+  .ch-lower { color: #7a8ba5; }
+  .ch-num   { color: var(--accent); }
+  .ch-sym   { color: var(--amber); }
+
+  /* Copy button */
+  .copy-btn {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 0.5rem 0.8rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-family: inherit;
+    transition: all 0.2s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+  }
+  .copy-btn:hover {
+    background: var(--accent-glow);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .copy-btn.done {
+    background: var(--accent-glow);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .copy-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+  /* Stats row */
+  .stats {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.75rem;
+    padding: 0 0.15rem;
+  }
+  .stat {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .stat b {
+    color: var(--text);
+    font-weight: 700;
+    font-family: 'SF Mono', 'Consolas', monospace;
+  }
+
+  /* Strength */
+  .strength { margin-top: 1.5rem; }
+  .strength-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+  .strength-label { font-size: 0.78rem; color: var(--text-dim); font-weight: 500; }
+  .strength-tag {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    transition: color 0.4s;
+  }
+  .bar-track {
+    width: 100%; height: 5px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%; width: 0%;
+    border-radius: 3px;
+    transition: width 0.55s cubic-bezier(0.4, 0, 0.2, 1), background 0.4s;
+  }
+
+  /* Slider */
+  .slider { margin-top: 1.5rem; }
+  .slider-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+  .slider-title { font-size: 0.88rem; font-weight: 600; }
+  .slider-val {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--accent);
+    font-family: 'SF Mono', 'Consolas', monospace;
+    min-width: 2.5ch;
+    text-align: right;
+  }
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%; height: 6px;
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+    background: linear-gradient(
+      to right,
+      var(--accent) 0%,
+      var(--accent) var(--fill, 14.3%),
+      rgba(255,255,255,0.06) var(--fill, 14.3%),
+      rgba(255,255,255,0.06) 100%
+    );
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid var(--surface);
+    box-shadow: 0 0 0 2px var(--accent), 0 2px 10px rgba(0,0,0,0.35);
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.18);
+    box-shadow: 0 0 0 2px var(--accent), 0 0 18px var(--accent-glow);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid var(--surface);
+    box-shadow: 0 0 0 2px var(--accent), 0 2px 10px rgba(0,0,0,0.35);
+    cursor: pointer;
+  }
+  input[type="range"]:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 2px var(--accent), 0 0 0 5px var(--accent-glow);
+  }
+
+  /* Toggles */
+  .toggles { margin-top: 1.5rem; }
+  .toggles-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+  }
+  .trow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.8rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    transition: border-color 0.2s;
+  }
+  .trow:hover { border-color: var(--border-hover); }
+  .trow-name { font-size: 0.84rem; font-weight: 600; user-select: none; }
+  .trow-sub { font-size: 0.68rem; color: var(--text-dim); margin-top: 1px; }
+
+  /* Toggle switch */
+  .tswitch {
+    position: relative;
+    width: 40px; height: 22px;
+    flex-shrink: 0;
+  }
+  .tswitch input {
+    opacity: 0; width: 0; height: 0; position: absolute;
+  }
+  .ttrack {
+    position: absolute; inset: 0;
+    background: var(--border);
+    border-radius: 11px;
+    cursor: pointer;
+    transition: background 0.25s;
+  }
+  .ttrack::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 18px; height: 18px;
+    background: var(--text-dim);
+    border-radius: 50%;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.25s;
+  }
+  .tswitch input:checked + .ttrack { background: var(--accent); }
+  .tswitch input:checked + .ttrack::after {
+    transform: translateX(18px);
+    background: #fff;
+  }
+  .tswitch input:focus-visible + .ttrack {
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  /* Full-width option row */
+  .opt-full { margin-top: 0.65rem; }
+  .opt-full .trow { width: 100%; }
+
+  /* Generate button */
+  .gen-btn {
+    margin-top: 1.65rem;
+    width: 100%;
+    padding: 0.9rem;
+    background: var(--accent);
+    color: var(--bg);
+    font-size: 0.95rem;
+    font-weight: 800;
+    font-family: inherit;
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.01em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .gen-btn::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .gen-btn:hover {
+    background: var(--accent-hover);
+    box-shadow: 0 6px 28px rgba(16, 185, 129, 0.3);
+    transform: translateY(-1px);
+  }
+  .gen-btn:hover::after { opacity: 1; }
+  .gen-btn:active {
+    transform: translateY(1px) scale(0.985);
+    box-shadow: 0 2px 12px rgba(16, 185, 129, 0.2);
+  }
+  .gen-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+  .gen-btn svg { width: 18px; height: 18px; position: relative; z-index: 1; }
+  .gen-btn span { position: relative; z-index: 1; }
+
+  /* History */
+  .history {
+    margin-top: 2rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1.25rem;
+  }
+  .history-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+  .history-title { font-size: 0.85rem; font-weight: 700; color: var(--text-dim); }
+  .history-clear {
+    background: none; border: none;
+    color: var(--text-dim);
+    font-size: 0.73rem;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    transition: color 0.2s, background 0.2s;
+  }
+  .history-clear:hover {
+    color: var(--red);
+    background: rgba(239,68,68,0.08);
+  }
+
+  .hlist {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    max-height: 310px;
+    overflow-y: auto;
+  }
+  .hlist::-webkit-scrollbar { width: 4px; }
+  .hlist::-webkit-scrollbar-track { background: transparent; }
+  .hlist::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .hitem {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.5rem 0.7rem;
+    background: var(--bg);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    transition: border-color 0.15s;
+  }
+  .hitem:first-child { animation: slideIn 0.3s ease-out; }
+  .hitem:hover { border-color: var(--border); }
+
+  .hdot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 0 6px currentColor;
+  }
+  .hpw {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: 'SF Mono', 'Consolas', monospace;
+    font-size: 0.76rem;
+    color: var(--text);
+    letter-spacing: 0.02em;
+  }
+  .hcopy {
+    background: none; border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 3px;
+    border-radius: 4px;
+    transition: color 0.15s;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+  }
+  .hcopy:hover { color: var(--accent); }
+  .hcopy svg { width: 13px; height: 13px; }
+
+  .hempty {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    padding: 1.25rem 0;
+    opacity: 0.6;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 2rem; left: 50%;
+    transform: translateX(-50%) translateY(16px);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.65rem 1.35rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.84rem;
+    font-weight: 600;
+    opacity: 0;
+    transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none;
+    z-index: 1000;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Responsive */
+  @media (max-width: 520px) {
+    body { padding: 1.25rem 0.75rem 3rem; }
+    .card { padding: 1.5rem; border-radius: 16px; }
+    .toggles-grid { grid-template-columns: 1fr; }
+    .pw-text { font-size: 0.95rem; }
+    header h1 { font-size: 1.35rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- Ambient orbs -->
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<div class="container">
+  <div class="card">
+
+    <!-- Header -->
+    <header>
+      <h1>Password <span>Generator</span></h1>
+      <p>Create cryptographically strong random passwords</p>
+    </header>
+
+    <!-- Password display -->
+    <div class="pw-display" id="pwBox">
+      <div class="pw-text empty" id="pwText">Click generate to create a password</div>
+      <button class="copy-btn" id="copyBtn" title="Copy to clipboard" aria-label="Copy password">
+        <svg id="copyIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        <span id="copyLabel">Copy</span>
+      </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats">
+      <span class="stat">Characters: <b id="charCount">0</b></span>
+      <span class="stat">Entropy: <b id="entropyVal">0</b> bits</span>
+    </div>
+
+    <!-- Strength meter -->
+    <section class="strength">
+      <div class="strength-head">
+        <span class="strength-label">Password Strength</span>
+        <span class="strength-tag" id="strTag">--</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill" id="strBar"></div>
+      </div>
+    </section>
+
+    <!-- Length slider -->
+    <section class="slider">
+      <div class="slider-head">
+        <span class="slider-title">Password Length</span>
+        <span class="slider-val" id="lenVal">16</span>
+      </div>
+      <input type="range" id="lenSlider" min="8" max="64" value="16" aria-label="Password length">
+    </section>
+
+    <!-- Character toggles -->
+    <section class="toggles">
+      <div class="toggles-grid">
+        <div class="trow">
+          <div><div class="trow-name">Uppercase</div><div class="trow-sub">A &ndash; Z</div></div>
+          <label class="tswitch"><input type="checkbox" id="optUpper" checked><span class="ttrack"></span></label>
+        </div>
+        <div class="trow">
+          <div><div class="trow-name">Lowercase</div><div class="trow-sub">a &ndash; z</div></div>
+          <label class="tswitch"><input type="checkbox" id="optLower" checked><span class="ttrack"></span></label>
+        </div>
+        <div class="trow">
+          <div><div class="trow-name">Numbers</div><div class="trow-sub">0 &ndash; 9</div></div>
+          <label class="tswitch"><input type="checkbox" id="optNums" checked><span class="ttrack"></span></label>
+        </div>
+        <div class="trow">
+          <div><div class="trow-name">Symbols</div><div class="trow-sub">!@#$%&hellip;</div></div>
+          <label class="tswitch"><input type="checkbox" id="optSyms" checked><span class="ttrack"></span></label>
+        </div>
+      </div>
+      <div class="opt-full">
+        <div class="trow">
+          <div><div class="trow-name">Exclude Ambiguous</div><div class="trow-sub">0 O o l 1 I | &lsquo; &amp; co.</div></div>
+          <label class="tswitch"><input type="checkbox" id="optNoAmb"><span class="ttrack"></span></label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Generate button -->
+    <button class="gen-btn" id="genBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+      <span>Generate Password</span>
+    </button>
+
+    <!-- History -->
+    <section class="history">
+      <div class="history-head">
+        <span class="history-title">Recent Passwords</span>
+        <button class="history-clear" id="clearBtn">Clear All</button>
+      </div>
+      <ul class="hlist" id="hlist">
+        <li class="hempty">No passwords generated yet</li>
+      </ul>
+    </section>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  /* ── Character sets ── */
+  var UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  var LOWER = 'abcdefghijklmnopqrstuvwxyz';
+  var NUMS  = '0123456789';
+  var SYMS  = '!@#$%^&*()_+-=[]{}|;:,.<>?/~`';
+
+  /* ── DOM ── */
+  var pwBox     = document.getElementById('pwBox');
+  var pwText    = document.getElementById('pwText');
+  var copyBtn   = document.getElementById('copyBtn');
+  var copyIcon  = document.getElementById('copyIcon');
+  var copyLabel = document.getElementById('copyLabel');
+  var charCount = document.getElementById('charCount');
+  var entropyEl = document.getElementById('entropyVal');
+  var strTag    = document.getElementById('strTag');
+  var strBar    = document.getElementById('strBar');
+  var slider    = document.getElementById('lenSlider');
+  var lenVal    = document.getElementById('lenVal');
+  var genBtn    = document.getElementById('genBtn');
+  var hlist     = document.getElementById('hlist');
+  var clearBtn  = document.getElementById('clearBtn');
+  var toastEl   = document.getElementById('toast');
+
+  var optUpper = document.getElementById('optUpper');
+  var optLower = document.getElementById('optLower');
+  var optNums  = document.getElementById('optNums');
+  var optSyms  = document.getElementById('optSyms');
+  var optNoAmb = document.getElementById('optNoAmb');
+
+  /* ── State ── */
+  var currentPw = '';
+  var history = []; // { pw, entropy }
+  var copyTimer = null;
+  var toastTimer = null;
+
+  /* ── Helpers ── */
+  function filterSet(base, type) {
+    if (!optNoAmb.checked) return base;
+    switch (type) {
+      case 'u': return base.replace(/[IO]/g, '');
+      case 'l': return base.replace(/[lo]/g, '');
+      case 'n': return base.replace(/[01]/g, '');
+      case 's': return base.replace(/[|`']/g, '');
+    }
+    return base;
+  }
+
+  function buildPool() {
+    var pool = '';
+    if (optUpper.checked) pool += filterSet(UPPER, 'u');
+    if (optLower.checked) pool += filterSet(LOWER, 'l');
+    if (optNums.checked)  pool += filterSet(NUMS, 'n');
+    if (optSyms.checked)  pool += filterSet(SYMS, 's');
+    return pool;
+  }
+
+  /* ── Strength calculation ── */
+  function calcEntropy(poolSize, len) {
+    if (poolSize <= 0 || len <= 0) return 0;
+    return Math.floor(len * Math.log2(poolSize));
+  }
+
+  function strengthInfo(entropy) {
+    if (entropy < 36)  return { label: 'Weak',       color: '#ef4444', pct: Math.max(6, (entropy / 36) * 25) };
+    if (entropy < 60)  return { label: 'Medium',     color: '#f59e0b', pct: 25 + ((entropy - 36) / 24) * 25 };
+    if (entropy < 80)  return { label: 'Strong',     color: '#10b981', pct: 50 + ((entropy - 60) / 20) * 25 };
+    return                      { label: 'Very Strong', color: '#06d6a0', pct: Math.min(100, 75 + ((entropy - 80) / 50) * 25) };
+  }
+
+  /* ── Generate ── */
+  function generate() {
+    var pool = buildPool();
+    if (!pool) {
+      showToast('Enable at least one character type');
+      return;
+    }
+
+    var len = parseInt(slider.value, 10);
+    var rand = new Uint32Array(len);
+    crypto.getRandomValues(rand);
+
+    var pw = '';
+    for (var i = 0; i < len; i++) {
+      pw += pool[rand[i] % pool.length];
+    }
+
+    /* Ensure at least one character from each enabled set */
+    var checks = [];
+    if (optUpper.checked) checks.push({ re: /[A-Z]/, chars: filterSet(UPPER, 'u') });
+    if (optLower.checked) checks.push({ re: /[a-z]/, chars: filterSet(LOWER, 'l') });
+    if (optNums.checked)  checks.push({ re: /[0-9]/, chars: filterSet(NUMS, 'n') });
+    if (optSyms.checked)  checks.push({ re: /[^A-Za-z0-9]/, chars: filterSet(SYMS, 's') });
+
+    var fixRand = new Uint32Array(1);
+    var pos = 0;
+    for (var c = 0; c < checks.length; c++) {
+      if (!checks[c].re.test(pw) && checks[c].chars.length > 0) {
+        crypto.getRandomValues(fixRand);
+        var ch = checks[c].chars[fixRand[0] % checks[c].chars.length];
+        pw = pw.substring(0, pos) + ch + pw.substring(pos + 1);
+      }
+      pos++;
+    }
+
+    currentPw = pw;
+
+    /* Render password with color-coded characters */
+    pwText.classList.remove('empty');
+    pwText.innerHTML = '';
+    for (var j = 0; j < pw.length; j++) {
+      var sp = document.createElement('span');
+      sp.textContent = pw[j];
+      if (/[a-z]/.test(pw[j]))      sp.className = 'ch-lower';
+      else if (/[A-Z]/.test(pw[j])) sp.className = 'ch-upper';
+      else if (/[0-9]/.test(pw[j])) sp.className = 'ch-num';
+      else                           sp.className = 'ch-sym';
+      pwText.appendChild(sp);
+    }
+
+    /* Stats */
+    var entropy = calcEntropy(pool.length, len);
+    charCount.textContent = len;
+    entropyEl.textContent = entropy;
+
+    /* Strength meter */
+    var info = strengthInfo(entropy);
+    strTag.textContent = info.label;
+    strTag.style.color = info.color;
+    strBar.style.width = info.pct + '%';
+    strBar.style.background = info.color;
+
+    /* Flash effect */
+    pwBox.classList.add('flash');
+    setTimeout(function() { pwBox.classList.remove('flash'); }, 650);
+
+    /* History */
+    addHistory(pw, entropy);
+  }
+
+  /* ── History ── */
+  function addHistory(pw, entropy) {
+    history.unshift({ pw: pw, entropy: entropy });
+    if (history.length > 10) history.pop();
+    renderHistory();
+  }
+
+  function renderHistory() {
+    hlist.innerHTML = '';
+    if (history.length === 0) {
+      hlist.innerHTML = '<li class="hempty">No passwords generated yet</li>';
+      return;
+    }
+    for (var i = 0; i < history.length; i++) {
+      var entry = history[i];
+      var li = document.createElement('li');
+      li.className = 'hitem';
+
+      /* Strength dot */
+      var dot = document.createElement('span');
+      dot.className = 'hdot';
+      var info = strengthInfo(entry.entropy);
+      dot.style.color = info.color;
+      dot.style.background = info.color;
+      li.appendChild(dot);
+
+      /* Password text */
+      var pwSpan = document.createElement('span');
+      pwSpan.className = 'hpw';
+      pwSpan.textContent = entry.pw;
+      pwSpan.title = entry.pw;
+      li.appendChild(pwSpan);
+
+      /* Copy button */
+      var btn = document.createElement('button');
+      btn.className = 'hcopy';
+      btn.title = 'Copy';
+      btn.setAttribute('aria-label', 'Copy password');
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+      btn.addEventListener('click', (function(p) {
+        return function() { copyToClipboard(p); };
+      })(entry.pw));
+      li.appendChild(btn);
+
+      hlist.appendChild(li);
+    }
+  }
+
+  /* ── Copy ── */
+  function copyToClipboard(text) {
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function() {
+        showToast('Copied to clipboard');
+      }).catch(function() {
+        fallbackCopy(text);
+      });
+    } else {
+      fallbackCopy(text);
+    }
+  }
+
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      showToast('Copied to clipboard');
+    } catch (e) {
+      showToast('Copy failed');
+    }
+    document.body.removeChild(ta);
+  }
+
+  /* ── Toast ── */
+  function showToast(msg) {
+    if (toastTimer) clearTimeout(toastTimer);
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    toastTimer = setTimeout(function() {
+      toastEl.classList.remove('show');
+    }, 2000);
+  }
+
+  /* ── Slider fill ── */
+  function updateSliderFill() {
+    var val = parseInt(slider.value, 10);
+    var min = parseInt(slider.min, 10);
+    var max = parseInt(slider.max, 10);
+    var pct = ((val - min) / (max - min)) * 100;
+    slider.style.setProperty('--fill', pct + '%');
+    lenVal.textContent = val;
+  }
+
+  /* ── Event listeners ── */
+  slider.addEventListener('input', updateSliderFill);
+
+  genBtn.addEventListener('click', generate);
+
+  copyBtn.addEventListener('click', function() {
+    if (!currentPw) {
+      showToast('Generate a password first');
+      return;
+    }
+    copyToClipboard(currentPw);
+    copyBtn.classList.add('done');
+    copyLabel.textContent = 'Copied';
+    copyIcon.innerHTML = '<polyline points="20 6 9 17 4 12"/>';
+    if (copyTimer) clearTimeout(copyTimer);
+    copyTimer = setTimeout(function() {
+      copyBtn.classList.remove('done');
+      copyLabel.textContent = 'Copy';
+      copyIcon.innerHTML = '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>';
+    }, 2000);
+  });
+
+  clearBtn.addEventListener('click', function() {
+    history = [];
+    renderHistory();
+  });
+
+  /* Keyboard shortcut: Space to generate (when no input focused) */
+  document.addEventListener('keydown', function(e) {
+    var tag = document.activeElement.tagName;
+    if (e.code === 'Space' && tag !== 'BUTTON' && tag !== 'INPUT' && tag !== 'TEXTAREA') {
+      e.preventDefault();
+      generate();
+    }
+  });
+
+  /* Initialize slider */
+  updateSliderFill();
+})();
+</script>
+</body>
+</html>

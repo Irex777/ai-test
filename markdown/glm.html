@@ -5,134 +5,195 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Markdown Editor</title>
 <style>
-  /* ── CSS Variables / Theme ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
   :root {
-    --bg-deep: #0f1117;
-    --bg: #161922;
-    --bg-surface: #1c1f2e;
-    --bg-elevated: #242839;
-    --border: #2e3348;
-    --border-focus: #e8a849;
-    --fg: #d4d8e8;
-    --fg-muted: #7a8099;
-    --fg-bright: #f0f2fa;
-    --accent: #e8a849;
-    --accent-hover: #f0bb65;
-    --accent-dim: rgba(232,168,73,0.12);
-    --code-bg: #1a1e2c;
-    --preview-bg: #12141d;
-    --scrollbar-thumb: #3a3f58;
-    --scrollbar-track: transparent;
-    --tag-color: #7ec8e3;
-    --string-color: #98c379;
-    --hr-color: #3a3f58;
+    --bg-deep: #0b0d10;
+    --bg-editor: #11141a;
+    --bg-preview: #141820;
+    --bg-toolbar: #161b24;
+    --bg-btn: #1e2430;
+    --bg-btn-hover: #283040;
+    --bg-btn-active: #323e52;
+    --accent: #e0943a;
+    --accent-dim: #c07a28;
+    --accent-glow: rgba(224, 148, 58, 0.12);
+    --text: #cdd1d9;
+    --text-bright: #eef0f4;
+    --text-muted: #5e6678;
+    --border: #222838;
+    --border-light: #2c3448;
+    --code-bg: #1a2030;
+    --blockquote-border: #e0943a;
+    --scrollbar-track: #11141a;
+    --scrollbar-thumb: #2a3248;
+    --scrollbar-thumb-hover: #3a4a60;
   }
 
-  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
-  html { font-size: 15px; }
-
-  body {
+  html, body {
+    height: 100%;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     background: var(--bg-deep);
-    color: var(--fg);
-    font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
+    color: var(--text);
     overflow: hidden;
   }
 
-  /* ── Scrollbar ── */
+  /* Scrollbar styling */
   ::-webkit-scrollbar { width: 7px; height: 7px; }
   ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
   ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
-  ::-webkit-scrollbar-thumb:hover { background: #4e5472; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
 
-  /* ── Header / Toolbar ── */
-  .app-header {
-    background: var(--bg);
-    border-bottom: 1px solid var(--border);
-    padding: 0;
-    flex-shrink: 0;
-    z-index: 10;
-  }
-
-  .header-top {
+  /* ---- TOP BAR ---- */
+  .top-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 10px 20px;
+    background: var(--bg-toolbar);
     border-bottom: 1px solid var(--border);
+    min-height: 52px;
+    position: relative;
+    z-index: 10;
   }
 
-  .app-title {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--fg-bright);
-    letter-spacing: -0.02em;
+  .top-bar::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.3;
+  }
+
+  .logo {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text-bright);
+    letter-spacing: -0.02em;
   }
 
-  .app-title .dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--accent);
-    display: inline-block;
-    animation: pulse-dot 2.4s ease-in-out infinite;
-  }
-
-  @keyframes pulse-dot {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.8); }
-  }
-
-  .stats {
+  .logo-icon {
+    width: 28px;
+    height: 28px;
+    background: linear-gradient(135deg, var(--accent), #d4782a);
+    border-radius: 6px;
     display: flex;
-    gap: 18px;
-    font-size: 0.78rem;
-    color: var(--fg-muted);
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #fff;
+    font-weight: 800;
+    box-shadow: 0 2px 10px rgba(224, 148, 58, 0.25);
   }
 
-  .stats span { display: flex; align-items: center; gap: 5px; }
-  .stats .stat-value { color: var(--accent); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .top-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
 
-  /* ── Toolbar ── */
+  .word-count {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    padding: 4px 10px;
+    background: var(--bg-btn);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  .word-count span { color: var(--accent); font-weight: 600; }
+
+  .copy-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--bg-btn);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+  }
+
+  .copy-btn:hover {
+    background: var(--bg-btn-hover);
+    border-color: var(--accent);
+    color: var(--text-bright);
+  }
+
+  .copy-btn:active { transform: scale(0.96); }
+
+  .copy-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+  .copy-btn.copied {
+    border-color: #34d399;
+    color: #34d399;
+    background: rgba(52, 211, 153, 0.08);
+  }
+
+  /* ---- TOOLBAR ---- */
   .toolbar {
     display: flex;
-    flex-wrap: wrap;
-    gap: 2px;
-    padding: 6px 12px;
     align-items: center;
+    gap: 3px;
+    padding: 8px 16px;
+    background: var(--bg-toolbar);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    position: relative;
   }
 
-  .toolbar button {
+  .toolbar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 5%, var(--border-light) 50%, transparent 95%);
+  }
+
+  .tb-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 32px;
     background: transparent;
     border: 1px solid transparent;
-    color: var(--fg-muted);
-    padding: 5px 9px;
     border-radius: 5px;
+    color: var(--text-muted);
     cursor: pointer;
-    font-size: 0.8rem;
-    font-family: inherit;
+    font-size: 0.85rem;
     font-weight: 600;
     transition: all 0.15s ease;
-    white-space: nowrap;
-    line-height: 1.4;
+    position: relative;
   }
 
-  .toolbar button:hover {
-    background: var(--accent-dim);
-    color: var(--accent);
-    border-color: rgba(232,168,73,0.2);
+  .tb-btn:hover {
+    background: var(--bg-btn-hover);
+    border-color: var(--border);
+    color: var(--text-bright);
   }
 
-  .toolbar button:active {
-    transform: scale(0.95);
+  .tb-btn:active {
+    background: var(--bg-btn-active);
+    transform: scale(0.94);
   }
 
-  .toolbar .sep {
+  .tb-btn svg { width: 16px; height: 16px; }
+
+  .tb-sep {
     width: 1px;
     height: 20px;
     background: var(--border);
@@ -140,376 +201,464 @@
     flex-shrink: 0;
   }
 
-  /* ── Main Layout ── */
-  .main-container {
+  .tb-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-left: 6px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  /* ---- MAIN LAYOUT ---- */
+  .main-wrap {
     display: flex;
-    flex: 1;
+    height: calc(100vh - 52px - 49px);
     overflow: hidden;
-    position: relative;
   }
 
   .pane {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
     min-width: 0;
+    position: relative;
   }
 
-  .pane-editor {
-    flex: 1;
-    border-right: 1px solid var(--border);
-  }
-
-  .pane-preview {
-    flex: 1;
-    background: var(--preview-bg);
-  }
-
-  .pane-label {
-    font-size: 0.7rem;
-    font-weight: 700;
+  .pane-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: var(--bg-toolbar);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.72rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--fg-muted);
-    padding: 8px 16px;
-    background: var(--bg-surface);
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
+    color: var(--text-muted);
+    font-weight: 600;
   }
 
-  /* ── Editor ── */
+  .pane-header .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+  }
+
+  .dot-editor { background: #3b82f6; box-shadow: 0 0 6px rgba(59, 130, 246, 0.4); }
+  .dot-preview { background: var(--accent); box-shadow: 0 0 6px rgba(224, 148, 58, 0.4); }
+
+  .divider {
+    width: 3px;
+    background: var(--border);
+    cursor: col-resize;
+    position: relative;
+    flex-shrink: 0;
+    transition: background 0.2s;
+    z-index: 5;
+  }
+
+  .divider:hover, .divider.active {
+    background: var(--accent);
+    box-shadow: 0 0 8px rgba(224, 148, 58, 0.3);
+  }
+
+  .divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 3px;
+    height: 30px;
+    border-radius: 2px;
+    background: var(--text-muted);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .divider:hover::after { opacity: 0.5; }
+
+  /* ---- EDITOR ---- */
+  .editor-pane { background: var(--bg-editor); }
+
   #editor {
     flex: 1;
     width: 100%;
-    background: var(--bg);
-    color: var(--fg);
+    background: transparent;
     border: none;
     outline: none;
-    resize: none;
-    padding: 20px;
-    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    color: var(--text);
+    font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
     font-size: 0.88rem;
     line-height: 1.75;
+    padding: 20px 24px;
+    resize: none;
     tab-size: 2;
+    overflow-y: auto;
     caret-color: var(--accent);
   }
 
-  #editor::placeholder { color: var(--fg-muted); opacity: 0.5; }
-  #editor::selection { background: rgba(232,168,73,0.25); }
-
-  /* ── Preview ── */
-  .preview-scroll {
-    flex: 1;
-    overflow-y: auto;
-    padding: 24px 28px 60px;
-    scroll-behavior: smooth;
+  #editor::placeholder {
+    color: var(--text-muted);
+    opacity: 0.6;
   }
 
-  .preview-content {
-    max-width: 760px;
-    color: var(--fg);
-    line-height: 1.75;
+  #editor::selection {
+    background: rgba(224, 148, 58, 0.2);
+    color: var(--text-bright);
+  }
+
+  /* ---- PREVIEW ---- */
+  .preview-pane { background: var(--bg-preview); }
+
+  #preview {
+    flex: 1;
+    padding: 24px 28px;
+    overflow-y: auto;
+    line-height: 1.7;
     font-size: 0.95rem;
   }
 
-  /* ── Preview Typography ── */
-  .preview-content h1 {
-    font-size: 2rem;
-    font-weight: 800;
-    color: var(--fg-bright);
-    margin: 0 0 16px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid var(--border);
-    letter-spacing: -0.03em;
+  #preview h1, #preview h2, #preview h3,
+  #preview h4, #preview h5, #preview h6 {
+    color: var(--text-bright);
+    font-weight: 700;
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    line-height: 1.3;
   }
 
-  .preview-content h2 {
-    font-size: 1.45rem;
-    font-weight: 700;
-    color: var(--fg-bright);
-    margin: 28px 0 12px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid var(--border);
-    letter-spacing: -0.02em;
-  }
+  #preview h1 { font-size: 2rem; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; }
+  #preview h2 { font-size: 1.55rem; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  #preview h3 { font-size: 1.3rem; }
+  #preview h4 { font-size: 1.1rem; }
+  #preview h5 { font-size: 1rem; }
+  #preview h6 { font-size: 0.9rem; color: var(--text-muted); }
 
-  .preview-content h3 {
-    font-size: 1.15rem;
-    font-weight: 700;
+  #preview h1:first-child, #preview h2:first-child, #preview h3:first-child { margin-top: 0; }
+
+  #preview p { margin-bottom: 0.9em; }
+
+  #preview strong { color: var(--text-bright); font-weight: 700; }
+  #preview em { font-style: italic; color: #d4b896; }
+
+  #preview a {
     color: var(--accent);
-    margin: 24px 0 10px;
-    letter-spacing: -0.01em;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(224, 148, 58, 0.3);
+    transition: border-color 0.2s;
   }
+  #preview a:hover { border-color: var(--accent); }
 
-  .preview-content p {
-    margin: 0 0 14px;
-  }
-
-  .preview-content strong {
-    color: var(--fg-bright);
-    font-weight: 700;
-  }
-
-  .preview-content em {
-    color: var(--accent-hover);
-    font-style: italic;
-  }
-
-  .preview-content a {
-    color: var(--tag-color);
-    text-decoration: underline;
-    text-underline-offset: 3px;
-    transition: color 0.15s;
-  }
-  .preview-content a:hover { color: #a8e0f8; }
-
-  .preview-content code {
+  #preview code {
+    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
     background: var(--code-bg);
-    color: var(--accent);
     padding: 2px 7px;
     border-radius: 4px;
-    font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
     font-size: 0.85em;
+    color: #e8b87a;
     border: 1px solid var(--border);
   }
 
-  .preview-content pre {
+  #preview pre {
     background: var(--code-bg);
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 16px 20px;
-    margin: 0 0 16px;
     overflow-x: auto;
+    margin: 1em 0;
     position: relative;
   }
 
-  .preview-content pre code {
-    background: none;
-    border: none;
+  #preview pre code {
+    background: transparent;
     padding: 0;
-    color: var(--fg);
+    border: none;
+    color: var(--text);
     font-size: 0.84rem;
-    line-height: 1.7;
+    line-height: 1.6;
   }
 
-  .preview-content blockquote {
-    border-left: 3px solid var(--accent);
-    background: var(--accent-dim);
-    margin: 0 0 16px;
-    padding: 12px 20px;
+  #preview blockquote {
+    border-left: 3px solid var(--blockquote-border);
+    margin: 1em 0;
+    padding: 10px 20px;
+    background: var(--accent-glow);
     border-radius: 0 6px 6px 0;
-    color: var(--fg);
+    color: var(--text);
   }
 
-  .preview-content blockquote p:last-child { margin-bottom: 0; }
+  #preview blockquote p { margin-bottom: 0.4em; }
+  #preview blockquote p:last-child { margin-bottom: 0; }
 
-  .preview-content hr {
+  #preview ul, #preview ol {
+    margin: 0.8em 0;
+    padding-left: 1.8em;
+  }
+
+  #preview li { margin-bottom: 0.35em; }
+
+  #preview ul li::marker { color: var(--accent); }
+  #preview ol li::marker { color: var(--accent); font-weight: 600; }
+
+  #preview hr {
     border: none;
     height: 1px;
-    background: linear-gradient(90deg, transparent, var(--hr-color), transparent);
-    margin: 24px 0;
+    background: linear-gradient(90deg, transparent, var(--border-light), transparent);
+    margin: 1.5em 0;
   }
 
-  .preview-content ul, .preview-content ol {
-    margin: 0 0 16px;
-    padding-left: 26px;
-  }
-
-  .preview-content li { margin-bottom: 5px; }
-
-  .preview-content ul li::marker { color: var(--accent); }
-  .preview-content ol li::marker { color: var(--accent); font-weight: 600; }
-
-  .preview-content img {
+  #preview img {
     max-width: 100%;
     border-radius: 8px;
     border: 1px solid var(--border);
-    margin: 8px 0;
   }
 
-  .preview-content table {
+  #preview table {
     width: 100%;
     border-collapse: collapse;
-    margin: 0 0 16px;
-    font-size: 0.88rem;
+    margin: 1em 0;
   }
 
-  .preview-content th {
-    background: var(--bg-elevated);
-    color: var(--fg-bright);
-    font-weight: 700;
+  #preview th, #preview td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
     text-align: left;
-    padding: 10px 14px;
-    border: 1px solid var(--border);
   }
 
-  .preview-content td {
-    padding: 9px 14px;
-    border: 1px solid var(--border);
+  #preview th {
+    background: var(--bg-toolbar);
+    color: var(--text-bright);
+    font-weight: 600;
   }
 
-  .preview-content tr:nth-child(even) td {
-    background: rgba(255,255,255,0.02);
+  #preview input[type="checkbox"] {
+    accent-color: var(--accent);
+    margin-right: 6px;
   }
 
-  .preview-content tr:hover td {
-    background: var(--accent-dim);
+  /* Empty state */
+  .preview-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    opacity: 0.6;
   }
 
-  /* ── Drag Divider (desktop) ── */
-  .divider {
-    width: 5px;
-    cursor: col-resize;
-    background: var(--border);
-    flex-shrink: 0;
-    position: relative;
-    transition: background 0.15s;
+  /* ---- TOAST ---- */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--bg-btn-active);
+    color: var(--text-bright);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    border: 1px solid var(--accent);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 12px rgba(224, 148, 58, 0.15);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 100;
   }
-  .divider:hover, .divider.active {
+
+  .toast.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ---- AMBIENT GLOW ---- */
+  .ambient-glow {
+    position: fixed;
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.06;
+  }
+
+  .glow-1 {
+    top: -100px;
+    right: -50px;
     background: var(--accent);
+    animation: glowDrift 12s ease-in-out infinite alternate;
   }
 
-  /* ── Mobile Stacking ── */
+  .glow-2 {
+    bottom: -150px;
+    left: -100px;
+    background: #3b82f6;
+    animation: glowDrift 15s ease-in-out infinite alternate-reverse;
+  }
+
+  @keyframes glowDrift {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(30px, -20px); }
+  }
+
+  /* ---- RESPONSIVE ---- */
   @media (max-width: 768px) {
-    .main-container {
+    .main-wrap {
       flex-direction: column;
+      height: calc(100vh - 52px - 49px);
     }
-    .pane-editor {
-      border-right: none;
-      border-bottom: 1px solid var(--border);
-      flex: none;
-      height: 50%;
-    }
-    .pane-preview {
-      flex: none;
-      height: 50%;
-    }
-    .divider { display: none; }
-    .toolbar { gap: 1px; padding: 4px 8px; }
-    .toolbar button { padding: 4px 7px; font-size: 0.72rem; }
-    .header-top { padding: 8px 12px; }
-    .stats { gap: 10px; font-size: 0.7rem; }
-    .preview-scroll { padding: 16px; }
-  }
 
-  /* ── Subtle background texture ── */
-  .app-header, .main-container {
-    background-image:
-      radial-gradient(ellipse at 10% 0%, rgba(232,168,73,0.03) 0%, transparent 50%),
-      radial-gradient(ellipse at 90% 100%, rgba(126,200,227,0.02) 0%, transparent 50%);
-  }
+    .divider {
+      width: 100%;
+      height: 3px;
+      cursor: row-resize;
+    }
 
-  /* ── Focus ring ── */
-  #editor:focus-visible {
-    outline: none;
-    box-shadow: inset 0 0 0 1px var(--border-focus);
+    .pane { flex: none; height: 50%; }
+
+    .toolbar { padding: 6px 10px; }
+
+    .tb-label { display: none; }
+
+    #editor { font-size: 0.82rem; padding: 14px 16px; }
+
+    #preview { padding: 16px 18px; font-size: 0.88rem; }
+
+    .logo span { display: none; }
+
+    .word-count { font-size: 0.7rem; padding: 3px 8px; }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      transition-duration: 0.01ms !important;
-    }
+    .ambient-glow { animation: none; }
+    * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
   }
 </style>
 </head>
 <body>
 
-<!-- Header -->
-<header class="app-header">
-  <div class="header-top">
-    <div class="app-title"><span class="dot"></span>Markdown Editor</div>
-    <div class="stats">
-      <span>Words: <span class="stat-value" id="wordCount">0</span></span>
-      <span>Characters: <span class="stat-value" id="charCount">0</span></span>
-      <span>Lines: <span class="stat-value" id="lineCount">0</span></span>
-    </div>
+<!-- Ambient background glows -->
+<div class="ambient-glow glow-1"></div>
+<div class="ambient-glow glow-2"></div>
+
+<!-- Top bar -->
+<header class="top-bar">
+  <div class="logo">
+    <div class="logo-icon">M</div>
+    <span>Markdown Studio</span>
   </div>
-  <nav class="toolbar" role="toolbar" aria-label="Formatting toolbar">
-    <button onclick="insertFormat('h1')" title="Heading 1">H1</button>
-    <button onclick="insertFormat('h2')" title="Heading 2">H2</button>
-    <button onclick="insertFormat('h3')" title="Heading 3">H3</button>
-    <div class="sep"></div>
-    <button onclick="insertFormat('bold')" title="Bold"><b>B</b></button>
-    <button onclick="insertFormat('italic')" title="Italic"><i>I</i></button>
-    <button onclick="insertFormat('code')" title="Inline Code">&lt;/&gt;</button>
-    <button onclick="insertFormat('codeblock')" title="Code Block">{ }</button>
-    <div class="sep"></div>
-    <button onclick="insertFormat('link')" title="Link">Link</button>
-    <button onclick="insertFormat('image')" title="Image">Image</button>
-    <div class="sep"></div>
-    <button onclick="insertFormat('ul')" title="Unordered List">UL</button>
-    <button onclick="insertFormat('ol')" title="Ordered List">OL</button>
-    <button onclick="insertFormat('quote')" title="Blockquote">Quote</button>
-    <button onclick="insertFormat('hr')" title="Horizontal Rule">HR</button>
-    <div class="sep"></div>
-    <button onclick="insertFormat('table')" title="Table">Table</button>
-  </nav>
+  <div class="top-bar-right">
+    <div class="word-count" id="wordCount">Words: <span>0</span> &middot; Chars: <span>0</span></div>
+    <button class="copy-btn" id="copyBtn" aria-label="Copy markdown to clipboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      <span class="copy-text">Copy</span>
+    </button>
+  </div>
 </header>
 
-<!-- Main Split Panes -->
-<div class="main-container">
-  <div class="pane pane-editor" id="paneEditor">
-    <div class="pane-label">Editor</div>
-    <textarea id="editor" spellcheck="false" placeholder="Start writing markdown..."></textarea>
-  </div>
-  <div class="divider" id="divider"></div>
-  <div class="pane pane-preview" id="panePreview">
-    <div class="pane-label">Preview</div>
-    <div class="preview-scroll" id="previewScroll">
-      <div class="preview-content" id="previewContent"></div>
+<!-- Toolbar -->
+<nav class="toolbar" role="toolbar" aria-label="Formatting tools">
+  <span class="tb-label">Format</span>
+  <button class="tb-btn" data-action="bold" title="Bold (Ctrl+B)" aria-label="Bold">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
+  </button>
+  <button class="tb-btn" data-action="italic" title="Italic (Ctrl+I)" aria-label="Italic">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>
+  </button>
+  <button class="tb-btn" data-action="strikethrough" title="Strikethrough" aria-label="Strikethrough">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.3 4.9c-2.3-.6-4.4-1-6.2-.9-2.7 0-5.3.7-5.3 3.6 0 1.5 1.8 3.3 7.2 3.3"/><line x1="4" y1="12" x2="20" y2="12"/><path d="M17.3 12c1.5.7 2.7 1.8 2.7 3.5 0 3.6-3.5 4.5-6.5 4.5-2.2 0-4.7-.4-7.5-1.2"/></svg>
+  </button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" data-action="h1" title="Heading 1" aria-label="Heading 1" style="font-size:0.78rem;">H1</button>
+  <button class="tb-btn" data-action="h2" title="Heading 2" aria-label="Heading 2" style="font-size:0.78rem;">H2</button>
+  <button class="tb-btn" data-action="h3" title="Heading 3" aria-label="Heading 3" style="font-size:0.78rem;">H3</button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" data-action="ul" title="Unordered List" aria-label="Unordered list">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.5" cy="6" r="1.5" fill="currentColor"/><circle cx="3.5" cy="12" r="1.5" fill="currentColor"/><circle cx="3.5" cy="18" r="1.5" fill="currentColor"/></svg>
+  </button>
+  <button class="tb-btn" data-action="ol" title="Ordered List" aria-label="Ordered list">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><text x="2" y="8" font-size="7" fill="currentColor" stroke="none" font-weight="700">1</text><text x="2" y="14" font-size="7" fill="currentColor" stroke="none" font-weight="700">2</text><text x="2" y="20" font-size="7" fill="currentColor" stroke="none" font-weight="700">3</text></svg>
+  </button>
+  <button class="tb-btn" data-action="checklist" title="Checklist" aria-label="Checklist">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="4" height="4" rx="0.5"/><path d="M4 7l1.2 1.2L7.5 5.5"/><line x1="12" y1="7" x2="21" y2="7"/><rect x="3" y="13" width="4" height="4" rx="0.5"/><line x1="12" y1="15" x2="21" y2="15"/></svg>
+  </button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" data-action="link" title="Link (Ctrl+K)" aria-label="Insert link">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+  </button>
+  <button class="tb-btn" data-action="image" title="Image" aria-label="Insert image">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+  </button>
+  <button class="tb-btn" data-action="code" title="Inline Code" aria-label="Inline code">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+  </button>
+  <button class="tb-btn" data-action="codeblock" title="Code Block" aria-label="Code block">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="8 10 6 12 8 14"/><polyline points="16 10 18 12 16 14"/><line x1="13" y1="9" x2="11" y2="15"/></svg>
+  </button>
+  <button class="tb-btn" data-action="quote" title="Blockquote" aria-label="Blockquote">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3z"/></svg>
+  </button>
+  <button class="tb-btn" data-action="hr" title="Horizontal Rule" aria-label="Horizontal rule">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="12" x2="22" y2="12"/></svg>
+  </button>
+</nav>
+
+<!-- Main editor area -->
+<main class="main-wrap" id="mainWrap">
+  <section class="pane editor-pane" id="editorPane">
+    <div class="pane-header">
+      <span><span class="dot dot-editor"></span>Editor</span>
     </div>
-  </div>
-</div>
+    <textarea id="editor" placeholder="Start writing markdown..." spellcheck="false" aria-label="Markdown editor"></textarea>
+  </section>
+
+  <div class="divider" id="divider" role="separator" aria-label="Resize panes"></div>
+
+  <section class="pane preview-pane" id="previewPane">
+    <div class="pane-header">
+      <span><span class="dot dot-preview"></span>Preview</span>
+    </div>
+    <div id="preview" role="document" aria-label="Markdown preview"></div>
+  </section>
+</main>
+
+<!-- Toast notification -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-  // ── DOM References ──
-  const editor = document.getElementById('editor');
-  const previewContent = document.getElementById('previewContent');
-  const previewScroll = document.getElementById('previewScroll');
-  const wordCountEl = document.getElementById('wordCount');
-  const charCountEl = document.getElementById('charCount');
-  const lineCountEl = document.getElementById('lineCount');
-  const divider = document.getElementById('divider');
-  const paneEditor = document.getElementById('paneEditor');
-  const panePreview = document.getElementById('panePreview');
+  // ---- Default sample content ----
+  const defaultContent = `# Welcome to Markdown Studio
 
-  // ── Sample Markdown Content ──
-  const sampleMarkdown = `# Markdown Editor
+A fast, elegant markdown editor with **live preview** right in your browser. Start typing on the left and watch your formatted content appear on the right.
 
-Welcome to the **live preview** markdown editor. This tool renders your markdown as you type, with a rich feature set and a polished dark interface.
+## Features
 
-## Text Formatting
+- **Live preview** — see changes as you type
+- Rich formatting toolbar with keyboard shortcuts
+- Word and character count in real time
+- One-click copy to clipboard
+- Responsive split-pane layout
+- Dark theme optimized for writing
 
-You can make text **bold** for emphasis, *italic* for subtle highlights, or combine ***bold and italic*** for strong emphasis. Use \`inline code\` to reference variables, functions, or terminal commands within a sentence.
+## Formatting Examples
 
-## Links and Images
+### Text Styles
 
-Visit [GitHub](https://github.com) for open-source projects, or check out [MDN Web Docs](https://developer.mozilla.org) for web development references.
+You can write in **bold**, *italic*, or ***both***. Add ~~strikethrough~~ for deleted text. Use \`inline code\` for technical terms.
 
-Here is a sample image:
+### Links and Images
 
-![Mountain landscape](https://picsum.photos/seed/mount42/720/320.jpg)
+Visit [GitHub](https://github.com) for repositories, or embed images:
 
-## Lists
+![Sample image](https://picsum.photos/seed/markdown-studio/600/300.jpg)
 
-### Unordered List
-- Real-time markdown parsing
-- Syntax highlighting for code
-- Synced split-pane scrolling
-- Responsive layout for all devices
+### Code Blocks
 
-### Ordered List
-1. Write your markdown in the left editor
-2. See formatted output in the right preview
-3. Use the toolbar for quick formatting
-4. Track word and character counts live
-
-## Code
-
-Inline: use \`const x = 42;\` for short references.
-
-Code block example:
+Here's a JavaScript example:
 
 \`\`\`javascript
 function fibonacci(n) {
@@ -524,50 +673,93 @@ function fibonacci(n) {
 console.log(fibonacci(10)); // 55
 \`\`\`
 
-## Blockquote
+And a Python snippet:
+
+\`\`\`python
+def quicksort(arr):
+    if len(arr) <= 1:
+        return arr
+    pivot = arr[len(arr) // 2]
+    left = [x for x in arr if x < pivot]
+    mid = [x for x in arr if x == pivot]
+    right = [x for x in arr if x > pivot]
+    return quicksort(left) + mid + quicksort(right)
+\`\`\`
+
+### Blockquotes
 
 > "The best way to predict the future is to invent it."
 > — Alan Kay
 
-> Great software is built by teams who care deeply about the details. Every pixel, every interaction, every millisecond matters.
+> **Note:** This editor supports nested formatting inside blockquotes, lists, and other elements.
 
-## Horizontal Rule
+### Lists
 
----
+Unordered list:
 
-## Table
+- First item with **bold text**
+- Second item with *italic text*
+- Third item with \`code\`
+  - Nested item A
+  - Nested item B
+
+Ordered list:
+
+1. Clone the repository
+2. Install dependencies
+3. Run the development server
+4. Start building
+
+### Task List
+
+- [x] Design the interface
+- [x] Implement markdown parser
+- [x] Add toolbar actions
+- [ ] Export to PDF
+- [ ] Add theme switching
+
+### Table
 
 | Feature | Status | Priority |
 |---------|--------|----------|
 | Live Preview | Complete | High |
 | Toolbar | Complete | High |
-| Synced Scrolling | Complete | Medium |
-| Dark Theme | Complete | High |
-| Word Count | Complete | Medium |
-| Responsive | Complete | High |
+| Dark Theme | Complete | Medium |
+| Export PDF | Planned | Low |
 
 ---
 
-*Start editing to see your changes reflected instantly in the preview pane.*`;
+*Start editing to see the magic happen. This entire document is written in markdown.*`;
 
-  // ── Markdown Parser ──
+  // ---- DOM references ----
+  const editor = document.getElementById('editor');
+  const preview = document.getElementById('preview');
+  const wordCountEl = document.getElementById('wordCount');
+  const copyBtn = document.getElementById('copyBtn');
+  const toastEl = document.getElementById('toast');
+  const divider = document.getElementById('divider');
+  const mainWrap = document.getElementById('mainWrap');
+  const editorPane = document.getElementById('editorPane');
+  const previewPane = document.getElementById('previewPane');
+
+  // ---- Markdown Parser ----
   function parseMarkdown(md) {
-    // Store code blocks to prevent inner processing
+    // Store code blocks to protect from processing
     const codeBlocks = [];
     const inlineCodes = [];
 
     // Extract fenced code blocks
-    md = md.replace(/```(\w*)\n([\s\S]*?)```/g, function(match, lang, code) {
+    md = md.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
       const idx = codeBlocks.length;
-      codeBlocks.push('<pre><code class="lang-' + escapeHtml(lang) + '">' + escapeHtml(code.trimEnd()) + '</code></pre>');
-      return '%%CODEBLOCK' + idx + '%%';
+      codeBlocks.push({ lang, code: escapeHtml(code.trimEnd()) });
+      return `\n%%CODEBLOCK_${idx}%%\n`;
     });
 
     // Extract inline code
-    md = md.replace(/`([^`\n]+)`/g, function(match, code) {
+    md = md.replace(/`([^`\n]+?)`/g, (match, code) => {
       const idx = inlineCodes.length;
-      inlineCodes.push('<code>' + escapeHtml(code) + '</code>');
-      return '%%INLINECODE' + idx + '%%';
+      inlineCodes.push(escapeHtml(code));
+      return `%%INLINECODE_${idx}%%`;
     });
 
     // Process lines
@@ -575,322 +767,346 @@ console.log(fibonacci(10)); // 55
     let html = '';
     let inList = false;
     let listType = '';
-    let inBlockquote = false;
     let inParagraph = false;
-
-    function closeOpenElements() {
-      if (inParagraph) { html += '</p>'; inParagraph = false; }
-      if (inList) { html += (listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
-      if (inBlockquote) { html += '</blockquote>'; inBlockquote = false; }
-    }
 
     for (let i = 0; i < lines.length; i++) {
       let line = lines[i];
 
-      // Code block placeholder
-      const codeBlockMatch = line.match(/^%%CODEBLOCK(\d+)%%$/);
+      // Skip codeblock placeholders handling (will be inline)
+      const codeBlockMatch = line.match(/^%%CODEBLOCK_(\d+)%%$/);
       if (codeBlockMatch) {
-        closeOpenElements();
-        html += codeBlocks[parseInt(codeBlockMatch[1])];
+        if (inParagraph) { html += '</p>'; inParagraph = false; }
+        if (inList) { html += listType === 'ul' ? '</ul>' : '</ol>'; inList = false; }
+        const block = codeBlocks[parseInt(codeBlockMatch[1])];
+        const langLabel = block.lang ? `<div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;font-weight:600;">${block.lang}</div>` : '';
+        html += `<pre>${langLabel}<code>${block.code}</code></pre>`;
         continue;
       }
 
       // Horizontal rule
-      if (/^(-{3,}|\*{3,}|_{3,})\s*$/.test(line.trim())) {
-        closeOpenElements();
+      if (/^(\*{3,}|-{3,}|_{3,})\s*$/.test(line.trim())) {
+        if (inParagraph) { html += '</p>'; inParagraph = false; }
+        if (inList) { html += listType === 'ul' ? '</ul>' : '</ol>'; inList = false; }
         html += '<hr>';
         continue;
       }
 
       // Headings
-      const hMatch = line.match(/^(#{1,3})\s+(.+)$/);
-      if (hMatch) {
-        closeOpenElements();
-        const level = hMatch[1].length;
-        html += '<h' + level + '>' + processInline(hMatch[2]) + '</h' + level + '>';
+      const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+      if (headingMatch) {
+        if (inParagraph) { html += '</p>'; inParagraph = false; }
+        if (inList) { html += listType === 'ul' ? '</ul>' : '</ol>'; inList = false; }
+        const level = headingMatch[1].length;
+        const text = processInline(headingMatch[2], inlineCodes);
+        html += `<h${level}>${text}</h${level}>`;
         continue;
-      }
-
-      // Table detection
-      if (line.includes('|') && line.trim().startsWith('|')) {
-        // Look ahead for separator line
-        const nextLine = (i + 1 < lines.length) ? lines[i + 1] : '';
-        if (/^\|?\s*[-:]+[-|\s:]*$/.test(nextLine.trim())) {
-          closeOpenElements();
-          const tableLines = [];
-          let j = i;
-          // Header row
-          tableLines.push(lines[j]);
-          j++;
-          // Separator
-          tableLines.push(lines[j]);
-          j++;
-          // Body rows
-          while (j < lines.length && lines[j].includes('|') && lines[j].trim().startsWith('|')) {
-            tableLines.push(lines[j]);
-            j++;
-          }
-          html += parseTable(tableLines);
-          i = j - 1;
-          continue;
-        }
       }
 
       // Blockquote
-      const bqMatch = line.match(/^>\s?(.*)$/);
-      if (bqMatch) {
-        if (inList) { html += (listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
+      if (line.startsWith('> ')) {
         if (inParagraph) { html += '</p>'; inParagraph = false; }
-        if (!inBlockquote) {
-          html += '<blockquote>';
-          inBlockquote = true;
+        if (inList) { html += listType === 'ul' ? '</ul>' : '</ol>'; inList = false; }
+        let quoteContent = '';
+        while (i < lines.length && (lines[i].startsWith('> ') || lines[i] === '>')) {
+          quoteContent += (lines[i] === '>' ? '' : lines[i].substring(2)) + '\n';
+          i++;
         }
-        html += '<p>' + processInline(bqMatch[1]) + '</p>';
+        i--;
+        html += `<blockquote>${parseMarkdown(quoteContent.trim())}</blockquote>`;
         continue;
-      } else if (inBlockquote) {
-        html += '</blockquote>';
-        inBlockquote = false;
       }
 
       // Unordered list
-      const ulMatch = line.match(/^[-*+]\s+(.+)$/);
+      const ulMatch = line.match(/^(\s*)[-*+]\s+(.*)$/);
       if (ulMatch) {
         if (inParagraph) { html += '</p>'; inParagraph = false; }
-        if (inBlockquote) { html += '</blockquote>'; inBlockquote = false; }
         if (!inList || listType !== 'ul') {
-          if (inList) html += '</ol>';
+          if (inList) { html += listType === 'ul' ? '</ul>' : '</ol>'; }
           html += '<ul>';
           inList = true;
           listType = 'ul';
         }
-        html += '<li>' + processInline(ulMatch[1]) + '</li>';
+        const text = processInline(ulMatch[2], inlineCodes);
+        html += `<li>${text}</li>`;
         continue;
       }
 
       // Ordered list
-      const olMatch = line.match(/^\d+\.\s+(.+)$/);
+      const olMatch = line.match(/^(\s*)\d+\.\s+(.*)$/);
       if (olMatch) {
         if (inParagraph) { html += '</p>'; inParagraph = false; }
-        if (inBlockquote) { html += '</blockquote>'; inBlockquote = false; }
         if (!inList || listType !== 'ol') {
-          if (inList) html += '</ul>';
+          if (inList) { html += listType === 'ul' ? '</ul>' : '</ol>'; }
           html += '<ol>';
           inList = true;
           listType = 'ol';
         }
-        html += '<li>' + processInline(olMatch[1]) + '</li>';
+        const text = processInline(olMatch[2], inlineCodes);
+        html += `<li>${text}</li>`;
         continue;
       }
 
-      // Close list if non-list line
+      // Checklist
+      const checkMatch = line.match(/^[-*+]\s+\[([ xX])\]\s+(.*)$/);
+      if (checkMatch) {
+        if (inParagraph) { html += '</p>'; inParagraph = false; }
+        if (!inList) {
+          html += '<ul style="list-style:none;padding-left:0.5em;">';
+          inList = true;
+          listType = 'ul';
+        }
+        const checked = checkMatch[1] !== ' ';
+        const text = processInline(checkMatch[2], inlineCodes);
+        html += `<li><input type="checkbox" ${checked ? 'checked' : ''} disabled>${text}</li>`;
+        continue;
+      }
+
+      // Close list if we reach a non-list line
       if (inList) {
-        html += (listType === 'ul' ? '</ul>' : '</ol>');
+        html += listType === 'ul' ? '</ul>' : '</ol>';
         inList = false;
       }
 
       // Empty line
       if (line.trim() === '') {
         if (inParagraph) { html += '</p>'; inParagraph = false; }
-        if (inBlockquote) { html += '</blockquote>'; inBlockquote = false; }
         continue;
       }
 
-      // Paragraph content (inline code placeholders already safe)
-      if (line.match(/^%%CODEBLOCK\d+%%$/)) {
-        closeOpenElements();
-        const idx = parseInt(line.match(/(\d+)/)[1]);
-        html += codeBlocks[idx];
-        continue;
-      }
-
-      // Regular text -> paragraph
-      if (!inParagraph) {
-        html += '<p>';
-        inParagraph = true;
+      // Paragraph content
+      const processedLine = processInline(line, inlineCodes);
+      if (inParagraph) {
+        html += '<br>' + processedLine;
       } else {
-        html += '<br>';
+        html += '<p>' + processedLine;
+        inParagraph = true;
       }
-      html += processInline(line);
     }
 
-    closeOpenElements();
+    if (inParagraph) html += '</p>';
+    if (inList) html += listType === 'ul' ? '</ul>' : '</ol>';
+
+    // Restore inline code
+    html = html.replace(/%%INLINECODE_(\d+)%%/g, (match, idx) => {
+      return `<code>${inlineCodes[parseInt(idx)]}</code>`;
+    });
+
     return html;
   }
 
-  // Process inline markdown (bold, italic, links, images, inline code placeholders)
-  function processInline(text) {
+  function processInline(text, inlineCodes) {
     // Images
     text = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">');
     // Links
     text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-    // Bold+Italic
+    // Bold + Italic
     text = text.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+    text = text.replace(/___(.+?)___/g, '<strong><em>$1</em></strong>');
     // Bold
     text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/__(.+?)__/g, '<strong>$1</strong>');
     // Italic
     text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    text = text.replace(/_(.+?)_/g, '<em>$1</em>');
+    // Strikethrough
+    text = text.replace(/~~(.+?)~~/g, '<del>$1</del>');
     return text;
   }
 
-  // Parse table from collected lines
-  function parseTable(tableLines) {
-    if (tableLines.length < 2) return '';
-    function parseRow(line) {
-      return line.replace(/^\|/, '').replace(/\|$/, '').split('|').map(function(c) { return c.trim(); });
-    }
-    const headers = parseRow(tableLines[0]);
-    let html = '<table><thead><tr>';
-    headers.forEach(function(h) {
-      html += '<th>' + processInline(h) + '</th>';
-    });
-    html += '</tr></thead><tbody>';
-    for (let i = 2; i < tableLines.length; i++) {
-      const cells = parseRow(tableLines[i]);
-      html += '<tr>';
-      cells.forEach(function(c) {
-        html += '<td>' + processInline(c) + '</td>';
-      });
-      html += '</tr>';
-    }
-    html += '</tbody></table>';
-    return html;
-  }
-
-  function escapeHtml(text) {
-    return text
+  function escapeHtml(str) {
+    return str
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
   }
 
-  // ── Render Preview ──
-  function renderPreview() {
+  // ---- Update preview and word count ----
+  function updatePreview() {
     const md = editor.value;
-    previewContent.innerHTML = parseMarkdown(md);
-    updateStats(md);
+    if (md.trim() === '') {
+      preview.innerHTML = '<div class="preview-empty">Start typing to see a live preview...</div>';
+    } else {
+      preview.innerHTML = parseMarkdown(md);
+    }
+    updateWordCount(md);
   }
 
-  // ── Stats ──
-  function updateStats(text) {
-    const plainText = text.replace(/[#*`>\[\]()!|_-]/g, ' ').replace(/\s+/g, ' ').trim();
-    const words = plainText === '' ? 0 : plainText.split(' ').filter(function(w) { return w.length > 0; }).length;
-    wordCountEl.textContent = words;
-    charCountEl.textContent = text.length;
-    lineCountEl.textContent = text === '' ? 0 : text.split('\n').length;
+  function updateWordCount(text) {
+    const trimmed = text.trim();
+    if (trimmed === '') {
+      wordCountEl.innerHTML = 'Words: <span>0</span> &middot; Chars: <span>0</span>';
+      return;
+    }
+    const words = trimmed.split(/\s+/).length;
+    const chars = trimmed.length;
+    wordCountEl.innerHTML = `Words: <span>${words.toLocaleString()}</span> &middot; Chars: <span>${chars.toLocaleString()}</span>`;
   }
 
-  // ── Synced Scrolling ──
-  let syncingScroll = false;
-
-  editor.addEventListener('scroll', function() {
-    if (syncingScroll) return;
-    syncingScroll = true;
-    const ratio = editor.scrollTop / (editor.scrollHeight - editor.clientHeight || 1);
-    previewScroll.scrollTop = ratio * (previewScroll.scrollHeight - previewScroll.clientHeight);
-    requestAnimationFrame(function() { syncingScroll = false; });
-  });
-
-  previewScroll.addEventListener('scroll', function() {
-    if (syncingScroll) return;
-    syncingScroll = true;
-    const ratio = previewScroll.scrollTop / (previewScroll.scrollHeight - previewScroll.clientHeight || 1);
-    editor.scrollTop = ratio * (editor.scrollHeight - editor.clientHeight);
-    requestAnimationFrame(function() { syncingScroll = false; });
-  });
-
-  // ── Toolbar: Insert Formatting ──
-  function insertFormat(type) {
-    editor.focus();
+  // ---- Toolbar actions ----
+  function insertAround(before, after, placeholder) {
     const start = editor.selectionStart;
     const end = editor.selectionEnd;
     const selected = editor.value.substring(start, end);
-    let before = '', after = '', newText = '';
+    const text = selected || placeholder;
+    const replacement = before + text + after;
 
-    switch (type) {
-      case 'h1':
-        before = '# '; after = '';
-        newText = before + (selected || 'Heading 1') + after;
-        replaceSelection(start, end, newText, before.length, newText.length);
-        return;
-      case 'h2':
-        before = '## '; after = '';
-        newText = before + (selected || 'Heading 2') + after;
-        replaceSelection(start, end, newText, before.length, newText.length);
-        return;
-      case 'h3':
-        before = '### '; after = '';
-        newText = before + (selected || 'Heading 3') + after;
-        replaceSelection(start, end, newText, before.length, newText.length);
-        return;
-      case 'bold':
-        before = '**'; after = '**';
-        newText = before + (selected || 'bold text') + after;
-        break;
-      case 'italic':
-        before = '*'; after = '*';
-        newText = before + (selected || 'italic text') + after;
-        break;
-      case 'code':
-        before = '`'; after = '`';
-        newText = before + (selected || 'code') + after;
-        break;
-      case 'codeblock':
-        before = '```\n'; after = '\n```';
-        newText = before + (selected || 'code here') + after;
-        break;
-      case 'link':
-        newText = '[' + (selected || 'link text') + '](https://example.com)';
-        break;
-      case 'image':
-        newText = '![' + (selected || 'alt text') + '](https://picsum.photos/seed/demo/600/300.jpg)';
-        break;
-      case 'ul':
-        newText = '- ' + (selected || 'List item');
-        break;
-      case 'ol':
-        newText = '1. ' + (selected || 'List item');
-        break;
-      case 'quote':
-        before = '> '; after = '';
-        newText = before + (selected || 'Blockquote text') + after;
-        break;
-      case 'hr':
-        newText = '\n---\n';
-        break;
-      case 'table':
-        newText = '| Header 1 | Header 2 | Header 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |';
-        break;
+    editor.focus();
+    // Use execCommand for undo support
+    document.execCommand('insertText', false, replacement);
+
+    // Select the placeholder if nothing was selected
+    if (!selected) {
+      editor.selectionStart = start + before.length;
+      editor.selectionEnd = start + before.length + text.length;
     }
 
-    replaceSelection(start, end, newText, 0, newText.length);
+    updatePreview();
   }
 
-  function replaceSelection(start, end, text, cursorOffsetStart, cursorOffsetEnd) {
-    // Use execCommand if supported for undo support, otherwise fallback
-    editor.selectionStart = start;
+  function insertAtLineStart(prefix) {
+    const start = editor.selectionStart;
+    const val = editor.value;
+
+    // Find the beginning of the current line
+    let lineStart = val.lastIndexOf('\n', start - 1) + 1;
+    const lineEnd = val.indexOf('\n', start);
+    const end = lineEnd === -1 ? val.length : lineEnd;
+    const currentLine = val.substring(lineStart, end);
+
+    editor.selectionStart = lineStart;
     editor.selectionEnd = end;
     editor.focus();
 
-    // Try execCommand for undo support
-    let success = false;
-    try {
-      success = document.execCommand('insertText', false, text);
-    } catch (e) { success = false; }
+    const newLine = prefix + currentLine;
+    document.execCommand('insertText', false, newLine);
 
-    if (!success) {
-      editor.value = editor.value.substring(0, start) + text + editor.value.substring(end);
-    }
-
-    editor.selectionStart = start + cursorOffsetStart;
-    editor.selectionEnd = start + cursorOffsetEnd;
-    renderPreview();
+    updatePreview();
   }
 
-  // ── Draggable Divider ──
+  function handleToolbarAction(action) {
+    switch (action) {
+      case 'bold':
+        insertAround('**', '**', 'bold text');
+        break;
+      case 'italic':
+        insertAround('*', '*', 'italic text');
+        break;
+      case 'strikethrough':
+        insertAround('~~', '~~', 'strikethrough');
+        break;
+      case 'h1':
+        insertAtLineStart('# ');
+        break;
+      case 'h2':
+        insertAtLineStart('## ');
+        break;
+      case 'h3':
+        insertAtLineStart('### ');
+        break;
+      case 'ul':
+        insertAtLineStart('- ');
+        break;
+      case 'ol':
+        insertAtLineStart('1. ');
+        break;
+      case 'checklist':
+        insertAtLineStart('- [ ] ');
+        break;
+      case 'link':
+        insertAround('[', '](https://example.com)', 'link text');
+        break;
+      case 'image':
+        insertAround('![', '](https://picsum.photos/seed/demo/600/300.jpg)', 'alt text');
+        break;
+      case 'code':
+        insertAround('`', '`', 'code');
+        break;
+      case 'codeblock':
+        insertAround('\n```\n', '\n```\n', 'code here');
+        break;
+      case 'quote':
+        insertAtLineStart('> ');
+        break;
+      case 'hr':
+        const pos = editor.selectionStart;
+        editor.selectionEnd = pos;
+        editor.focus();
+        document.execCommand('insertText', false, '\n---\n');
+        updatePreview();
+        break;
+    }
+  }
+
+  // Toolbar click handler
+  document.querySelector('.toolbar').addEventListener('click', (e) => {
+    const btn = e.target.closest('.tb-btn');
+    if (!btn) return;
+    const action = btn.dataset.action;
+    if (action) handleToolbarAction(action);
+  });
+
+  // ---- Keyboard shortcuts ----
+  editor.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey) {
+      switch (e.key.toLowerCase()) {
+        case 'b':
+          e.preventDefault();
+          handleToolbarAction('bold');
+          break;
+        case 'i':
+          e.preventDefault();
+          handleToolbarAction('italic');
+          break;
+        case 'k':
+          e.preventDefault();
+          handleToolbarAction('link');
+          break;
+      }
+    }
+
+    // Tab support
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      document.execCommand('insertText', false, '  ');
+      updatePreview();
+    }
+  });
+
+  // ---- Copy button ----
+  copyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(editor.value);
+      showToast('Markdown copied to clipboard');
+      copyBtn.classList.add('copied');
+      copyBtn.querySelector('.copy-text').textContent = 'Copied';
+      setTimeout(() => {
+        copyBtn.classList.remove('copied');
+        copyBtn.querySelector('.copy-text').textContent = 'Copy';
+      }, 2000);
+    } catch {
+      // Fallback
+      editor.select();
+      document.execCommand('copy');
+      showToast('Markdown copied to clipboard');
+    }
+  });
+
+  // ---- Toast ----
+  let toastTimeout;
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('visible');
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+      toastEl.classList.remove('visible');
+    }, 2500);
+  }
+
+  // ---- Draggable divider ----
   let isDragging = false;
 
-  divider.addEventListener('mousedown', function(e) {
+  divider.addEventListener('mousedown', (e) => {
     isDragging = true;
     divider.classList.add('active');
     document.body.style.cursor = 'col-resize';
@@ -898,22 +1114,19 @@ console.log(fibonacci(10)); // 55
     e.preventDefault();
   });
 
-  document.addEventListener('mousemove', function(e) {
+  document.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
-    const container = document.querySelector('.main-container');
-    const rect = container.getBoundingClientRect();
+    const rect = mainWrap.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    const totalW = rect.width;
-    const minW = 200;
-    const editorW = Math.max(minW, Math.min(totalW - minW - 5, x));
-    const previewW = totalW - editorW - 5;
-    paneEditor.style.flex = 'none';
-    paneEditor.style.width = editorW + 'px';
-    panePreview.style.flex = 'none';
-    panePreview.style.width = previewW + 'px';
+    const total = rect.width;
+    const pct = Math.max(20, Math.min(80, (x / total) * 100));
+    editorPane.style.flex = 'none';
+    editorPane.style.width = pct + '%';
+    previewPane.style.flex = 'none';
+    previewPane.style.width = (100 - pct) + '%';
   });
 
-  document.addEventListener('mouseup', function() {
+  document.addEventListener('mouseup', () => {
     if (isDragging) {
       isDragging = false;
       divider.classList.remove('active');
@@ -922,73 +1135,39 @@ console.log(fibonacci(10)); // 55
     }
   });
 
-  // ── Touch support for divider ──
-  divider.addEventListener('touchstart', function(e) {
+  // Touch support for divider
+  divider.addEventListener('touchstart', (e) => {
     isDragging = true;
     divider.classList.add('active');
     e.preventDefault();
   }, { passive: false });
 
-  document.addEventListener('touchmove', function(e) {
+  document.addEventListener('touchmove', (e) => {
     if (!isDragging) return;
     const touch = e.touches[0];
-    const container = document.querySelector('.main-container');
-    const rect = container.getBoundingClientRect();
+    const rect = mainWrap.getBoundingClientRect();
     const x = touch.clientX - rect.left;
-    const totalW = rect.width;
-    const minW = 120;
-    const editorW = Math.max(minW, Math.min(totalW - minW - 5, x));
-    const previewW = totalW - editorW - 5;
-    paneEditor.style.flex = 'none';
-    paneEditor.style.width = editorW + 'px';
-    panePreview.style.flex = 'none';
-    panePreview.style.width = previewW + 'px';
+    const total = rect.width;
+    const pct = Math.max(20, Math.min(80, (x / total) * 100));
+    editorPane.style.flex = 'none';
+    editorPane.style.width = pct + '%';
+    previewPane.style.flex = 'none';
+    previewPane.style.width = (100 - pct) + '%';
   }, { passive: false });
 
-  document.addEventListener('touchend', function() {
+  document.addEventListener('touchend', () => {
     if (isDragging) {
       isDragging = false;
       divider.classList.remove('active');
     }
   });
 
-  // ── Keyboard Shortcuts ──
-  editor.addEventListener('keydown', function(e) {
-    // Tab key inserts spaces
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const start = editor.selectionStart;
-      const end = editor.selectionEnd;
-      try {
-        document.execCommand('insertText', false, '  ');
-      } catch (err) {
-        editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
-      }
-      renderPreview();
-    }
-    // Ctrl/Cmd + B = bold
-    if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
-      e.preventDefault();
-      insertFormat('bold');
-    }
-    // Ctrl/Cmd + I = italic
-    if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
-      e.preventDefault();
-      insertFormat('italic');
-    }
-    // Ctrl/Cmd + K = link
-    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-      e.preventDefault();
-      insertFormat('link');
-    }
-  });
-
-  // ── Initialize ──
-  editor.value = sampleMarkdown;
-  renderPreview();
+  // ---- Initialize ----
+  editor.value = defaultContent;
+  updatePreview();
 
   // Live update on input
-  editor.addEventListener('input', renderPreview);
+  editor.addEventListener('input', updatePreview);
 </script>
 </body>
 </html>

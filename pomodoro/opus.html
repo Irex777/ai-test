@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pomodoro Timer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #a8a8e8;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .mode-btn {
+            background: #16213e;
+            border: 2px solid #3f3f6f;
+            color: #a8a8e8;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .mode-btn:hover {
+            background: #1f2b4d;
+        }
+
+        .mode-btn.active {
+            border-color: #e94560;
+            background: #2d1b2d;
+            color: #fff;
+        }
+
+        .timer-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 0 auto 2rem;
+        }
+
+        .timer-ring {
+            transform: rotate(-90deg);
+        }
+
+        .timer-ring-bg {
+            fill: none;
+            stroke: #16213e;
+            stroke-width: 8;
+        }
+
+        .timer-ring-progress {
+            fill: none;
+            stroke: #e94560;
+            stroke-width: 8;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1s linear, stroke 0.3s;
+        }
+
+        .timer-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3.5rem;
+            font-weight: 300;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .control-btn {
+            background: #e94560;
+            border: none;
+            color: #fff;
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 100px;
+        }
+
+        .control-btn:hover {
+            background: #ff5c77;
+            transform: translateY(-2px);
+        }
+
+        .control-btn.secondary {
+            background: #3f3f6f;
+        }
+
+        .control-btn.secondary:hover {
+            background: #5a5a8f;
+        }
+
+        .session-counter {
+            font-size: 1rem;
+            color: #888;
+            margin-bottom: 1.5rem;
+        }
+
+        .session-counter span {
+            color: #e94560;
+            font-weight: bold;
+        }
+
+        .settings {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: #16213e;
+            border-radius: 12px;
+        }
+
+        .settings-toggle {
+            background: #3f3f6f;
+            border: none;
+            color: #a8a8e8;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .settings-content {
+            display: none;
+            margin-top: 1rem;
+        }
+
+        .settings-content.open {
+            display: block;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .setting-row label {
+            width: 120px;
+            text-align: right;
+            color: #a8a8e8;
+            font-size: 0.9rem;
+        }
+
+        .setting-row input {
+            width: 80px;
+            padding: 0.4rem;
+            background: #1a1a2e;
+            border: 1px solid #3f3f6f;
+            color: #fff;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .setting-row input:focus {
+            outline: none;
+            border-color: #e94560;
+        }
+
+        .auto-switch {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .auto-switch input {
+            width: auto;
+            cursor: pointer;
+        }
+
+        .auto-switch label {
+            width: auto;
+        }
+
+        .mode-work .timer-ring-progress { stroke: #e94560; }
+        .mode-short .timer-ring-progress { stroke: #4ecdc4; }
+        .mode-long .timer-ring-progress { stroke: #95e878; }
+
+        .pulse {
+            animation: pulse 1s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.05); }
+        }
+    </style>
+</head>
+<body class="mode-work">
+    <div class="container">
+        <h1>🍅 Pomodoro Timer</h1>
+
+        <div class="mode-selector">
+            <button class="mode-btn active" data-mode="work">Work</button>
+            <button class="mode-btn" data-mode="short">Short Break</button>
+            <button class="mode-btn" data-mode="long">Long Break</button>
+        </div>
+
+        <div class="timer-container">
+            <svg class="timer-ring" width="300" height="300">
+                <circle class="timer-ring-bg" cx="150" cy="150" r="130"></circle>
+                <circle class="timer-ring-progress" cx="150" cy="150" r="130" 
+                    stroke-dasharray="816.81" stroke-dashoffset="0"></circle>
+            </svg>
+            <div class="timer-display">25:00</div>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" id="startBtn">Start</button>
+            <button class="control-btn secondary" id="resetBtn">Reset</button>
+        </div>
+
+        <div class="session-counter">
+            Session: <span id="sessionCount">0</span> / 4
+        </div>
+
+        <div class="settings">
+            <button class="settings-toggle" id="settingsToggle">⚙️ Settings</button>
+            <div class="settings-content" id="settingsContent">
+                <div class="setting-row">
+                    <label>Work (min):</label>
+                    <input type="number" id="workDuration" value="25" min="1" max="60">
+                </div>
+                <div class="setting-row">
+                    <label>Short Break:</label>
+                    <input type="number" id="shortDuration" value="5" min="1" max="30">
+                </div>
+                <div class="setting-row">
+                    <label>Long Break:</label>
+                    <input type="number" id="longDuration" value="15" min="1" max="60">
+                </div>
+                <div class="setting-row">
+                    <label>Sessions:</label>
+                    <input type="number" id="sessionsBeforeLong" value="4" min="2" max="10">
+                </div>
+                <div class="auto-switch">
+                    <input type="checkbox" id="autoSwitch" checked>
+                    <label for="autoSwitch">Auto-switch sessions</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CIRCUMFERENCE = 2 * Math.PI * 130;
+        let timeLeft = 25 * 60;
+        let totalTime = 25 * 60;
+        let isRunning = false;
+        let interval = null;
+        let currentMode = 'work';
+        let sessionCount = 0;
+        let sessionsBeforeLongBreak = 4;
+
+        const timerDisplay = document.querySelector('.timer-display');
+        const progressRing = document.querySelector('.timer-ring-progress');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const sessionCountEl = document.getElementById('sessionCount');
+        const modeBtns = document.querySelectorAll('.mode-btn');
+        const body = document.body;
+        const settingsToggle = document.getElementById('settingsToggle');
+        const settingsContent = document.getElementById('settingsContent');
+
+        const durations = {
+            work: 25,
+            short: 5,
+            long: 15
+        };
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playBeep() {
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.frequency.value = 880;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+            
+            oscillator.start(audioCtx.currentTime);
+            oscillator.stop(audioCtx.currentTime + 0.5);
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function updateDisplay() {
+            timerDisplay.textContent = formatTime(timeLeft);
+            const progress = (totalTime - timeLeft) / totalTime;
+            progressRing.style.strokeDashoffset = CIRCUMFERENCE * (1 - progress);
+            document.title = `${formatTime(timeLeft)} - Pomodoro`;
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            totalTime = durations[mode] * 60;
+            timeLeft = totalTime;
+            isRunning = false;
+            clearInterval(interval);
+            startBtn.textContent = 'Start';
+            
+            modeBtns.forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
+            
+            body.className = `mode-${mode}`;
+            updateDisplay();
+        }
+
+        function startPause() {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            
+            if (isRunning) {
+                clearInterval(interval);
+                startBtn.textContent = 'Start';
+            } else {
+                interval = setInterval(() => {
+                    timeLeft--;
+                    updateDisplay();
+                    
+                    if (timeLeft <= 0) {
+                        clearInterval(interval);
+                        isRunning = false;
+                        startBtn.textContent = 'Start';
+                        playBeep();
+                        timerDisplay.classList.add('pulse');
+                        setTimeout(() => timerDisplay.classList.remove('pulse'), 1000);
+                        
+                        if (document.getElementById('autoSwitch').checked) {
+                            if (currentMode === 'work') {
+                                sessionCount++;
+                                sessionCountEl.textContent = sessionCount;
+                                
+                                if (sessionCount % sessionsBeforeLongBreak === 0) {
+                                    setMode('long');
+                                } else {
+                                    setMode('short');
+                                }
+                            } else {
+                                setMode('work');
+                            }
+                        }
+                    }
+                }, 1000);
+                startBtn.textContent = 'Pause';
+            }
+            isRunning = !isRunning;
+        }
+
+        function reset() {
+            clearInterval(interval);
+            isRunning = false;
+            startBtn.textContent = 'Start';
+            timeLeft = totalTime;
+            updateDisplay();
+        }
+
+        startBtn.addEventListener('click', startPause);
+        resetBtn.addEventListener('click', reset);
+
+        modeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const mode = btn.dataset.mode;
+                setMode(mode);
+            });
+        });
+
+        settingsToggle.addEventListener('click', () => {
+            settingsContent.classList.toggle('open');
+        });
+
+        document.getElementById('workDuration').addEventListener('change', (e) => {
+            durations.work = parseInt(e.target.value) || 25;
+            if (currentMode === 'work' && !isRunning) {
+                totalTime = durations.work * 60;
+                timeLeft = totalTime;
+                updateDisplay();
+            }
+        });
+
+        document.getElementById('shortDuration').addEventListener('change', (e) => {
+            durations.short = parseInt(e.target.value) || 5;
+            if (currentMode === 'short' && !isRunning) {
+                totalTime = durations.short * 60;
+                timeLeft = totalTime;
+                updateDisplay();
+            }
+        });
+
+        document.getElementById('longDuration').addEventListener('change', (e) => {
+            durations.long = parseInt(e.target.value) || 15;
+            if (currentMode === 'long' && !isRunning) {
+                totalTime = durations.long * 60;
+                timeLeft = totalTime;
+                updateDisplay();
+            }
+        });
+
+        document.getElementById('sessionsBeforeLong').addEventListener('change', (e) => {
+            sessionsBeforeLongBreak = parseInt(e.target.value) || 4;
+            document.querySelector('.session-counter').innerHTML = 
+                `Session: <span id="sessionCount">${sessionCount}</span> / ${sessionsBeforeLongBreak}`;
+        });
+
+        progressRing.style.strokeDasharray = CIRCUMFERENCE;
+        updateDisplay();
+    </script>
+</body>
+</html>

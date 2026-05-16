@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Calculator</title>
+    <style>
+        :root {
+            --bg-color: #1c1c1c;
+            --calc-bg: #000000;
+            --screen-text: #ffffff;
+            --screen-dim: #a5a5a5;
+            --btn-num: #333333;
+            --btn-op: #ff9f0a;
+            --btn-func: #a5a5a5;
+            --btn-func-text: #000000;
+            --text-color: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--text-color);
+        }
+
+        .calculator {
+            width: 100%;
+            max-width: 400px;
+            background-color: var(--calc-bg);
+            height: 100vh;
+            max-height: 800px;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            position: relative;
+        }
+
+        @media (min-width: 450px) {
+            .calculator {
+                height: 90vh;
+                border-radius: 30px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            }
+        }
+
+        /* Screen Styles */
+        .screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: flex-end;
+            padding: 20px;
+            word-wrap: break-word;
+            word-break: break-all;
+        }
+
+        .history {
+            color: var(--screen-dim);
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            min-height: 1.5rem;
+        }
+
+        .current-input {
+            color: var(--screen-text);
+            font-size: 3.5rem;
+            font-weight: 300;
+        }
+
+        /* Grid Layout */
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            padding-bottom: 20px;
+        }
+
+        button {
+            border: none;
+            outline: none;
+            background-color: var(--btn-num);
+            color: var(--text-color);
+            font-size: 1.5rem;
+            border-radius: 50%;
+            height: 70px;
+            width: 70px;
+            cursor: pointer;
+            transition: filter 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+        }
+
+        button:active {
+            filter: brightness(1.5);
+        }
+
+        button.operator {
+            background-color: var(--btn-op);
+            font-size: 1.8rem;
+        }
+
+        button.function {
+            background-color: var(--btn-func);
+            color: var(--btn-func-text);
+            font-weight: 500;
+        }
+
+        button.zero {
+            grid-column: span 2;
+            width: 100%;
+            border-radius: 40px;
+            justify-content: flex-start;
+            padding-left: 30px;
+        }
+
+        /* Memory Indicator */
+        .memory-indicator {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: var(--btn-op);
+            font-size: 0.8rem;
+            display: none;
+        }
+        .memory-indicator.active {
+            display: block;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="calculator">
+        <div class="memory-indicator" id="memIndicator">M</div>
+        <div class="screen">
+            <div class="history" id="historyDisplay"></div>
+            <div class="current-input" id="display">0</div>
+        </div>
+
+        <div class="keypad">
+            <!-- Row 1 -->
+            <button class="function" onclick="calc.memoryClear()">MC</button>
+            <button class="function" onclick="calc.memoryRecall()">MR</button>
+            <button class="function" onclick="calc.memoryAdd()">M+</button>
+            <button class="function" onclick="calc.memorySub()">M-</button>
+
+            <!-- Row 2 -->
+            <button class="function" onclick="calc.clearAll()">C</button>
+            <button class="function" onclick="calc.clearEntry()">CE</button>
+            <button class="function" onclick="calc.backspace()">⌫</button>
+            <button class="operator" onclick="calc.chooseOperation('/')">÷</button>
+
+            <!-- Row 3 -->
+            <button onclick="calc.inputDigit('7')">7</button>
+            <button onclick="calc.inputDigit('8')">8</button>
+            <button onclick="calc.inputDigit('9')">9</button>
+            <button class="operator" onclick="calc.chooseOperation('*')">×</button>
+
+            <!-- Row 4 -->
+            <button onclick="calc.inputDigit('4')">4</button>
+            <button onclick="calc.inputDigit('5')">5</button>
+            <button onclick="calc.inputDigit('6')">6</button>
+            <button class="operator" onclick="calc.chooseOperation('-')">−</button>
+
+            <!-- Row 5 -->
+            <button onclick="calc.inputDigit('1')">1</button>
+            <button onclick="calc.inputDigit('2')">2</button>
+            <button onclick="calc.inputDigit('3')">3</button>
+            <button class="operator" onclick="calc.chooseOperation('+')">+</button>
+
+            <!-- Row 6 -->
+            <button onclick="calc.toggleSign()">+/-</button>
+            <button onclick="calc.inputDigit('0')">0</button>
+            <button onclick="calc.inputDecimal()">.</button>
+            <button class="operator" onclick="calc.compute()">=</button>
+        </div>
+    </div>
+
+    <script>
+        class Calculator {
+            constructor(historyDisplayId, displayId) {
+                this.historyDisplay = document.getElementById(historyDisplayId);
+                this.display = document.getElementById(displayId);
+                this.memIndicator = document.getElementById('memIndicator');
+                this.memory = 0;
+                this.clear();
+            }
+
+            clear() {
+                this.currentOperand = '';
+                this.previousOperand = '';
+                this.operation = undefined;
+                this.shouldResetScreen = false;
+                this.updateDisplay();
+            }
+
+            clearAll() {
+                this.clear();
+                this.historyDisplay.innerText = '';
+            }
+
+            clearEntry() {
+                this.currentOperand = '';
+                this.updateDisplay();
+            }
+
+            delete() {
+                if (this.shouldResetScreen) return;
+                this.currentOperand = this.currentOperand.toString().slice(0, -1);
+                this.updateDisplay();
+            }
+
+            inputDigit(digit) {
+                if (this.shouldResetScreen) {
+                    this.currentOperand = '';
+                    this.shouldResetScreen = false;
+                }
+                if (digit === '0' && this.currentOperand === '0') return;
+                if (this.currentOperand === '0' && digit !== '0') {
+                    this.currentOperand = digit;
+                } else {
+                    this.currentOperand = this.currentOperand.toString() + digit;
+                }
+                this.updateDisplay();
+            }
+
+            inputDecimal() {
+                if (this.shouldResetScreen) {
+                    this.currentOperand = '0.';
+                    this.shouldResetScreen = false;
+                    this.updateDisplay();
+                    return;
+                }
+                if (this.currentOperand === '') this.currentOperand = '0';
+                if (this.currentOperand.toString().includes('.')) return;
+                this.currentOperand += '.';
+                this.updateDisplay();
+            }
+
+            toggleSign() {
+                if (this.currentOperand === '') return;
+                this.currentOperand = (parseFloat(this.currentOperand) * -1).toString();
+                this.updateDisplay();
+            }
+
+            chooseOperation(op) {
+                if (this.currentOperand === '') return;
+                
+                // If we already have a previous operand and just finished an operation, 
+                // we continue with the result as the previous operand.
+                if (this.previousOperand !== '' && !this.shouldResetScreen) {
+                    this.compute();
+                }
+
+                this.operation = op;
+                this.previousOperand = this.currentOperand;
+                this.currentOperand = '';
+                this.shouldResetScreen = false;
+                this.updateHistory();
+            }
+
+            compute() {
+                let computation;
+                const prev = parseFloat(this.previousOperand);
+                const current = parseFloat(this.currentOperand);
+
+                if (isNaN(prev) || isNaN(current)) return;
+
+                // Visual mapping for history
+                let opSymbol = this.operation;
+                if(opSymbol === '*') opSymbol = '×';
+                if(opSymbol === '/') opSymbol = '÷';
+                if(opSymbol === '-') opSymbol = '−';
+
+                switch (this.operation) {
+                    case '+':
+                        computation = prev + current;
+                        break;
+                    case '-':
+                        computation = prev - current;
+                        break;
+                    case '*':
+                        computation = prev * current;
+                        break;
+                    case '/':
+                        if (current === 0) {
+                            this.currentOperand = 'Error';
+                            this.operation = undefined;
+                            this.previousOperand = '';
+                            this.shouldResetScreen = true;
+                            this.updateDisplay();
+                            this.updateHistory(); // Clears history of the bad op
+                            return;
+                        }
+                        computation = prev / current;
+                        break;
+                    default:
+                        return;
+                }
+
+                // Fix floating point precision issues (e.g., 0.1 + 0.2)
+                computation = Math.round(computation * 100000000) / 100000000;
+
+                this.currentOperand = computation;
+                this.operation = undefined;
+                this.previousOperand = '';
+                this.shouldResetScreen = true;
+                this.updateDisplay();
+                this.updateHistory();
+            }
+
+            // Memory Functions
+            memoryAdd() {
+                const current = parseFloat(this.currentOperand);
+                if (!isNaN(current)) {
+                    this.memory += current;
+                    this.toggleMemIndicator();
+                }
+            }
+            memorySub() {
+                const current = parseFloat(this.currentOperand);
+                if (!isNaN(current)) {
+                    this.memory -= current;
+                    this.toggleMemIndicator();
+                }
+            }
+            memoryRecall() {
+                this.currentOperand = this.memory.toString();
+                this.shouldResetScreen = true;
+                this.updateDisplay();
+            }
+            memoryClear() {
+                this.memory = 0;
+                this.memIndicator.classList.remove('active');
+            }
+            toggleMemIndicator() {
+                if (this.memory !== 0) {
+                    this.memIndicator.classList.add('active');
+                } else {
+                    this.memIndicator.classList.remove('active');
+                }
+            }
+
+            // Display Logic
+            getDisplayNumber(number) {
+                if (number === 'Error') return number;
+                const stringNumber = number.toString();
+                const integerDigits = parseFloat(stringNumber.split('.')[0]);
+                const decimalDigits = stringNumber.split('.')[1];
+                let integerDisplay;
+                if (isNaN(integerDigits)) {
+                    integerDisplay = '';
+                } else {
+                    integerDisplay = integerDigits.toLocaleString('en', { maximumFractionDigits: 0 });
+                }
+                if (decimalDigits != null) {
+                    return `${integerDisplay}.${decimalDigits}`;
+                } else {
+                    return integerDisplay;
+                }
+            }
+
+            updateDisplay() {
+                if (this.currentOperand === 'Error') {
+                    this.display.innerText = 'Error';
+                    return;
+                }
+                this.display.innerText = this.getDisplayNumber(this.currentOperand || '0');
+            }
+
+            updateHistory() {
+                if (this.operation == null) {
+                    this.historyDisplay.innerText = '';
+                    return;
+                }
+                
+                let opSymbol = this.operation;
+                if(opSymbol === '*') opSymbol = '×';
+                if(opSymbol === '/') opSymbol = '÷';
+                if(opSymbol === '-') opSymbol = '−';
+
+                const prev = this.getDisplayNumber(this.previousOperand);
+                const current = this.getDisplayNumber(this.currentOperand);
+                
+                // If current operand is empty (waiting for input), just show prev and op
+                if (this.currentOperand === '' && !this.shouldResetScreen) {
+                     this.historyDisplay.innerText = `${prev} ${opSymbol}`;
+                } else {
+                     // If we just computed, clear history or show result? 
+                     // Standard calc behavior: usually clears history when = is hit, 
+                     // or shows the full equation. Here we show the pending operation.
+                     if(this.shouldResetScreen) this.historyDisplay.innerText = '';
+                }
+            }
+        }
+
+        // Initialization
+        const calc = new Calculator('historyDisplay', 'display');
+
+        // Keyboard Support
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '0' && e.key <= '9') calc.inputDigit(e.key);
+            if (e.key === '.') calc.inputDecimal();
+            if (e.key === '=' || e.key === 'Enter') {
+                e.preventDefault(); // Prevent default enter behavior in forms
+                calc.compute();
+            }
+            if (e.key === 'Backspace') calc.delete();
+            if (e.key === 'Escape') calc.clearAll();
+            
+            // Map symbols to operations
+            if (e.key === '+') calc.chooseOperation('+');
+            if (e.key === '-') calc.chooseOperation('-');
+            if (e.key === '*') calc.chooseOperation('*');
+            if (e.key === '/') {
+                e.preventDefault(); // Prevent quick find in Firefox
+                calc.chooseOperation('/');
+            }
+        });
+
+    </script>
+</body>
+</html>

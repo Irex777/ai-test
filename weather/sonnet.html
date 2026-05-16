@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Dashboard - Prague</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 5px;
+            background: linear-gradient(90deg, #64b5f6, #42a5f5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .location {
+            font-size: 1.2rem;
+            color: #b0b0b0;
+        }
+        
+        .unit-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .unit-toggle button {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #e0e0e0;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .unit-toggle button:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .unit-toggle button.active {
+            background: #42a5f5;
+            border-color: #42a5f5;
+        }
+        
+        .current-weather {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .weather-main {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+        
+        .weather-icon-large {
+            width: 120px;
+            height: 120px;
+        }
+        
+        .temp-large {
+            text-align: center;
+        }
+        
+        .temp-large .temperature {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #64b5f6;
+        }
+        
+        .temp-large .condition {
+            font-size: 1.5rem;
+            color: #b0b0b0;
+            margin-top: 5px;
+        }
+        
+        .weather-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 20px;
+            width: 100%;
+            margin-top: 30px;
+        }
+        
+        .detail-item {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .detail-item .label {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 5px;
+        }
+        
+        .detail-item .value {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #e0e0e0;
+        }
+        
+        .air-quality {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        
+        .aqi-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .aqi-good { background: #4caf50; }
+        .aqi-moderate { background: #ff9800; }
+        .aqi-poor { background: #f44336; }
+        
+        .forecast {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .forecast h2 {
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            color: #64b5f6;
+        }
+        
+        .forecast-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .forecast-day {
+            background: rgba(255,255,255,0.05);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .forecast-day .day-name {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #e0e0e0;
+        }
+        
+        .forecast-day .day-date {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 10px;
+        }
+        
+        .forecast-day .icon {
+            width: 50px;
+            height: 50px;
+            margin: 10px auto;
+        }
+        
+        .forecast-day .temps {
+            margin-top: 10px;
+        }
+        
+        .forecast-day .high {
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+        
+        .forecast-day .low {
+            color: #64b5f6;
+        }
+        
+        .chart-container {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .chart-container h2 {
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            color: #64b5f6;
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 250px;
+        }
+        
+        .sun-times {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .sun-times h2 {
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            color: #64b5f6;
+        }
+        
+        .sun-times-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+        
+        .sun-time {
+            text-align: center;
+        }
+        
+        .sun-time .icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 10px;
+        }
+        
+        .sun-time .time {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #e0e0e0;
+        }
+        
+        .sun-time .label {
+            font-size: 0.9rem;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .temp-large .temperature {
+                font-size: 3rem;
+            }
+            
+            .weather-main {
+                flex-direction: column;
+            }
+            
+            .forecast-row {
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            }
+            
+            .sun-times-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Weather Dashboard</h1>
+            <p class="location">Prague, Czech Republic</p>
+            <div class="unit-toggle">
+                <button id="celsius" class="active">°C</button>
+                <button id="fahrenheit">°F</button>
+            </div>
+        </header>
+        
+        <section class="current-weather">
+            <div class="weather-main">
+                <svg class="weather-icon-large" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="20" fill="#ffb74d"/>
+                    <g stroke="#ffb74d" stroke-width="3">
+                        <line x1="50" y1="20" x2="50" y2="5"/>
+                        <line x1="50" y1="80" x2="50" y2="95"/>
+                        <line x1="20" y1="50" x2="5" y2="50"/>
+                        <line x1="80" y1="50" x2="95" y2="50"/>
+                        <line x1="29" y1="29" x2="18" y2="18"/>
+                        <line x1="71" y1="71" x2="82" y2="82"/>
+                        <line x1="29" y1="71" x2="18" y2="82"/>
+                        <line x1="71" y1="29" x2="82" y2="18"/>
+                    </g>
+                </svg>
+                
+                <div class="temp-large">
+                    <div class="temperature" id="current-temp">22°C</div>
+                    <div class="condition">Partly Cloudy</div>
+                </div>
+                
+                <div class="air-quality">
+                    <div class="aqi-circle aqi-good">42</div>
+                    <div>
+                        <div style="font-weight: bold;">Good</div>
+                        <div style="font-size: 0.8rem; color: #888;">Air Quality</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="weather-details">
+                <div class="detail-item">
+                    <div class="label">Humidity</div>
+                    <div class="value">65%</div>
+                </div>
+                <div class="detail-item">
+                    <div class="label">Wind</div>
+                    <div class="value" id="wind-speed">12 km/h</div>
+                </div>
+                <div class="detail-item">
+                    <div class="label">Feels Like</div>
+                    <div class="value" id="feels-like">24°C</div>
+                </div>
+                <div class="detail-item">
+                    <div class="label">UV Index</div>
+                    <div class="value">5 Moderate</div>
+                </div>
+                <div class="detail-item">
+                    <div class="label">Pressure</div>
+                    <div class="value">1015 hPa</div>
+                </div>
+                <div class="detail-item">
+                    <div class="label">Visibility</div>
+                    <div class="value">10 km</div>
+                </div>
+            </div>
+        </section>
+        
+        <section class="forecast">
+            <h2>5-Day Forecast</h2>
+            <div class="forecast-row" id="forecast-container"></div>
+        </section>
+        
+        <section class="chart-container">
+            <h2>Temperature Trend</h2>
+            <div class="chart-wrapper">
+                <svg id="temp-chart" width="100%" height="100%" viewBox="0 0 800 250" preserveAspectRatio="xMidYMid meet"></svg>
+            </div>
+        </section>
+        
+        <section class="sun-times">
+            <h2>Sunrise & Sunset</h2>
+            <div class="sun-times-container">
+                <div class="sun-time">
+                    <svg class="icon" viewBox="0 0 60 60">
+                        <circle cx="30" cy="30" r="12" fill="#ff9800"/>
+                        <g stroke="#ff9800" stroke-width="2">
+                            <line x1="30" y1="12" x2="30" y2="3"/>
+                            <line x1="30" y1="48" x2="30" y2="57"/>
+                            <line x1="12" y1="30" x2="3" y2="30"/>
+                            <line x1="48" y1="30" x2="57" y2="30"/>
+                        </g>
+                        <path d="M 5 45 Q 30 35 55 45" stroke="#ff9800" stroke-width="2" fill="none"/>
+                    </svg>
+                    <div class="time">5:12 AM</div>
+                    <div class="label">Sunrise</div>
+                </div>
+                <div class="sun-time">
+                    <svg class="icon" viewBox="0 0 60 60">
+                        <circle cx="30" cy="30" r="12" fill="#ff5722"/>
+                        <g stroke="#ff5722" stroke-width="2">
+                            <line x1="30" y1="12" x2="30" y2="3"/>
+                            <line x1="30" y1="48" x2="30" y2="57"/>
+                            <line x1="12" y1="30" x2="3" y2="30"/>
+                            <line x1="48" y1="30" x2="57" y2="30"/>
+                        </g>
+                        <path d="M 5 15 Q 30 25 55 15" stroke="#ff5722" stroke-width="2" fill="none"/>
+                    </svg>
+                    <div class="time">8:45 PM</div>
+                    <div class="label">Sunset</div>
+                </div>
+            </div>
+        </section>
+    </div>
+    
+    <script>
+        const weatherData = {
+            current: {
+                tempC: 22,
+                feelsLikeC: 24,
+                humidity: 65,
+                windKmh: 12,
+                condition: 'Partly Cloudy'
+            },
+            forecast: [
+                { day: 'Today', date: 'May 16', highC: 24, lowC: 15, condition: 'sunny' },
+                { day: 'Tomorrow', date: 'May 17', highC: 22, lowC: 14, condition: 'cloudy' },
+                { day: 'Sunday', date: 'May 18', highC: 19, lowC: 12, condition: 'rain' },
+                { day: 'Monday', date: 'May 19', highC: 21, lowC: 13, condition: 'partly-cloudy' },
+                { day: 'Tuesday', date: 'May 20', highC: 25, lowC: 16, condition: 'sunny' }
+            ]
+        };
+        
+        let isCelsius = true;
+        
+        function celsiusToFahrenheit(celsius) {
+            return Math.round((celsius * 9/5) + 32);
+        }
+        
+        function formatTemp(celsius) {
+            if (isCelsius) {
+                return `${celsius}°C`;
+            } else {
+                return `${celsiusToFahrenheit(celsius)}°F`;
+            }
+        }
+        
+        function updateCurrentWeather() {
+            document.getElementById('current-temp').textContent = formatTemp(weatherData.current.tempC);
+            document.getElementById('feels-like').textContent = formatTemp(weatherData.current.feelsLikeC);
+            
+            const windSpeed = isCelsius ? weatherData.current.windKmh : Math.round(weatherData.current.windKmh * 0.621371);
+            document.getElementById('wind-speed').textContent = `${windSpeed} ${isCelsius ? 'km/h' : 'mph'}`;
+        }
+        
+        function getWeatherIcon(condition) {
+            const icons = {
+                'sunny': `<svg viewBox="0 0 50 50">
+                    <circle cx="25" cy="25" r="8" fill="#ffb74d"/>
+                    <g stroke="#ffb74d" stroke-width="2">
+                        <line x1="25" y1="10" x2="25" y2="3"/>
+                        <line x1="25" y1="40" x2="25" y2="47"/>
+                        <line x1="10" y1="25" x2="3" y2="25"/>
+                        <line x1="40" y1="25" x2="47" y2="25"/>
+                        <line x1="14" y1="14" x2="9" y2="9"/>
+                        <line x1="36" y1="36" x2="41" y2="41"/>
+                        <line x1="14" y1="36" x2="9" y2="41"/>
+                        <line x1="36" y1="14" x2="41" y2="9"/>
+                    </g>
+                </svg>`,
+                'cloudy': `<svg viewBox="0 0 50 50">
+                    <ellipse cx="25" cy="30" rx="18" ry="12" fill="#90a4ae"/>
+                    <ellipse cx="18" cy="28" rx="10" ry="8" fill="#b0bec5"/>
+                    <ellipse cx="32" cy="26" rx="12" ry="10" fill="#cfd8dc"/>
+                </svg>`,
+                'rain': `<svg viewBox="0 0 50 50">
+                    <ellipse cx="25" cy="22" rx="15" ry="10" fill="#78909c"/>
+                    <ellipse cx="20" cy="20" rx="8" ry="6" fill="#90a4ae"/>
+                    <ellipse cx="30" cy="19" rx="10" ry="8" fill="#b0bec5"/>
+                    <g fill="#42a5f5">
+                        <ellipse cx="18" cy="38" rx="2" ry="3"/>
+                        <ellipse cx="25" cy="40" rx="2" ry="3"/>
+                        <ellipse cx="32" cy="38" rx="2" ry="3"/>
+                    </g>
+                </svg>`,
+                'partly-cloudy': `<svg viewBox="0 0 50 50">
+                    <circle cx="18" cy="18" r="7" fill="#ffb74d"/>
+                    <g stroke="#ffb74d" stroke-width="1.5">
+                        <line x1="18" y1="8" x2="18" y2="4"/>
+                        <line x1="10" y1="18" x2="6" y2="18"/>
+                        <line x1="11" y1="11" x2="8" y2="8"/>
+                    </g>
+                    <ellipse cx="30" cy="32" rx="14" ry="10" fill="#cfd8dc"/>
+                    <ellipse cx="24" cy="30" rx="8" ry="6" fill="#b0bec5"/>
+                </svg>`
+            };
+            return icons[condition] || icons['sunny'];
+        }
+        
+        function renderForecast() {
+            const container = document.getElementById('forecast-container');
+            container.innerHTML = '';
+            
+            weatherData.forecast.forEach(day => {
+                const dayEl = document.createElement('div');
+                dayEl.className = 'forecast-day';
+                dayEl.innerHTML = `
+                    <div class="day-name">${day.day}</div>
+                    <div class="day-date">${day.date}</div>
+                    <div class="icon">${getWeatherIcon(day.condition)}</div>
+                    <div class="temps">
+                        <div class="high">${formatTemp(day.highC)}</div>
+                        <div class="low">${formatTemp(day.lowC)}</div>
+                    </div>
+                `;
+                container.appendChild(dayEl);
+            });
+        }
+        
+        function renderChart() {
+            const svg = document.getElementById('temp-chart');
+            const width = 800;
+            const height = 250;
+            const padding = 50;
+            
+            const temps = weatherData.forecast;
+            const highs = temps.map(d => isCelsius ? d.highC : celsiusToFahrenheit(d.highC));
+            const lows = temps.map(d => isCelsius ? d.lowC : celsiusToFahrenheit(d.lowC));
+            
+            const allTemps = [...highs, ...lows];
+            const minTemp = Math.min(...allTemps) - 5;
+            const maxTemp = Math.max(...allTemps) + 5;
+            
+            const xStep = (width - 2 * padding) / (temps.length - 1);
+            const yScale = (height - 2 * padding) / (maxTemp - minTemp);
+            
+            function getY(temp) {
+                return height - padding - (temp - minTemp) * yScale;
+            }
+            
+            function getX(index) {
+                return padding + index * xStep;
+            }
+            
+            // Create high temp line
+            const highPath = temps.map((d, i) => 
+                `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(highs[i])}`
+            ).join(' ');
+            
+            // Create low temp line
+            const lowPath = temps.map((d, i) => 
+                `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(lows[i])}`
+            ).join(' ');
+            
+            svg.innerHTML = `
+                <!-- Grid lines -->
+                <g stroke="rgba(255,255,255,0.1)" stroke-width="1">
+                    ${[minTemp, maxTemp].map(temp => `
+                        <line x1="${padding}" y1="${getY(temp)}" x2="${width - padding}" y2="${getY(temp)}"/>
+                    `).join('')}
+                </g>
+                
+                <!-- Temperature areas -->
+                <path d="${highPath} L ${getX(temps.length - 1)} ${height - padding} L ${padding} ${height - padding} Z" 
+                      fill="rgba(255,107,107,0.2)"/>
+                <path d="${lowPath} L ${getX(temps.length - 1)} ${height - padding} L ${padding} ${height - padding} Z" 
+                      fill="rgba(100,181,246,0.2)"/>
+                
+                <!-- High temp line -->
+                <path d="${highPath}" fill="none" stroke="#ff6b6b" stroke-width="3"/>
+                
+                <!-- Low temp line -->
+                <path d="${lowPath}" fill="none" stroke="#64b5f6" stroke-width="3"/>
+                
+                <!-- Data points and labels -->
+                ${temps.map((d, i) => `
+                    <circle cx="${getX(i)}" cy="${getY(highs[i])}" r="6" fill="#ff6b6b"/>
+                    <circle cx="${getX(i)}" cy="${getY(lows[i])}" r="6" fill="#64b5f6"/>
+                    <text x="${getX(i)}" y="${getY(highs[i]) - 15}" fill="#ff6b6b" text-anchor="middle" font-size="14" font-weight="bold">
+                        ${highs[i]}°
+                    </text>
+                    <text x="${getX(i)}" y="${getY(lows[i]) + 25}" fill="#64b5f6" text-anchor="middle" font-size="14" font-weight="bold">
+                        ${lows[i]}°
+                    </text>
+                    <text x="${getX(i)}" y="${height - 10}" fill="#888" text-anchor="middle" font-size="12">
+                        ${d.day.substring(0, 3)}
+                    </text>
+                `).join('')}
+                
+                <!-- Legend -->
+                <g transform="translate(${width - 150}, 20)">
+                    <line x1="0" y1="0" x2="30" y2="0" stroke="#ff6b6b" stroke-width="3"/>
+                    <circle cx="15" cy="0" r="4" fill="#ff6b6b"/>
+                    <text x="40" y="4" fill="#e0e0e0" font-size="12">High</text>
+                    
+                    <line x1="0" y1="20" x2="30" y2="20" stroke="#64b5f6" stroke-width="3"/>
+                    <circle cx="15" cy="20" r="4" fill="#64b5f6"/>
+                    <text x="40" y="24" fill="#e0e0e0" font-size="12">Low</text>
+                </g>
+            `;
+        }
+        
+        function setUnit(celsius) {
+            isCelsius = celsius;
+            document.getElementById('celsius').classList.toggle('active', isCelsius);
+            document.getElementById('fahrenheit').classList.toggle('active', !isCelsius);
+            updateCurrentWeather();
+            renderForecast();
+            renderChart();
+        }
+        
+        document.getElementById('celsius').addEventListener('click', () => setUnit(true));
+        document.getElementById('fahrenheit').addEventListener('click', () => setUnit(false));
+        
+        updateCurrentWeather();
+        renderForecast();
+        renderChart();
+    </script>
+</body>
+</html>

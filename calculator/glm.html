@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator</title>
+    <style>
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #08080a;
+            --calc: #141416;
+            --display: #0b0b0d;
+            --btn-num: #232328;
+            --btn-num-h: #2e2e34;
+            --btn-op: #2c2618;
+            --btn-op-h: #3d3420;
+            --btn-fn: #1c1c22;
+            --btn-fn-h: #28282f;
+            --btn-mem: #171719;
+            --btn-mem-h: #222226;
+            --btn-eq: #c4880a;
+            --btn-eq-h: #da9a12;
+            --text: #eeeeF0;
+            --dim: #636370;
+            --accent: #c4880a;
+            --glow: rgba(196, 136, 10, 0.14);
+            --border: rgba(255,255,255,0.035);
+            --radius: 16px;
+        }
+
+        html, body { height: 100%; }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+            background-image:
+                radial-gradient(ellipse 700px 500px at 50% 35%, rgba(196,136,10,0.025), transparent),
+                radial-gradient(ellipse 400px 300px at 70% 70%, rgba(80,60,200,0.015), transparent);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+            overflow: auto;
+        }
+
+        .calculator {
+            width: 390px;
+            max-width: 96vw;
+            background: var(--calc);
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            box-shadow:
+                0 40px 120px rgba(0,0,0,0.55),
+                0 0 0 1px rgba(255,255,255,0.02) inset,
+                0 1px 0 rgba(255,255,255,0.03) inset;
+            padding: 22px;
+            user-select: none;
+        }
+
+        /* ── Display ── */
+        .display {
+            background: var(--display);
+            border-radius: var(--radius);
+            padding: 18px 22px 14px;
+            margin-bottom: 16px;
+            min-height: 128px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            position: relative;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .display::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(196,136,10,0.08), transparent);
+        }
+
+        .display-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            min-height: 22px;
+        }
+
+        .mem-badge {
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--accent);
+            background: rgba(196,136,10,0.1);
+            padding: 2px 9px;
+            border-radius: 5px;
+            letter-spacing: 1.2px;
+            opacity: 0;
+            transform: translateY(-3px) scale(0.9);
+            transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            pointer-events: none;
+        }
+
+        .mem-badge.show {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        .bksp {
+            background: none;
+            border: none;
+            color: var(--dim);
+            cursor: pointer;
+            padding: 3px 7px;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+            font-family: inherit;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .bksp svg {
+            width: 20px;
+            height: 20px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .bksp:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+        .bksp:active { transform: scale(0.88); }
+
+        .expr {
+            font-size: 13px;
+            color: var(--dim);
+            min-height: 19px;
+            text-align: right;
+            word-break: break-all;
+            line-height: 1.35;
+            font-variant-numeric: tabular-nums;
+            transition: color 0.2s ease;
+        }
+
+        .value {
+            font-size: 46px;
+            font-weight: 200;
+            letter-spacing: -2px;
+            line-height: 1.12;
+            text-align: right;
+            word-break: break-all;
+            font-variant-numeric: tabular-nums;
+            transition: font-size 0.15s ease, opacity 0.1s ease;
+            color: var(--text);
+            transform-origin: right center;
+        }
+
+        .value.md { font-size: 34px; }
+        .value.sm { font-size: 22px; font-weight: 300; letter-spacing: -0.5px; }
+
+        .value.err {
+            color: #d95050;
+            font-size: 16px;
+            font-weight: 500;
+            letter-spacing: 0;
+        }
+
+        @keyframes flash-in {
+            0% { opacity: 0.5; transform: scale(0.98); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .value.pop {
+            animation: flash-in 0.15s ease-out;
+        }
+
+        /* ── Button grid ── */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 9px;
+        }
+
+        .b {
+            height: 58px;
+            border: none;
+            border-radius: 13px;
+            font-size: 18px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.1s ease, transform 0.08s ease, box-shadow 0.15s ease;
+            position: relative;
+            overflow: hidden;
+            font-family: inherit;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .b:focus-visible {
+            box-shadow: 0 0 0 2.5px var(--accent);
+        }
+
+        .b:active { transform: scale(0.92); }
+
+        .b .rip {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            transform: scale(0);
+            animation: rip 0.45s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes rip {
+            to { transform: scale(3.5); opacity: 0; }
+        }
+
+        /* Memory */
+        .bm {
+            background: var(--btn-mem);
+            color: var(--dim);
+            font-size: 12.5px;
+            font-weight: 800;
+            letter-spacing: 0.6px;
+        }
+        .bm:hover { background: var(--btn-mem-h); color: #999; }
+
+        /* Function */
+        .bf {
+            background: var(--btn-fn);
+            color: #b0b0b8;
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .bf:hover { background: var(--btn-fn-h); color: var(--text); }
+
+        /* Number */
+        .bn {
+            background: var(--btn-num);
+            color: var(--text);
+            font-size: 23px;
+            font-weight: 300;
+        }
+        .bn:hover { background: var(--btn-num-h); }
+
+        /* Operator */
+        .bo {
+            background: var(--btn-op);
+            color: var(--accent);
+            font-size: 22px;
+            font-weight: 400;
+        }
+        .bo:hover { background: var(--btn-op-h); }
+        .bo.active {
+            background: var(--accent) !important;
+            color: #fff !important;
+            box-shadow: 0 0 18px var(--glow);
+        }
+
+        /* Equals */
+        .be {
+            background: var(--btn-eq);
+            color: #fff;
+            font-size: 28px;
+            font-weight: 500;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        @keyframes eq-breathe {
+            0%, 100% { box-shadow: 0 4px 18px rgba(196,136,10,0.12); }
+            50% { box-shadow: 0 4px 28px rgba(196,136,10,0.22); }
+        }
+
+        .be {
+            animation: eq-breathe 3.5s ease-in-out infinite;
+        }
+
+        .be:hover {
+            background: var(--btn-eq-h);
+            box-shadow: 0 6px 32px rgba(196,136,10,0.28);
+            animation: none;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 440px) {
+            body { align-items: stretch; }
+            .calculator {
+                width: 100%;
+                min-height: 100vh;
+                min-height: 100dvh;
+                border-radius: 0;
+                padding: 14px;
+                display: flex;
+                flex-direction: column;
+                border: none;
+            }
+            .display { flex: 1; min-height: 120px; }
+            .grid { flex-shrink: 0; }
+            .b { height: 54px; border-radius: 11px; }
+        }
+
+        @media (max-height: 620px) and (min-width: 440px) {
+            .calculator { padding: 14px; }
+            .b { height: 48px; }
+            .display { min-height: 100px; padding: 12px 16px 10px; }
+            .value { font-size: 36px; }
+            .grid { gap: 6px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="calculator" role="application" aria-label="Calculator">
+        <section class="display" aria-label="Display">
+            <div class="display-bar">
+                <span class="mem-badge" id="mBadge">M</span>
+                <button class="bksp" id="bkspBtn" aria-label="Backspace" title="Backspace">
+                    <svg viewBox="0 0 24 24"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+                </button>
+            </div>
+            <div class="expr" id="expr" aria-live="polite"></div>
+            <div class="value" id="val" aria-live="assertive">0</div>
+        </section>
+        <div class="grid" role="group" aria-label="Calculator buttons">
+            <button class="b bm" data-a="mc" aria-label="Memory Clear">MC</button>
+            <button class="b bm" data-a="mr" aria-label="Memory Recall">MR</button>
+            <button class="b bm" data-a="m+" aria-label="Memory Add">M+</button>
+            <button class="b bm" data-a="m-" aria-label="Memory Subtract">M&#8722;</button>
+
+            <button class="b bf" data-a="c" aria-label="Clear All">C</button>
+            <button class="b bf" data-a="ce" aria-label="Clear Entry">CE</button>
+            <button class="b bf" data-a="pct" aria-label="Percent">%</button>
+            <button class="b bo" data-a="/" aria-label="Divide">&divide;</button>
+
+            <button class="b bn" data-a="7">7</button>
+            <button class="b bn" data-a="8">8</button>
+            <button class="b bn" data-a="9">9</button>
+            <button class="b bo" data-a="*" aria-label="Multiply">&times;</button>
+
+            <button class="b bn" data-a="4">4</button>
+            <button class="b bn" data-a="5">5</button>
+            <button class="b bn" data-a="6">6</button>
+            <button class="b bo" data-a="-" aria-label="Subtract">&minus;</button>
+
+            <button class="b bn" data-a="1">1</button>
+            <button class="b bn" data-a="2">2</button>
+            <button class="b bn" data-a="3">3</button>
+            <button class="b bo" data-a="+" aria-label="Add">+</button>
+
+            <button class="b bf" data-a="sign" aria-label="Toggle Sign">&plusmn;</button>
+            <button class="b bn" data-a="0">0</button>
+            <button class="b bn" data-a=".">.</button>
+            <button class="b be" data-a="=" aria-label="Equals">=</button>
+        </div>
+    </main>
+
+    <script>
+    (function () {
+        'use strict';
+
+        /* ── State ── */
+        var cur = '0';       // current input string
+        var prev = null;     // previous operand
+        var op = null;       // pending operator
+        var exprStr = '';    // expression history text
+        var mem = 0;         // memory register
+        var waiting = false; // waiting for next operand
+        var done = false;    // just evaluated with =
+
+        /* ── DOM refs ── */
+        var valEl = document.getElementById('val');
+        var exprEl = document.getElementById('expr');
+        var mBadge = document.getElementById('mBadge');
+        var gridEl = document.querySelector('.grid');
+        var bkspEl = document.getElementById('bkspBtn');
+
+        /* operator display symbols */
+        var sym = { '+': '+', '-': '\u2212', '*': '\u00D7', '/': '\u00F7' };
+
+        /* ── Helpers ── */
+        function fmt(n) {
+            if (typeof n === 'string') return n;
+            if (!isFinite(n) || isNaN(n)) return 'Error';
+            var s = String(n);
+            // Trim floating-point noise
+            if (s.indexOf('.') !== -1 && s.length > 14) {
+                s = String(parseFloat(n.toPrecision(12)));
+            }
+            // Scientific notation for extremes
+            if (Math.abs(n) >= 1e15 || (Math.abs(n) < 1e-7 && n !== 0)) {
+                s = n.toExponential(8);
+            }
+            return s;
+        }
+
+        function refresh() {
+            exprEl.textContent = exprStr;
+
+            var v = cur;
+            valEl.className = 'value';
+            if (v === 'Cannot divide by zero') {
+                valEl.classList.add('err');
+            } else if (v.length > 15) {
+                valEl.classList.add('sm');
+            } else if (v.length > 10) {
+                valEl.classList.add('md');
+            }
+
+            valEl.textContent = v;
+
+            // Memory badge visibility
+            mBadge.classList.toggle('show', mem !== 0);
+
+            // Highlight active operator button
+            var allOps = gridEl.querySelectorAll('.bo');
+            for (var i = 0; i < allOps.length; i++) {
+                allOps[i].classList.remove('active');
+            }
+            if (waiting && op) {
+                var active = gridEl.querySelector('.bo[data-a="' + op + '"]');
+                if (active) active.classList.add('active');
+            }
+        }
+
+        function popValue() {
+            valEl.classList.remove('pop');
+            // Force reflow to restart animation
+            void valEl.offsetWidth;
+            valEl.classList.add('pop');
+        }
+
+        /* ── Core operations ── */
+        function enterDigit(d) {
+            if (cur === 'Cannot divide by zero') clearAll();
+            if (waiting) {
+                cur = d;
+                waiting = false;
+            } else if (done) {
+                cur = d;
+                exprStr = '';
+                done = false;
+            } else {
+                // Max digit guard (excluding sign & decimal)
+                if (cur.replace(/[^0-9]/g, '').length >= 15) return;
+                cur = cur === '0' ? d : cur + d;
+            }
+            refresh();
+        }
+
+        function enterDot() {
+            if (cur === 'Cannot divide by zero') clearAll();
+            if (waiting) {
+                cur = '0.';
+                waiting = false;
+                refresh();
+                return;
+            }
+            if (done) {
+                cur = '0.';
+                exprStr = '';
+                done = false;
+                refresh();
+                return;
+            }
+            if (cur.indexOf('.') !== -1) return;
+            cur += '.';
+            refresh();
+        }
+
+        function calc(a, b, o) {
+            switch (o) {
+                case '+': return a + b;
+                case '-': return a - b;
+                case '*': return a * b;
+                case '/': return b === 0 ? 'Error' : a / b;
+            }
+            return b;
+        }
+
+        function enterOp(next) {
+            if (cur === 'Cannot divide by zero') { clearAll(); return; }
+            done = false;
+            var v = parseFloat(cur);
+
+            // If still waiting, just swap operator
+            if (waiting && prev !== null) {
+                op = next;
+                exprStr = fmt(prev) + ' ' + sym[next];
+                refresh();
+                return;
+            }
+
+            if (prev !== null && op !== null) {
+                var res = calc(prev, v, op);
+                if (res === 'Error') {
+                    showError();
+                    return;
+                }
+                cur = fmt(res);
+                prev = res;
+            } else {
+                prev = v;
+            }
+
+            op = next;
+            exprStr = fmt(prev) + ' ' + sym[next];
+            waiting = true;
+            refresh();
+        }
+
+        function evaluate() {
+            if (cur === 'Cannot divide by zero') { clearAll(); return; }
+            if (op === null || prev === null) return;
+
+            var v = parseFloat(cur);
+            var res = calc(prev, v, op);
+
+            exprStr = fmt(prev) + ' ' + sym[op] + ' ' + fmt(v) + ' =';
+
+            if (res === 'Error') {
+                showError();
+                return;
+            }
+
+            cur = fmt(res);
+            prev = null;
+            op = null;
+            waiting = false;
+            done = true;
+            refresh();
+            popValue();
+        }
+
+        function showError() {
+            cur = 'Cannot divide by zero';
+            exprStr = '';
+            prev = null;
+            op = null;
+            waiting = false;
+            done = false;
+            refresh();
+            popValue();
+        }
+
+        function clearAll() {
+            cur = '0';
+            prev = null;
+            op = null;
+            exprStr = '';
+            waiting = false;
+            done = false;
+            refresh();
+        }
+
+        function clearEntry() {
+            cur = '0';
+            waiting = false;
+            refresh();
+        }
+
+        function bksp() {
+            if (waiting || done) return;
+            if (cur === 'Cannot divide by zero') { clearAll(); return; }
+            if (cur.length <= 1 || (cur.length === 2 && cur[0] === '-')) {
+                cur = '0';
+            } else {
+                cur = cur.slice(0, -1);
+            }
+            refresh();
+        }
+
+        function toggleSign() {
+            if (cur === '0' || cur === 'Cannot divide by zero') return;
+            cur = cur[0] === '-' ? cur.slice(1) : '-' + cur;
+            refresh();
+        }
+
+        function pct() {
+            if (cur === 'Cannot divide by zero') return;
+            cur = fmt(parseFloat(cur) / 100);
+            refresh();
+        }
+
+        /* ── Memory ── */
+        function mAdd() { if (cur !== 'Cannot divide by zero') { mem += parseFloat(cur); refresh(); } }
+        function mSub() { if (cur !== 'Cannot divide by zero') { mem -= parseFloat(cur); refresh(); } }
+        function mRecall() {
+            cur = fmt(mem);
+            waiting = false;
+            if (done) { exprStr = ''; done = false; }
+            refresh();
+        }
+        function mClear() { mem = 0; refresh(); }
+
+        /* ── Action router ── */
+        function exec(action) {
+            if (/^[0-9]$/.test(action)) return enterDigit(action);
+            switch (action) {
+                case '.':     return enterDot();
+                case '+': case '-': case '*': case '/': return enterOp(action);
+                case '=':     return evaluate();
+                case 'c':     return clearAll();
+                case 'ce':    return clearEntry();
+                case 'pct':   return pct();
+                case 'sign':  return toggleSign();
+                case 'mc':    return mClear();
+                case 'mr':    return mRecall();
+                case 'm+':    return mAdd();
+                case 'm-':    return mSub();
+            }
+        }
+
+        /* ── Ripple effect ── */
+        function ripple(btn, x, y) {
+            var r = document.createElement('span');
+            r.className = 'rip';
+            var rect = btn.getBoundingClientRect();
+            var sz = Math.max(rect.width, rect.height);
+            r.style.width = r.style.height = sz + 'px';
+            r.style.left = (x - rect.left - sz / 2) + 'px';
+            r.style.top = (y - rect.top - sz / 2) + 'px';
+            btn.appendChild(r);
+            setTimeout(function () { r.remove(); }, 460);
+        }
+
+        /* ── Click delegation ── */
+        gridEl.addEventListener('click', function (e) {
+            var btn = e.target.closest('.b');
+            if (!btn) return;
+            ripple(btn, e.clientX, e.clientY);
+            exec(btn.dataset.a);
+        });
+
+        bkspEl.addEventListener('click', function () {
+            bksp();
+        });
+
+        /* ── Visual feedback for keyboard ── */
+        function flash(action) {
+            var btn = gridEl.querySelector('[data-a="' + action + '"]');
+            if (btn) {
+                btn.style.transform = 'scale(0.92)';
+                // Create a center ripple
+                var rect = btn.getBoundingClientRect();
+                ripple(btn, rect.left + rect.width / 2, rect.top + rect.height / 2);
+                setTimeout(function () { btn.style.transform = ''; }, 100);
+            }
+        }
+
+        /* ── Keyboard support ── */
+        document.addEventListener('keydown', function (e) {
+            var k = e.key;
+            var handled = true;
+
+            if (/^[0-9]$/.test(k))       { enterDigit(k); flash(k); }
+            else if (k === '.')           { enterDot(); flash('.'); }
+            else if (k === '+')           { enterOp('+'); flash('+'); }
+            else if (k === '-')           { enterOp('-'); flash('-'); }
+            else if (k === '*')           { enterOp('*'); flash('*'); }
+            else if (k === '/')           { e.preventDefault(); enterOp('/'); flash('/'); }
+            else if (k === 'Enter')       { e.preventDefault(); evaluate(); flash('='); }
+            else if (k === '=')           { evaluate(); flash('='); }
+            else if (k === '%')           { pct(); flash('pct'); }
+            else if (k === 'Escape')      { clearAll(); flash('c'); }
+            else if (k === 'Backspace')   { bksp(); }
+            else if (k === 'Delete')      { clearEntry(); flash('ce'); }
+            else { handled = false; }
+
+            if (handled && k !== 'Backspace') {
+                // Prevent default browser actions for calculator keys
+            }
+        });
+
+        /* ── Initial render ── */
+        refresh();
+    })();
+    </script>
+</body>
+</html>

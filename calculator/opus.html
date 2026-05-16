@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #1a1a1a;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            padding: 20px;
+        }
+
+        .calculator {
+            background: #2d2d2d;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .display-container {
+            background: #1e1e1e;
+            padding: 20px;
+            text-align: right;
+        }
+
+        .history {
+            color: #666;
+            font-size: 14px;
+            min-height: 20px;
+            margin-bottom: 5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .display {
+            color: #fff;
+            font-size: 48px;
+            font-weight: 300;
+            min-height: 56px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .display.error {
+            color: #ff6b6b;
+        }
+
+        .memory-indicator {
+            color: #4ecdc4;
+            font-size: 12px;
+            height: 16px;
+            margin-top: 5px;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1px;
+            background: #1a1a1a;
+        }
+
+        button {
+            padding: 24px 16px;
+            border: none;
+            background: #2d2d2d;
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.05s;
+            user-select: none;
+        }
+
+        button:hover {
+            background: #3d3d3d;
+        }
+
+        button:active {
+            background: #4d4d4d;
+            transform: scale(0.98);
+        }
+
+        button:focus {
+            outline: 2px solid #4ecdc4;
+            outline-offset: -2px;
+        }
+
+        button.number {
+            background: #3a3a3a;
+        }
+
+        button.number:hover {
+            background: #4a4a4a;
+        }
+
+        button.operator {
+            background: #ff6b35;
+            color: #fff;
+        }
+
+        button.operator:hover {
+            background: #ff8555;
+        }
+
+        button.operator.active {
+            background: #ff9f75;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        button.equals {
+            background: #4ecdc4;
+            color: #1a1a1a;
+            font-weight: 600;
+        }
+
+        button.equals:hover {
+            background: #5ed9d0;
+        }
+
+        button.clear {
+            background: #e74c3c;
+        }
+
+        button.clear:hover {
+            background: #f75c4d;
+        }
+
+        button.memory {
+            background: #5d5d5d;
+            font-size: 14px;
+        }
+
+        button.memory:hover {
+            background: #6d6d6d;
+        }
+
+        button.span-2 {
+            grid-column: span 2;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <div class="display-container">
+            <div class="history" id="history"></div>
+            <div class="display" id="display">0</div>
+            <div class="memory-indicator" id="memoryIndicator"></div>
+        </div>
+        <div class="buttons">
+            <button class="memory" data-action="mc" title="Memory Clear">MC</button>
+            <button class="memory" data-action="mr" title="Memory Recall">MR</button>
+            <button class="memory" data-action="m-minus" title="Memory Subtract">M-</button>
+            <button class="memory" data-action="m-plus" title="Memory Add">M+</button>
+            <button class="clear" data-action="ce">CE</button>
+            
+            <button class="clear" data-action="c">C</button>
+            <button data-action="backspace">⌫</button>
+            <button data-action="percent">%</button>
+            <button class="operator" data-action="operator" data-value="/">÷</button>
+            <button class="operator" data-action="operator" data-value="*">×</button>
+            
+            <button class="number" data-value="7">7</button>
+            <button class="number" data-value="8">8</button>
+            <button class="number" data-value="9">9</button>
+            <button class="operator" data-action="operator" data-value="-">−</button>
+            <button class="operator span-2" data-action="operator" data-value="+">+</button>
+            
+            <button class="number" data-value="4">4</button>
+            <button class="number" data-value="5">5</button>
+            <button class="number" data-value="6">6</button>
+            <button class="number span-2" data-action="sign" title="Toggle Sign">±</button>
+            
+            <button class="number" data-value="1">1</button>
+            <button class="number" data-value="2">2</button>
+            <button class="number" data-value="3">3</button>
+            <button class="equals span-2" data-action="equals">=</button>
+            
+            <button class="number span-2" data-value="0">0</button>
+            <button class="number" data-action="decimal">.</button>
+        </div>
+    </div>
+
+    <script>
+        const calculator = {
+            currentNumber: '0',
+            previousNumber: null,
+            operator: null,
+            history: '',
+            memory: 0,
+            waitingForOperand: false,
+            error: false,
+
+            init() {
+                this.display = document.getElementById('display');
+                this.historyDisplay = document.getElementById('history');
+                this.memoryIndicator = document.getElementById('memoryIndicator');
+                this.bindEvents();
+                this.updateDisplay();
+            },
+
+            bindEvents() {
+                document.querySelectorAll('button').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.handleButton(e.target.closest('button'));
+                    });
+                });
+
+                document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+            },
+
+            handleButton(button) {
+                if (this.error && button.dataset.action !== 'c' && button.dataset.action !== 'ce') {
+                    this.clear();
+                }
+
+                const action = button.dataset.action;
+                const value = button.dataset.value;
+
+                if (button.classList.contains('number') && value !== undefined) {
+                    this.inputDigit(value);
+                } else if (action === 'decimal') {
+                    this.inputDecimal();
+                } else if (action === 'operator') {
+                    this.handleOperator(value);
+                } else if (action === 'equals') {
+                    this.calculate();
+                } else if (action === 'c') {
+                    this.clear();
+                } else if (action === 'ce') {
+                    this.clearEntry();
+                } else if (action === 'backspace') {
+                    this.backspace();
+                } else if (action === 'percent') {
+                    this.percent();
+                } else if (action === 'sign') {
+                    this.toggleSign();
+                } else if (action === 'm-plus') {
+                    this.memoryAdd();
+                } else if (action === 'm-minus') {
+                    this.memorySubtract();
+                } else if (action === 'mr') {
+                    this.memoryRecall();
+                } else if (action === 'mc') {
+                    this.memoryClear();
+                }
+            },
+
+            handleKeyboard(e) {
+                const key = e.key;
+                
+                if (key >= '0' && key <= '9') {
+                    this.inputDigit(key);
+                } else if (key === '.') {
+                    this.inputDecimal();
+                } else if (key === '+' || key === '-' || key === '*' || key === '/') {
+                    this.handleOperator(key);
+                } else if (key === 'Enter' || key === '=') {
+                    e.preventDefault();
+                    this.calculate();
+                } else if (key === 'Escape') {
+                    this.clear();
+                } else if (key === 'Backspace') {
+                    this.backspace();
+                } else if (key === '%') {
+                    this.percent();
+                }
+
+                this.updateDisplay();
+            },
+
+            inputDigit(digit) {
+                if (this.waitingForOperand) {
+                    this.currentNumber = digit;
+                    this.waitingForOperand = false;
+                } else {
+                    this.currentNumber = this.currentNumber === '0' ? digit : this.currentNumber + digit;
+                }
+                this.error = false;
+                this.updateDisplay();
+            },
+
+            inputDecimal() {
+                if (this.waitingForOperand) {
+                    this.currentNumber = '0.';
+                    this.waitingForOperand = false;
+                } else if (this.currentNumber.indexOf('.') === -1) {
+                    this.currentNumber += '.';
+                }
+                this.error = false;
+                this.updateDisplay();
+            },
+
+            handleOperator(nextOperator) {
+                const inputValue = parseFloat(this.currentNumber);
+
+                if (this.operator && this.waitingForOperand) {
+                    this.operator = nextOperator;
+                    this.updateDisplay();
+                    return;
+                }
+
+                if (this.previousNumber === null) {
+                    this.previousNumber = inputValue;
+                } else if (this.operator) {
+                    const result = this.performCalculation();
+                    this.currentNumber = String(result);
+                    this.previousNumber = result;
+                }
+
+                this.history = `${this.formatNumber(this.previousNumber)} ${this.operatorSymbol(nextOperator)}`;
+                this.waitingForOperand = true;
+                this.operator = nextOperator;
+                this.updateDisplay();
+            },
+
+            performCalculation() {
+                const prev = this.previousNumber;
+                const current = parseFloat(this.currentNumber);
+
+                switch (this.operator) {
+                    case '+':
+                        return prev + current;
+                    case '-':
+                        return prev - current;
+                    case '*':
+                        return prev * current;
+                    case '/':
+                        if (current === 0) {
+                            this.error = true;
+                            return 'Error';
+                        }
+                        return prev / current;
+                    default:
+                        return current;
+                }
+            },
+
+            calculate() {
+                if (this.operator && this.previousNumber !== null) {
+                    const result = this.performCalculation();
+                    this.history = `${this.formatNumber(this.previousNumber)} ${this.operatorSymbol(this.operator)} ${this.formatNumber(this.currentNumber)} =`;
+                    
+                    if (this.error) {
+                        this.currentNumber = 'Error';
+                    } else {
+                        this.currentNumber = String(this.limitPrecision(result));
+                    }
+                    
+                    this.previousNumber = null;
+                    this.operator = null;
+                    this.waitingForOperand = true;
+                    this.updateDisplay();
+                }
+            },
+
+            clear() {
+                this.currentNumber = '0';
+                this.previousNumber = null;
+                this.operator = null;
+                this.history = '';
+                this.waitingForOperand = false;
+                this.error = false;
+                this.updateDisplay();
+            },
+
+            clearEntry() {
+                this.currentNumber = '0';
+                this.waitingForOperand = false;
+                this.error = false;
+                this.updateDisplay();
+            },
+
+            backspace() {
+                if (this.waitingForOperand || this.error) return;
+                
+                this.currentNumber = this.currentNumber.length > 1 
+                    ? this.currentNumber.slice(0, -1) 
+                    : '0';
+                this.updateDisplay();
+            },
+
+            percent() {
+                const value = parseFloat(this.currentNumber);
+                this.currentNumber = String(value / 100);
+                this.updateDisplay();
+            },
+
+            toggleSign() {
+                this.currentNumber = String(parseFloat(this.currentNumber) * -1);
+                this.updateDisplay();
+            },
+
+            memoryAdd() {
+                this.memory += parseFloat(this.currentNumber);
+                this.waitingForOperand = true;
+                this.updateMemoryIndicator();
+            },
+
+            memorySubtract() {
+                this.memory -= parseFloat(this.currentNumber);
+                this.waitingForOperand = true;
+                this.updateMemoryIndicator();
+            },
+
+            memoryRecall() {
+                this.currentNumber = String(this.memory);
+                this.waitingForOperand = true;
+                this.updateDisplay();
+            },
+
+            memoryClear() {
+                this.memory = 0;
+                this.updateMemoryIndicator();
+            },
+
+            updateMemoryIndicator() {
+                this.memoryIndicator.textContent = this.memory !== 0 ? 'M' : '';
+            },
+
+            operatorSymbol(op) {
+                const symbols = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+                return symbols[op] || op;
+            },
+
+            formatNumber(num) {
+                if (typeof num !== 'number') return num;
+                if (Number.isInteger(num)) return String(num);
+                return parseFloat(num.toPrecision(12)).toString();
+            },
+
+            limitPrecision(num) {
+                if (typeof num !== 'number') return num;
+                if (!Number.isFinite(num)) return 'Error';
+                return parseFloat(num.toPrecision(12));
+            },
+
+            updateDisplay() {
+                this.display.textContent = this.formatNumber(this.currentNumber);
+                this.historyDisplay.textContent = this.history;
+                
+                if (this.error) {
+                    this.display.classList.add('error');
+                } else {
+                    this.display.classList.remove('error');
+                }
+
+                document.querySelectorAll('button.operator').forEach(btn => {
+                    if (btn.dataset.value === this.operator && this.waitingForOperand) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+            }
+        };
+
+        calculator.init();
+    </script>
+</body>
+</html>

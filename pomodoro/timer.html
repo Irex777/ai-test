@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pomodoro Timer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-secondary: #1a1a2e;
+            --bg-tertiary: #252540;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --accent-work: #ff6b6b;
+            --accent-short-break: #4ecdc4;
+            --accent-long-break: #a78bfa;
+            --accent-current: var(--accent-work);
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 300;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+        }
+
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .mode-btn {
+            background: var(--bg-secondary);
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.75rem 1.25rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .mode-btn.active {
+            background: var(--accent-current);
+            color: var(--bg-primary);
+            font-weight: 600;
+        }
+
+        .timer-container {
+            position: relative;
+            width: 320px;
+            height: 320px;
+            margin: 0 auto 2rem;
+        }
+
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring-bg {
+            fill: none;
+            stroke: var(--bg-secondary);
+            stroke-width: 8;
+        }
+
+        .progress-ring-bar {
+            fill: none;
+            stroke: var(--accent-current);
+            stroke-width: 8;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.1s linear, stroke 0.3s ease;
+        }
+
+        .timer-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .time-display {
+            font-size: 4.5rem;
+            font-weight: 200;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.02em;
+        }
+
+        .session-display {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .control-btn {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 1.25rem;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: var(--accent-current);
+            color: var(--bg-primary);
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 107, 107, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .btn-secondary:active {
+            transform: scale(0.95);
+        }
+
+        .settings-btn {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .settings-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .settings-panel {
+            position: fixed;
+            top: 0;
+            right: -350px;
+            width: 350px;
+            height: 100vh;
+            background: var(--bg-secondary);
+            padding: 2rem;
+            transition: right 0.3s ease;
+            z-index: 100;
+            overflow-y: auto;
+        }
+
+        .settings-panel.open {
+            right: 0;
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .settings-header h2 {
+            font-size: 1.5rem;
+            font-weight: 400;
+        }
+
+        .close-settings {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .setting-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .setting-group label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .setting-group input[type="number"] {
+            width: 100%;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--bg-tertiary);
+            color: var(--text-primary);
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .setting-group input[type="number"]:focus {
+            outline: none;
+            border-color: var(--accent-current);
+        }
+
+        .setting-info {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .auto-switch-toggle {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-tertiary);
+            border-radius: 26px;
+            transition: background 0.3s ease;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: '';
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: var(--accent-current);
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+            background: var(--bg-primary);
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 50;
+        }
+
+        .overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .mode-work { --accent-current: var(--accent-work); }
+        .mode-short-break { --accent-current: var(--accent-short-break); }
+        .mode-long-break { --accent-current: var(--accent-long-break); }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .timer-display.paused .time-display {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .session-complete {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-secondary);
+            padding: 2rem 3rem;
+            border-radius: 16px;
+            text-align: center;
+            z-index: 150;
+            display: none;
+        }
+
+        .session-complete.show {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -40%);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        .session-complete h3 {
+            margin-bottom: 0.5rem;
+        }
+
+        @media (max-width: 480px) {
+            .timer-container {
+                width: 280px;
+                height: 280px;
+            }
+
+            .time-display {
+                font-size: 3.5rem;
+            }
+        }
+    </style>
+</head>
+<body class="mode-work">
+    <button class="settings-btn" id="settingsBtn" aria-label="Settings">⚙</button>
+
+    <div class="container">
+        <header class="header">
+            <h1>POMODORO</h1>
+        </header>
+
+        <div class="mode-selector">
+            <button class="mode-btn active" data-mode="work">Work</button>
+            <button class="mode-btn" data-mode="shortBreak">Short Break</button>
+            <button class="mode-btn" data-mode="longBreak">Long Break</button>
+        </div>
+
+        <div class="timer-container">
+            <svg class="progress-ring" width="320" height="320">
+                <circle class="progress-ring-bg" cx="160" cy="160" r="145"/>
+                <circle class="progress-ring-bar" id="progressBar" cx="160" cy="160" r="145"/>
+            </svg>
+            <div class="timer-display">
+                <div class="time-display" id="timeDisplay">25:00</div>
+                <div class="session-display" id="sessionDisplay">Session 1 of 4</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn btn-secondary" id="resetBtn" aria-label="Reset">↺</button>
+            <button class="control-btn btn-primary" id="startPauseBtn" aria-label="Start/Pause">▶</button>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+
+    <aside class="settings-panel" id="settingsPanel">
+        <div class="settings-header">
+            <h2>Settings</h2>
+            <button class="close-settings" id="closeSettings">✕</button>
+        </div>
+
+        <div class="setting-group">
+            <label for="workDuration">Work Duration (minutes)</label>
+            <input type="number" id="workDuration" min="1" max="60" value="25">
+        </div>
+
+        <div class="setting-group">
+            <label for="shortBreakDuration">Short Break (minutes)</label>
+            <input type="number" id="shortBreakDuration" min="1" max="30" value="5">
+        </div>
+
+        <div class="setting-group">
+            <label for="longBreakDuration">Long Break (minutes)</label>
+            <input type="number" id="longBreakDuration" min="1" max="60" value="15">
+        </div>
+
+        <div class="setting-group">
+            <label for="sessionsUntilLongBreak">Sessions until long break</label>
+            <input type="number" id="sessionsUntilLongBreak" min="2" max="10" value="4">
+        </div>
+
+        <div class="setting-group">
+            <div class="auto-switch-toggle">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="autoSwitch" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+                <div>
+                    <label for="autoSwitch" style="margin: 0;">Auto-switch modes</label>
+                    <div class="setting-info">Automatically start next session type</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <div class="auto-switch-toggle">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="autoStartBreak" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+                <div>
+                    <label for="autoStartBreak" style="margin: 0;">Auto-start breaks</label>
+                    <div class="setting-info">Start break timer automatically</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <div class="auto-switch-toggle">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="autoStartWork">
+                    <span class="toggle-slider"></span>
+                </label>
+                <div>
+                    <label for="autoStartWork" style="margin: 0;">Auto-start work</label>
+                    <div class="setting-info">Start work timer automatically</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <div class="session-complete" id="sessionComplete">
+        <h3 id="completeMessage">Session Complete!</h3>
+    </div>
+
+    <script>
+        class PomodoroTimer {
+            constructor() {
+                this.durations = {
+                    work: 25 * 60,
+                    shortBreak: 5 * 60,
+                    longBreak: 15 * 60
+                };
+                this.currentMode = 'work';
+                this.timeLeft = this.durations.work;
+                this.isRunning = false;
+                this.sessionCount = 1;
+                this.sessionsUntilLongBreak = 4;
+                this.timerId = null;
+                this.autoSwitch = true;
+                this.autoStartBreak = true;
+                this.autoStartWork = false;
+
+                this.audioContext = null;
+
+                this.initElements();
+                this.initEventListeners();
+                this.initProgressRing();
+                this.loadSettings();
+                this.updateDisplay();
+            }
+
+            initElements() {
+                this.timeDisplay = document.getElementById('timeDisplay');
+                this.sessionDisplay = document.getElementById('sessionDisplay');
+                this.progressBar = document.getElementById('progressBar');
+                this.startPauseBtn = document.getElementById('startPauseBtn');
+                this.resetBtn = document.getElementById('resetBtn');
+                this.modeBtns = document.querySelectorAll('.mode-btn');
+                this.settingsBtn = document.getElementById('settingsBtn');
+                this.settingsPanel = document.getElementById('settingsPanel');
+                this.closeSettings = document.getElementById('closeSettings');
+                this.overlay = document.getElementById('overlay');
+                this.sessionComplete = document.getElementById('sessionComplete');
+                this.completeMessage = document.getElementById('completeMessage');
+
+                // Settings inputs
+                this.workDurationInput = document.getElementById('workDuration');
+                this.shortBreakDurationInput = document.getElementById('shortBreakDuration');
+                this.longBreakDurationInput = document.getElementById('longBreakDuration');
+                this.sessionsUntilLongBreakInput = document.getElementById('sessionsUntilLongBreak');
+                this.autoSwitchInput = document.getElementById('autoSwitch');
+                this.autoStartBreakInput = document.getElementById('autoStartBreak');
+                this.autoStartWorkInput = document.getElementById('autoStartWork');
+            }
+
+            initProgressRing() {
+                const radius = 145;
+                this.circumference = 2 * Math.PI * radius;
+                this.progressBar.style.strokeDasharray = `${this.circumference} ${this.circumference}`;
+                this.progressBar.style.strokeDashoffset = 0;
+            }
+
+            initEventListeners() {
+                this.startPauseBtn.addEventListener('click', () => this.toggleTimer());
+                this.resetBtn.addEventListener('click', () => this.resetTimer());
+
+                this.modeBtns.forEach(btn => {
+                    btn.addEventListener('click', () => this.switchMode(btn.dataset.mode));
+                });
+
+                this.settingsBtn.addEventListener('click', () => this.openSettings());
+                this.closeSettings.addEventListener('click', () => this.closeSettingsPanel());
+                this.overlay.addEventListener('click', () => this.closeSettingsPanel());
+
+                // Settings inputs
+                this.workDurationInput.addEventListener('change', () => this.updateDurations());
+                this.shortBreakDurationInput.addEventListener('change', () => this.updateDurations());
+                this.longBreakDurationInput.addEventListener('change', () => this.updateDurations());
+                this.sessionsUntilLongBreakInput.addEventListener('change', () => {
+                    this.sessionsUntilLongBreak = parseInt(this.sessionsUntilLongBreakInput.value);
+                    this.saveSettings();
+                });
+                this.autoSwitchInput.addEventListener('change', () => {
+                    this.autoSwitch = this.autoSwitchInput.checked;
+                    this.saveSettings();
+                });
+                this.autoStartBreakInput.addEventListener('change', () => {
+                    this.autoStartBreak = this.autoStartBreakInput.checked;
+                    this.saveSettings();
+                });
+                this.autoStartWorkInput.addEventListener('change', () => {
+                    this.autoStartWork = this.autoStartWorkInput.checked;
+                    this.saveSettings();
+                });
+            }
+
+            toggleTimer() {
+                if (this.isRunning) {
+                    this.pauseTimer();
+                } else {
+                    this.startTimer();
+                }
+            }
+
+            startTimer() {
+                this.isRunning = true;
+                this.startPauseBtn.textContent = '⏸';
+                this.startPauseBtn.setAttribute('aria-label', 'Pause');
+                document.querySelector('.timer-display').classList.remove('paused');
+
+                this.timerId = setInterval(() => {
+                    this.timeLeft--;
+                    this.updateDisplay();
+
+                    if (this.timeLeft <= 0) {
+                        this.completeSession();
+                    }
+                }, 1000);
+            }
+
+            pauseTimer() {
+                this.isRunning = false;
+                this.startPauseBtn.textContent = '▶';
+                this.startPauseBtn.setAttribute('aria-label', 'Start');
+                document.querySelector('.timer-display').classList.add('paused');
+                clearInterval(this.timerId);
+            }
+
+            resetTimer() {
+                this.pauseTimer();
+                this.timeLeft = this.durations[this.currentMode];
+                this.updateDisplay();
+            }
+
+            switchMode(mode) {
+                this.pauseTimer();
+                this.currentMode = mode;
+                this.timeLeft = this.durations[mode];
+
+                // Update active button
+                this.modeBtns.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.mode === mode);
+                });
+
+                // Update theme
+                document.body.className = `mode-${mode.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
+
+                this.updateDisplay();
+            }
+
+            completeSession() {
+                this.pauseTimer();
+                this.playNotificationSound();
+                this.showCompleteMessage();
+
+                if (this.autoSwitch) {
+                    if (this.currentMode === 'work') {
+                        this.sessionCount++;
+                        const nextMode = this.sessionCount % this.sessionsUntilLongBreak === 1
+                            ? 'longBreak'
+                            : 'shortBreak';
+
+                        setTimeout(() => {
+                            this.hideCompleteMessage();
+                            this.switchMode(nextMode);
+                            if (this.autoStartBreak) {
+                                this.startTimer();
+                            }
+                        }, 2000);
+                    } else {
+                        setTimeout(() => {
+                            this.hideCompleteMessage();
+                            this.switchMode('work');
+                            if (this.autoStartWork) {
+                                this.startTimer();
+                            }
+                        }, 2000);
+                    }
+                }
+            }
+
+            updateDisplay() {
+                const minutes = Math.floor(this.timeLeft / 60);
+                const seconds = this.timeLeft % 60;
+                this.timeDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+                const totalDuration = this.durations[this.currentMode];
+                const progress = (totalDuration - this.timeLeft) / totalDuration;
+                const offset = this.circumference * (1 - progress);
+                this.progressBar.style.strokeDashoffset = offset;
+
+                this.sessionDisplay.textContent = `Session ${this.sessionCount} of ${this.sessionsUntilLongBreak}`;
+
+                // Update page title
+                document.title = `${this.timeDisplay.textContent} - Pomodoro`;
+            }
+
+            playNotificationSound() {
+                if (!this.audioContext) {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+
+                const playBeep = (frequency, startTime, duration) => {
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+
+                    oscillator.frequency.value = frequency;
+                    oscillator.type = 'sine';
+
+                    gainNode.gain.setValueAtTime(0.3, startTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+
+                    oscillator.start(startTime);
+                    oscillator.stop(startTime + duration);
+                };
+
+                const now = this.audioContext.currentTime;
+                playBeep(800, now, 0.15);
+                playBeep(1000, now + 0.2, 0.15);
+                playBeep(1200, now + 0.4, 0.2);
+            }
+
+            showCompleteMessage() {
+                const messages = {
+                    work: 'Work session complete!',
+                    shortBreak: 'Break is over!',
+                    longBreak: 'Long break finished!'
+                };
+                this.completeMessage.textContent = messages[this.currentMode];
+                this.sessionComplete.classList.add('show');
+
+                setTimeout(() => this.hideCompleteMessage(), 3000);
+            }
+
+            hideCompleteMessage() {
+                this.sessionComplete.classList.remove('show');
+            }
+
+            openSettings() {
+                this.settingsPanel.classList.add('open');
+                this.overlay.classList.add('open');
+            }
+
+            closeSettingsPanel() {
+                this.settingsPanel.classList.remove('open');
+                this.overlay.classList.remove('open');
+            }
+
+            updateDurations() {
+                this.durations.work = parseInt(this.workDurationInput.value) * 60 || 25 * 60;
+                this.durations.shortBreak = parseInt(this.shortBreakDurationInput.value) * 60 || 5 * 60;
+                this.durations.longBreak = parseInt(this.longBreakDurationInput.value) * 60 || 15 * 60;
+
+                if (!this.isRunning) {
+                    this.timeLeft = this.durations[this.currentMode];
+                    this.updateDisplay();
+                }
+
+                this.saveSettings();
+            }
+
+            saveSettings() {
+                const settings = {
+                    workDuration: this.workDurationInput.value,
+                    shortBreakDuration: this.shortBreakDurationInput.value,
+                    longBreakDuration: this.longBreakDurationInput.value,
+                    sessionsUntilLongBreak: this.sessionsUntilLongBreakInput.value,
+                    autoSwitch: this.autoSwitchInput.checked,
+                    autoStartBreak: this.autoStartBreakInput.checked,
+                    autoStartWork: this.autoStartWorkInput.checked
+                };
+                localStorage.setItem('pomodoroSettings', JSON.stringify(settings));
+            }
+
+            loadSettings() {
+                const saved = localStorage.getItem('pomodoroSettings');
+                if (saved) {
+                    const settings = JSON.parse(saved);
+                    this.workDurationInput.value = settings.workDuration || 25;
+                    this.shortBreakDurationInput.value = settings.shortBreakDuration || 5;
+                    this.longBreakDurationInput.value = settings.longBreakDuration || 15;
+                    this.sessionsUntilLongBreakInput.value = settings.sessionsUntilLongBreak || 4;
+                    this.autoSwitchInput.checked = settings.autoSwitch !== false;
+                    this.autoStartBreakInput.checked = settings.autoStartBreak !== false;
+                    this.autoStartWorkInput.checked = settings.autoStartWork || false;
+
+                    this.autoSwitch = this.autoSwitchInput.checked;
+                    this.autoStartBreak = this.autoStartBreakInput.checked;
+                    this.autoStartWork = this.autoStartWorkInput.checked;
+                    this.sessionsUntilLongBreak = parseInt(this.sessionsUntilLongBreakInput.value);
+
+                    this.updateDurations();
+                }
+            }
+        }
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', () => {
+            new PomodoroTimer();
+        });
+    </script>
+</body>
+</html>
