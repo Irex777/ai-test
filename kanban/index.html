@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Bake-Off — Kanban</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#08080d;--surface:#0f0f18;--surface2:#181826;--surface3:#222238;--border:#2a2a40;--text:#e8e8f0;--text2:#8888a0;--text3:#555570;--sonnet:#d4a574;--opus:#c084fc;--glm:#4ecdc4;--qwen:#ff6b6b;--radius:12px}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+  a{color:inherit;text-decoration:none}
+  .nav{display:flex;align-items:center;padding:16px 32px;border-bottom:1px solid var(--border);background:var(--surface);gap:24px}
+  .nav-logo{font-size:18px;font-weight:800;letter-spacing:-0.5px}.nav-logo span{color:var(--opus)}
+  .nav-links{display:flex;gap:20px}.nav-links a{font-size:14px;color:var(--text2);transition:color 0.2s;padding:4px 0}.nav-links a:hover,.nav-links a.active{color:var(--text)}
+  .tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--surface);padding:0 32px;flex-wrap:wrap}
+  .tab{padding:12px 20px;cursor:pointer;font-size:14px;font-weight:600;border-bottom:3px solid transparent;transition:all 0.2s;display:flex;align-items:center;gap:8px;user-select:none}
+  .tab:hover{background:rgba(255,255,255,0.02)}.tab.active{border-bottom-color:var(--text);background:var(--bg)}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .stats{display:flex;gap:10px;padding:12px 32px;background:var(--surface);border-bottom:1px solid var(--border);font-size:12px;overflow-x:auto;flex-wrap:wrap}
+  .stat{background:var(--surface2);padding:6px 12px;border-radius:8px;display:flex;flex-direction:column;gap:1px;min-width:80px}
+  .stat .label{color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:0.5px}
+  .stat .value{font-weight:700;font-size:13px}
+  .fast{color:#4ecdc4}.medium{color:#d4a574}.slow{color:#ff6b6b}
+  .compare-btn{margin-left:auto;padding:7px 14px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s}
+  .compare-btn:hover{background:var(--surface3)}.compare-btn.active{background:var(--opus);color:#000;border-color:var(--opus)}
+  #singleView iframe{width:100%;height:calc(100vh - 210px);border:none;background:#fff;display:block}
+  .cg2{display:grid;grid-template-columns:1fr 1fr;height:calc(100vh - 110px)}
+  .cg2 .p{position:relative;border-right:2px solid var(--border);border-bottom:2px solid var(--border);overflow:hidden}
+  .cg2 .p:nth-child(2n){border-right:none}.cg2 .p:nth-child(n+3){border-bottom:none}
+  .cg2 .pl{position:absolute;top:6px;left:6px;z-index:10;background:rgba(0,0,0,0.85);color:#fff;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:600;white-space:nowrap}
+  .cg2 iframe{width:100%;height:100%;border:none}
+  .hidden{display:none!important}
+  .vs{padding:24px 32px;border-top:1px solid var(--border)}
+  .vs h2{font-size:18px;margin-bottom:16px}
+  .vt{width:100%;border-collapse:collapse;font-size:13px}
+  .vt th,.vt td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--border)}
+  .vt th{color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px}
+  .winner{background:rgba(78,205,196,0.08)}
+  .wb{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+  .vtxt{margin-top:16px;padding:16px;background:var(--surface2);border-radius:var(--radius);border-left:3px solid var(--opus);font-size:14px;line-height:1.6;color:var(--text2)}
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="nav-logo">AI <span>Bake-Off</span></div>
+  <div class="nav-links">
+    <a href="/">Home</a>
+    <a href="/kanban/" class="active">Kanban</a>
+    <a href="/dashboard/">Dashboard</a>
+    <a href="/chess/">Chess</a>
+    <a href="/markdown/">Markdown</a>
+  </div>
+</div>
+<div class="tabs">
+  <div class="tab active" data-model="sonnet" onclick="switchTab('sonnet')"><span class="dot" style="background:var(--sonnet)"></span> Sonnet 4.6</div>
+  <div class="tab" data-model="opus" onclick="switchTab('opus')"><span class="dot" style="background:var(--opus)"></span> Opus 4.7</div>
+  <div class="tab" data-model="glm" onclick="switchTab('glm')"><span class="dot" style="background:var(--glm)"></span> GLM 5.1</div>
+  <div class="tab" data-model="qwen" onclick="switchTab('qwen')"><span class="dot" style="background:var(--qwen)"></span> Qwen 3.6</div>
+  <button class="compare-btn" onclick="toggleCompare()">Compare All</button>
+</div>
+<div class="stats" id="statsBar"></div>
+<div id="singleView"><iframe id="appFrame" src="sonnet.html"></iframe></div>
+<div id="compareView" class="hidden">
+  <div class="cg2">
+    <div class="p"><div class="pl" style="background:rgba(212,165,116,0.95)">Sonnet 4.6 — 54s</div><iframe src="sonnet.html"></iframe></div>
+    <div class="p"><div class="pl" style="background:rgba(192,132,252,0.95)">Opus 4.7 — 74s</div><iframe src="opus.html"></iframe></div>
+    <div class="p"><div class="pl" style="background:rgba(78,205,196,0.95)">GLM 5.1 — 166s</div><iframe src="glm.html"></iframe></div>
+    <div class="p"><div class="pl" style="background:rgba(255,107,107,0.95)">Qwen 3.6 — 93s</div><iframe src="qwen.html"></iframe></div>
+  </div>
+</div>
+<div class="vs">
+  <h2>🏆 Verdict</h2>
+  <table class="vt"><tr><th>Rank</th><th>Model</th><th>Time</th><th>Output</th><th>Notes</th></tr><tr class="winner"><td><strong>#1</strong> <span class="wb" style="background:rgba(78,205,196,0.2);color:#4ecdc4">WINNER</span></td><td><span style="color:var(--qwen)">Qwen 3.6 27B</span></td><td>92.8s</td><td>22,560</td><td>21/21 features. Branded design (KanbanFlow), most code-efficient (692 lines), custom scrollbars, inline editing. Local Q4_K_M beats cloud.</td></tr><tr class=""><td><strong>#2</strong> </td><td><span style="color:var(--opus)">Claude Opus 4.7</span></td><td>74.1s</td><td>32,222</td><td>19/21. Most thorough (983 lines), SVG icons, cubic-bezier transitions. Missing inline editing.</td></tr><tr class=""><td><strong>#3</strong> </td><td><span style="color:var(--sonnet)">Claude Sonnet 4.6</span></td><td>54.1s</td><td>23,426</td><td>18/21. Fastest (54s), gradient text, keyboard support. Emoji icons, no inline editing.</td></tr><tr class=""><td><strong>#4</strong> </td><td><span style="color:var(--glm)">GLM 5.1 Turbo</span></td><td>165.7s</td><td>30,948</td><td>18/21. Slowest (166s). Only model missing dark theme. Missing task counts.</td></tr></table>
+  <div class="vtxt">Biggest surprise: Qwen 3.6 27B running locally on Q4_K_M quantization beat all cloud models on feature completeness while being the most code-efficient.</div>
+</div>
+<script>
+var meta={
+  sonnet:{name:"Claude Sonnet 4.6",provider:"Anthropic (Pro)",time:54.1,size:"23,426",quant:"FP16 (cloud)",valid:true},
+  opus:{name:"Claude Opus 4.7",provider:"Anthropic (Pro)",time:74.1,size:"32,222",quant:"FP16 (cloud)",valid:true},
+  glm:{name:"GLM 5.1 Turbo",provider:"ZAI / z.ai",time:165.7,size:"30,948",quant:"FP16 (cloud)",valid:true},
+  qwen:{name:"Qwen 3.6 27B",provider:"Local llama.cpp",time:92.8,size:"22,560",quant:"Q4_K_M (~16GB)",valid:true}
+};
+function switchTab(m){document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('active',t.dataset.model===m)});updateStats(m);document.getElementById('appFrame').src=m+'.html'}
+function updateStats(m){var d=meta[m];if(!d.valid){document.getElementById('statsBar').innerHTML='<div class="stat"><span class="label">Status</span><span class="value slow">Generation Failed</span></div>';return}var tc=d.time<60?'fast':d.time<120?'medium':'slow';document.getElementById('statsBar').innerHTML='<div class="stat"><span class="label">Model</span><span class="value">'+d.name+'</span></div><div class="stat"><span class="label">Provider</span><span class="value">'+d.provider+'</span></div><div class="stat"><span class="label">Time</span><span class="value '+tc+'">'+d.time+'s</span></div><div class="stat"><span class="label">Output</span><span class="value">'+d.size+'</span></div><div class="stat"><span class="label">Quant</span><span class="value">'+d.quant+'</span></div>'}
+function toggleCompare(){var b=document.querySelector('.compare-btn');var c=!b.classList.contains('active');b.classList.toggle('active',c);document.getElementById('singleView').classList.toggle('hidden',c);document.getElementById('compareView').classList.toggle('hidden',!c);document.getElementById('statsBar').style.display=c?'none':'flex'}
+updateStats('sonnet');
+</script>
+</body>
+</html>

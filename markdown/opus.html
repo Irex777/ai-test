@@ -1,0 +1,730 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Editor with Live Preview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-tertiary: #0f3460;
+            --text-primary: #eaeaea;
+            --text-secondary: #a0a0a0;
+            --accent: #e94560;
+            --accent-hover: #ff6b6b;
+            --border: #2a2a4a;
+            --code-bg: #0d1117;
+            --blockquote-bg: #1a1a2e;
+            --blockquote-border: #e94560;
+            --table-border: #3a3a5a;
+            --table-header: #0f3460;
+            --table-row: #16213e;
+            --table-row-hover: #1a1a3e;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .header h1 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .toolbar-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .toolbar-btn .icon {
+            font-weight: bold;
+        }
+
+        .stats {
+            display: flex;
+            gap: 16px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .stats span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .stats strong {
+            color: var(--accent);
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .pane-header {
+            background: var(--bg-secondary);
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .editor-container {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        #editor {
+            width: 100%;
+            height: 100%;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: none;
+            padding: 16px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+        }
+
+        #editor::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .preview-container {
+            flex: 1;
+            overflow: auto;
+            background: var(--bg-secondary);
+        }
+
+        #preview {
+            padding: 16px 20px;
+            max-width: 900px;
+        }
+
+        #preview h1, #preview h2, #preview h3 {
+            margin-top: 1.5em;
+            margin-bottom: 0.75em;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+
+        #preview h1 {
+            font-size: 2rem;
+            color: var(--accent);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0.3em;
+        }
+
+        #preview h2 {
+            font-size: 1.5rem;
+            color: var(--text-primary);
+        }
+
+        #preview h3 {
+            font-size: 1.2rem;
+            color: var(--text-primary);
+        }
+
+        #preview p {
+            margin-bottom: 1em;
+            line-height: 1.7;
+        }
+
+        #preview a {
+            color: var(--accent);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        #preview a:hover {
+            border-bottom-color: var(--accent);
+        }
+
+        #preview strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        #preview em {
+            font-style: italic;
+        }
+
+        #preview code {
+            background: var(--code-bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9em;
+            color: #ff6b6b;
+        }
+
+        #preview pre {
+            background: var(--code-bg);
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-bottom: 1em;
+            border: 1px solid var(--border);
+        }
+
+        #preview pre code {
+            background: none;
+            padding: 0;
+            color: #eaeaea;
+        }
+
+        #preview ul, #preview ol {
+            margin-bottom: 1em;
+            padding-left: 2em;
+        }
+
+        #preview li {
+            margin-bottom: 0.4em;
+            line-height: 1.6;
+        }
+
+        #preview blockquote {
+            background: var(--blockquote-bg);
+            border-left: 4px solid var(--blockquote-border);
+            padding: 12px 16px;
+            margin-bottom: 1em;
+            border-radius: 0 8px 8px 0;
+        }
+
+        #preview blockquote p {
+            margin-bottom: 0;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        #preview hr {
+            border: none;
+            height: 2px;
+            background: var(--border);
+            margin: 2em 0;
+        }
+
+        #preview img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin: 1em 0;
+        }
+
+        #preview table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1em;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #preview th, #preview td {
+            padding: 12px 16px;
+            text-align: left;
+            border: 1px solid var(--table-border);
+        }
+
+        #preview th {
+            background: var(--table-header);
+            font-weight: 600;
+        }
+
+        #preview tr {
+            background: var(--table-row);
+        }
+
+        #preview tr:hover {
+            background: var(--table-row-hover);
+        }
+
+        .divider {
+            width: 1px;
+            background: var(--border);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .pane {
+                min-height: 50vh;
+            }
+
+            .divider {
+                width: 100%;
+                height: 1px;
+            }
+
+            .header {
+                padding: 10px 12px;
+            }
+
+            .stats {
+                order: 3;
+                width: 100%;
+                justify-content: center;
+            }
+
+            .toolbar {
+                gap: 4px;
+            }
+
+            .toolbar-btn {
+                padding: 5px 8px;
+                font-size: 0.75rem;
+            }
+
+            #preview h1 {
+                font-size: 1.5rem;
+            }
+
+            #preview h2 {
+                font-size: 1.25rem;
+            }
+
+            #preview h3 {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <h1>📝 Markdown Editor</h1>
+            <div class="toolbar">
+                <button class="toolbar-btn" onclick="insertFormat('heading')"><span class="icon">H</span> Heading</button>
+                <button class="toolbar-btn" onclick="insertFormat('bold')"><span class="icon">B</span> Bold</button>
+                <button class="toolbar-btn" onclick="insertFormat('italic')"><span class="icon">I</span> Italic</button>
+                <button class="toolbar-btn" onclick="insertFormat('code')"><span class="icon">&lt;/&gt;</span> Code</button>
+                <button class="toolbar-btn" onclick="insertFormat('codeblock')"><span class="icon">{ }</span> Code Block</button>
+                <button class="toolbar-btn" onclick="insertFormat('link')"><span class="icon">🔗</span> Link</button>
+                <button class="toolbar-btn" onclick="insertFormat('image')"><span class="icon">🖼</span> Image</button>
+                <button class="toolbar-btn" onclick="insertFormat('ul')"><span class="icon">•</span> List</button>
+                <button class="toolbar-btn" onclick="insertFormat('ol')"><span class="icon">1.</span> Num List</button>
+                <button class="toolbar-btn" onclick="insertFormat('quote')"><span class="icon">"</span> Quote</button>
+                <button class="toolbar-btn" onclick="insertFormat('hr')"><span class="icon">—</span> Divider</button>
+                <button class="toolbar-btn" onclick="insertFormat('table')"><span class="icon">▦</span> Table</button>
+            </div>
+            <div class="stats">
+                <span>Words: <strong id="wordCount">0</strong></span>
+                <span>Characters: <strong id="charCount">0</strong></span>
+            </div>
+        </header>
+        <div class="main-content">
+            <div class="pane">
+                <div class="pane-header">Editor</div>
+                <div class="editor-container">
+                    <textarea id="editor" placeholder="Write your markdown here..."></textarea>
+                </div>
+            </div>
+            <div class="divider"></div>
+            <div class="pane">
+                <div class="pane-header">Preview</div>
+                <div class="preview-container" id="previewContainer">
+                    <div id="preview"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const preview = document.getElementById('preview');
+        const previewContainer = document.getElementById('previewContainer');
+        const wordCountEl = document.getElementById('wordCount');
+        const charCountEl = document.getElementById('charCount');
+
+        const sampleMarkdown = `# Welcome to the Markdown Editor! 🎉
+
+This is a **live preview** markdown editor with a beautiful dark theme.
+
+## Features Overview
+
+- 📝 **Real-time preview** as you type
+- 🌙 **Dark theme** easy on the eyes
+- 📱 **Responsive** design for mobile devices
+- 🔧 **Formatting toolbar** for quick formatting
+- 📊 **Word & character count**
+
+## Text Formatting
+
+You can make text **bold** or *italic*. You can even combine them to make text ***bold and italic***.
+
+## Lists
+
+### Unordered List
+- First item
+- Second item
+  - Nested item
+  - Another nested item
+- Third item
+
+### Ordered List
+1. First step
+2. Second step
+3. Third step
+
+## Code
+
+Inline \`code\` looks like this.
+
+Code blocks with syntax:
+
+\`\`\`javascript
+function greet(name) {
+    console.log(\`Hello, \${name}!\`);
+    return true;
+}
+\`\`\`
+
+\`\`\`python
+def fibonacci(n):
+    if n <= 1:
+        return n
+    return fibonacci(n-1) + fibonacci(n-2)
+\`\`\`
+
+## Links & Images
+
+Visit [GitHub](https://github.com) for more!
+
+## Blockquotes
+
+> "The best way to predict the future is to invent it."
+> 
+> — Alan Kay
+
+## Horizontal Rule
+
+---
+
+## Tables
+
+| Feature | Status | Priority |
+|---------|--------|----------|
+| Editor  | ✅ Done | High     |
+| Preview | ✅ Done | High     |
+| Export  | 🚧 WIP  | Medium   |
+
+## Conclusion
+
+Start editing the left panel to see your changes reflected in the preview!
+`;
+
+        editor.value = sampleMarkdown;
+
+        function parseMarkdown(md) {
+            let html = md
+                // Escape HTML
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                
+                // Code blocks (must be first to preserve other markdown inside)
+                .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>')
+                
+                // Inline code
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                
+                // Headings
+                .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+                .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+                .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+                
+                // Bold and Italic combined
+                .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+                
+                // Bold
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                
+                // Italic
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                
+                // Images
+                .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">')
+                
+                // Links
+                .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+                
+                // Horizontal rule
+                .replace(/^---$/gm, '<hr>')
+                .replace(/^\*\*\*$/gm, '<hr>')
+                
+                // Tables
+                .replace(/^((?:\|.+?\|\n)+)/gm, (match) => {
+                    const rows = match.trim().split('\n');
+                    if (rows.length < 2) return match;
+                    
+                    let tableHtml = '<table>';
+                    let isHeader = true;
+                    
+                    rows.forEach((row, index) => {
+                        const cells = row.split('|').filter(cell => cell.trim() !== '');
+                        
+                        // Check for separator row
+                        if (cells.every(cell => /^[\s\-:]+$/.test(cell))) {
+                            isHeader = false;
+                            return;
+                        }
+                        
+                        if (isHeader && index === 0) {
+                            tableHtml += '<thead><tr>';
+                            cells.forEach(cell => {
+                                tableHtml += `<th>${cell.trim()}</th>`;
+                            });
+                            tableHtml += '</tr></thead><tbody>';
+                        } else {
+                            tableHtml += '<tr>';
+                            cells.forEach(cell => {
+                                tableHtml += `<td>${cell.trim()}</td>`;
+                            });
+                            tableHtml += '</tr>';
+                        }
+                    });
+                    
+                    tableHtml += '</tbody></table>';
+                    return tableHtml;
+                })
+                
+                // Blockquotes
+                .replace(/^&gt; (.+)$/gm, '<blockquote><p>$1</p></blockquote>')
+                
+                // Ordered lists
+                .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+                .replace(/(<li>.*<\/li>\n?)+/g, '<ol>$&</ol>')
+                
+                // Unordered lists
+                .replace(/^[\-\*] (.+)$/gm, '<li>$1</li>')
+                .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+                
+                // Paragraphs
+                .replace(/^(?!<[a-z]|$)(.+)$/gm, '<p>$1</p>')
+                
+                // Clean up empty paragraphs
+                .replace(/<p><\/p>/g, '')
+                .replace(/<p>(<h[1-6]>)/g, '$1')
+                .replace(/(<\/h[1-6]>)<\/p>/g, '$1')
+                .replace(/<p>(<ul>)/g, '$1')
+                .replace(/(<\/ul>)<\/p>/g, '$1')
+                .replace(/<p>(<ol>)/g, '$1')
+                .replace(/(<\/ol>)<\/p>/g, '$1')
+                .replace(/<p>(<pre>)/g, '$1')
+                .replace(/(<\/pre>)<\/p>/g, '$1')
+                .replace(/<p>(<blockquote>)/g, '$1')
+                .replace(/(<\/blockquote>)<\/p>/g, '$1')
+                .replace(/<p>(<hr>)<\/p>/g, '$1')
+                .replace(/<p>(<table>)/g, '$1')
+                .replace(/(<\/table>)<\/p>/g, '$1')
+                
+                // Fix nested lists
+                .replace(/<\/ul>\n<ul>/g, '')
+                .replace(/<\/ol>\n<ol>/g, '');
+
+            return html;
+        }
+
+        function updatePreview() {
+            const md = editor.value;
+            preview.innerHTML = parseMarkdown(md);
+            updateStats();
+        }
+
+        function updateStats() {
+            const text = editor.value;
+            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+            const chars = text.length;
+            
+            wordCountEl.textContent = words.toLocaleString();
+            charCountEl.textContent = chars.toLocaleString();
+        }
+
+        function insertFormat(type) {
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            const selectedText = editor.value.substring(start, end);
+            let insertion = '';
+            let cursorOffset = 0;
+
+            switch(type) {
+                case 'heading':
+                    insertion = `### ${selectedText || 'Heading'}`;
+                    cursorOffset = selectedText ? 0 : -8;
+                    break;
+                case 'bold':
+                    insertion = `**${selectedText || 'bold text'}**`;
+                    cursorOffset = selectedText ? 0 : -10;
+                    break;
+                case 'italic':
+                    insertion = `*${selectedText || 'italic text'}*`;
+                    cursorOffset = selectedText ? 0 : -11;
+                    break;
+                case 'code':
+                    insertion = `\`${selectedText || 'code'}\``;
+                    cursorOffset = selectedText ? 0 : -6;
+                    break;
+                case 'codeblock':
+                    insertion = `\n\`\`\`javascript\n${selectedText || '// Your code here'}\n\`\`\`\n`;
+                    cursorOffset = selectedText ? 0 : -20;
+                    break;
+                case 'link':
+                    insertion = `[${selectedText || 'link text'}](url)`;
+                    cursorOffset = selectedText ? -5 : -9;
+                    break;
+                case 'image':
+                    insertion = `![${selectedText || 'alt text'}](image-url)`;
+                    cursorOffset = selectedText ? -10 : -14;
+                    break;
+                case 'ul':
+                    insertion = `\n- ${selectedText || 'List item'}\n`;
+                    cursorOffset = selectedText ? 0 : -11;
+                    break;
+                case 'ol':
+                    insertion = `\n1. ${selectedText || 'List item'}\n`;
+                    cursorOffset = selectedText ? 0 : -11;
+                    break;
+                case 'quote':
+                    insertion = `\n> ${selectedText || 'Quote'}\n`;
+                    cursorOffset = selectedText ? 0 : -7;
+                    break;
+                case 'hr':
+                    insertion = `\n\n---\n\n`;
+                    break;
+                case 'table':
+                    insertion = `\n| Header 1 | Header 2 | Header 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |\n`;
+                    break;
+            }
+
+            editor.value = editor.value.substring(0, start) + insertion + editor.value.substring(end);
+            
+            const newPosition = start + insertion.length + cursorOffset;
+            editor.setSelectionRange(newPosition, newPosition);
+            editor.focus();
+            
+            updatePreview();
+        }
+
+        // Sync scrolling
+        let isScrolling = false;
+        let scrollTimeout;
+
+        function syncScroll(source, target) {
+            if (isScrolling) return;
+            isScrolling = true;
+            
+            const sourceRatio = source.scrollTop / (source.scrollHeight - source.clientHeight);
+            target.scrollTop = sourceRatio * (target.scrollHeight - target.clientHeight);
+            
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                isScrolling = false;
+            }, 100);
+        }
+
+        editor.addEventListener('scroll', () => syncScroll(editor, previewContainer));
+        previewContainer.addEventListener('scroll', () => syncScroll(previewContainer, editor));
+
+        editor.addEventListener('input', updatePreview);
+
+        // Initialize
+        updatePreview();
+
+        // Keyboard shortcuts
+        editor.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key.toLowerCase()) {
+                    case 'b':
+                        e.preventDefault();
+                        insertFormat('bold');
+                        break;
+                    case 'i':
+                        e.preventDefault();
+                        insertFormat('italic');
+                        break;
+                    case 'k':
+                        e.preventDefault();
+                        insertFormat('link');
+                        break;
+                }
+            }
+            
+            // Tab key support
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = editor.selectionStart;
+                const end = editor.selectionEnd;
+                editor.value = editor.value.substring(0, start) + '    ' + editor.value.substring(end);
+                editor.selectionStart = editor.selectionEnd = start + 4;
+                updatePreview();
+            }
+        });
+    </script>
+</body>
+</html>
+```

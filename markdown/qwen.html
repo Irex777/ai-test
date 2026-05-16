@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Mode Markdown Editor</title>
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --panel-bg: #252526;
+            --text-color: #d4d4d4;
+            --accent-color: #3794ff;
+            --border-color: #3e3e42;
+            --toolbar-bg: #333333;
+            --btn-hover: #444444;
+            --code-bg: #101010;
+            --blockquote-border: #6a9955;
+            --blockquote-bg: #2d2d2d;
+            --table-border: #454545;
+            --table-header-bg: #333333;
+            --link-color: #569cd6;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Toolbar */
+        #toolbar {
+            background-color: var(--toolbar-bg);
+            padding: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            border-bottom: 1px solid var(--border-color);
+            align-items: center;
+        }
+
+        .tool-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-color);
+            padding: 6px 10px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .tool-btn:hover { background-color: var(--btn-hover); }
+        .tool-btn:active { background-color: #555; }
+
+        .separator {
+            width: 1px;
+            height: 20px;
+            background-color: var(--border-color);
+            margin: 0 5px;
+        }
+
+        /* Main Layout */
+        #container {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 100px); /* Adjust for footer/toolbar */
+            overflow: hidden;
+        }
+
+        .pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-color);
+            min-width: 0;
+        }
+
+        .pane:last-child { border-right: none; }
+
+        .pane-header {
+            padding: 8px 15px;
+            background-color: var(--panel-bg);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid var(--border-color);
+            color: #888;
+        }
+
+        /* Editor Area */
+        #editor {
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border: none;
+            padding: 20px;
+            resize: none;
+            outline: none;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 15px;
+            line-height: 1.6;
+            overflow-y: auto;
+        }
+
+        /* Preview Area */
+        #preview {
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: var(--bg-color);
+            line-height: 1.6;
+        }
+
+        /* Markdown Styles */
+        #preview h1, #preview h2, #preview h3 { margin-top: 1.5em; margin-bottom: 0.5em; border-bottom: 1px solid var(--border-color); padding-bottom: 0.3em; }
+        #preview h1 { font-size: 2em; }
+        #preview h2 { font-size: 1.5em; }
+        #preview h3 { font-size: 1.25em; }
+        
+        #preview p { margin-bottom: 1em; }
+        
+        #preview a { color: var(--link-color); text-decoration: none; }
+        #preview a:hover { text-decoration: underline; }
+        
+        #preview code {
+            background-color: var(--code-bg);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+            color: #ce9178;
+        }
+
+        #preview pre {
+            background-color: var(--code-bg);
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin-bottom: 1em;
+            border: 1px solid var(--border-color);
+        }
+        
+        #preview pre code {
+            background: none;
+            padding: 0;
+            color: var(--text-color);
+        }
+
+        #preview blockquote {
+            border-left: 4px solid var(--blockquote-border);
+            background-color: var(--blockquote-bg);
+            margin: 1em 0;
+            padding: 10px 20px;
+            color: #aaa;
+        }
+
+        #preview ul, #preview ol { margin-bottom: 1em; padding-left: 2em; }
+        #preview li { margin-bottom: 5px; }
+
+        #preview hr {
+            border: none;
+            height: 1px;
+            background-color: var(--border-color);
+            margin: 2em 0;
+        }
+
+        #preview table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1em;
+        }
+        
+        #preview th, #preview td {
+            border: 1px solid var(--table-border);
+            padding: 8px 12px;
+            text-align: left;
+        }
+        
+        #preview th { background-color: var(--table-header-bg); }
+
+        #preview img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        /* Footer */
+        #footer {
+            background-color: var(--toolbar-bg);
+            padding: 5px 15px;
+            font-size: 12px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            color: #888;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            #container { flex-direction: column; }
+            .pane { height: 50%; border-right: none; border-bottom: 1px solid var(--border-color); }
+            #toolbar { overflow-x: auto; flex-wrap: nowrap; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Toolbar -->
+    <div id="toolbar">
+        <button class="tool-btn" onclick="formatText('bold')" title="Bold (Ctrl+B)"><b>B</b></button>
+        <button class="tool-btn" onclick="formatText('italic')" title="Italic (Ctrl+I)"><i>I</i></button>
+        <button class="tool-btn" onclick="formatText('heading')" title="Heading">H</button>
+        <div class="separator"></div>
+        <button class="tool-btn" onclick="formatText('ul')" title="Unordered List">• List</button>
+        <button class="tool-btn" onclick="formatText('ol')" title="Ordered List">1. List</button>
+        <div class="separator"></div>
+        <button class="tool-btn" onclick="formatText('link')" title="Link">🔗</button>
+        <button class="tool-btn" onclick="formatText('image')" title="Image">🖼</button>
+        <button class="tool-btn" onclick="formatText('code')" title="Inline Code">&lt;/&gt;</button>
+        <button class="tool-btn" onclick="formatText('blockcode')" title="Code Block">{ }</button>
+        <div class="separator"></div>
+        <button class="tool-btn" onclick="formatText('quote')" title="Quote">❝</button>
+        <button class="tool-btn" onclick="formatText('hr')" title="Horizontal Rule">―</button>
+        <button class="tool-btn" onclick="formatText('table')" title="Table">▦</button>
+    </div>
+
+    <!-- Main Editor Container -->
+    <div id="container">
+        <div class="pane">
+            <div class="pane-header">Markdown Input</div>
+            <textarea id="editor" spellcheck="false"></textarea>
+        </div>
+        <div class="pane">
+            <div class="pane-header">Live Preview</div>
+            <div id="preview"></div>
+        </div>
+    </div>
+
+    <!-- Footer Stats -->
+    <div id="footer">
+        <span id="word-count">Words: 0</span>
+        <span id="char-count">Chars: 0</span>
+    </div>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const preview = document.getElementById('preview');
+        const wordCountDisplay = document.getElementById('word-count');
+        const charCountDisplay = document.getElementById('char-count');
+
+        // Sample Content
+        const sampleMarkdown = `# Welcome to Markdown Editor
+
+This is a **live markdown editor** built with vanilla HTML, CSS, and JS.
+
+## Features
+- Split-pane layout
+- Live preview
+- Dark mode
+- Responsive design
+
+### Formatting Examples
+
+Text can be **bold**, *italic*, or ~~strikethrough~~. You can also use \`inline code\` for technical terms.
+
+#### Lists
+1. First item
+2. Second item
+3. Third item
+
+- Unordered item A
+- Unordered item B
+
+#### Links and Images
+Visit [Google](https://google.com) for search.
+
+![Placeholder Image](https://via.placeholder.com/600x150/333/fff?text=Markdown+Editor+Image)
+
+#### Blockquote
+> "The best way to predict the future is to create it."
+> - Peter Drucker
+
+#### Code Block
+\`\`\`javascript
+function hello() {
+    console.log("Hello World!");
+}
+\`\`\`
+
+#### Table
+
+| Feature | Status | Difficulty |
+| :--- | :---: | :---: |
+| Parsing | ✅ Done | Medium |
+| Rendering | ✅ Done | Easy |
+| Sync Scroll | ✅ Done | Hard |
+
+---
+
+*Enjoy editing!*
+`;
+
+        // Initialize
+        editor.value = localStorage.getItem('md-content') || sampleMarkdown;
+        updatePreview();
+        updateCounts();
+
+        // Event Listeners
+        editor.addEventListener('input', () => {
+            updatePreview();
+            updateCounts();
+            saveContent();
+        });
+
+        // Sync Scrolling
+        let isScrolling = false;
+        
+        editor.addEventListener('scroll', () => {
+            if (!isScrolling) {
+                window.requestAnimationFrame(() => {
+                    const percentage = editor.scrollTop / (editor.scrollHeight - editor.clientHeight);
+                    preview.scrollTop = percentage * (preview.scrollHeight - preview.clientHeight);
+                    isScrolling = false;
+                });
+                isScrolling = true;
+            }
+        });
+
+        // Core Parser Function
+        function parseMarkdown(md) {
+            let html = md;
+
+            // Escape HTML to prevent XSS (basic)
+            html = html.replace(/&/g, "&amp;");
+            html = html.replace(/</g, "&lt;");
+            html = html.replace(/>/g, "&gt;");
+
+            // Code Blocks (must be before other parsing to protect content)
+            html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+
+            // Inline Code
+            html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+            // Headings
+            html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+            html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+            html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+            // Bold and Italic
+            html = html.replace(/\*\*(.*)\*\*/gim, '<b>$1</b>');
+            html = html.replace(/\*(.*)\*/gim, '<i>$1</i>');
+            
+            // Images (before links)
+            html = html.replace(/!\[(.*?)\]\((.*?)\)/gim, '<img src="$2" alt="$1">');
+            
+            // Links
+            html = html.replace(/\[(.*?)\]\((.*?)\)/gim, '<a href="$2" target="_blank">$1</a>');
+
+            // Blockquotes
+            html = html.replace(/^&gt; (.*$)/gim, '<blockquote>$1</blockquote>');
+
+            // Horizontal Rules
+            html = html.replace(/^---$/gim, '<hr>');
+
+            // Tables (Simple Regex for standard markdown tables)
+            // Note: This is a basic implementation
+            const tableRegex = /\|(.+)\|[\r\n]\|[-| :]+ \|[\r\n]((?:\|.+\|[\r\n?])+)/g;
+            html = html.replace(tableRegex, (match, header, body) => {
+                const headers = header.split('|').map(h => `<th>${h.trim()}</th>`).join('');
+                const rows = body.trim().split('\n').map(row => {
+                    const cells = row.split('|').map(c => `<td>${c.trim()}</td>`).join('');
+                    return `<tr>${cells}</tr>`;
+                }).join('');
+                return `<table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table>`;
+            });
+
+            // Unordered Lists
+            html = html.replace(/^\- (.*$)/gim, '<li>$1</li>');
+            // Wrap consecutive LIs in UL
+            html = html.replace(/((?:<li>.*<\/li>\n?)+)/gim, '<ul>$1</ul>');
+
+            // Ordered Lists
+            html = html.replace(/^\d+\. (.*$)/gim, '<li>$1</li>');
+            // Wrap remaining consecutive LIs in OL (simple logic, assumes no mixed lists in same block)
+            // In a real app, a state-machine parser is better.
+            
+            // Paragraphs (lines that aren't already wrapped)
+            html = html.replace(/^(?!<[huploib]|<\/|<img|<br|<hr|<pre|<table|<blockquote)(.*$)/gim, '<p>$1</p>');
+
+            // Clean up newlines
+            html = html.replace(/\n/gim, '');
+
+            return html;
+        }
+
+        function updatePreview() {
+            preview.innerHTML = parseMarkdown(editor.value);
+        }
+
+        function updateCounts() {
+            const text = editor.value;
+            const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
+            const chars = text.length;
+            wordCountDisplay.innerText = `Words: ${words}`;
+            charCountDisplay.innerText = `Chars: ${chars}`;
+        }
+
+        function saveContent() {
+            localStorage.setItem('md-content', editor.value);
+        }
+
+        // Formatting Toolbar Logic
+        function formatText(type) {
+            const start = editor.selectionStart;
+            const end = editor.selectionEnd;
+            const text = editor.value;
+            const selection = text.substring(start, end);
+            let insert = '';
+            let cursorOffset = 0;
+
+            switch(type) {
+                case 'bold':
+                    insert = `**${selection || 'bold text'}**`;
+                    cursorOffset = selection ? 0 : -2;
+                    break;
+                case 'italic':
+                    insert = `*${selection || 'italic text'}*`;
+                    cursorOffset = selection ? 0 : -1;
+                    break;
+                case 'heading':
+                    insert = `\n### ${selection || 'Heading'}\n`;
+                    break;
+                case 'ul':
+                    insert = `\n- ${selection || 'List item'}`;
+                    break;
+                case 'ol':
+                    insert = `\n1. ${selection || 'List item'}`;
+                    break;
+                case 'link':
+                    insert = `[${selection || 'text'}](url)`;
+                    cursorOffset = -1; // Inside url
+                    break;
+                case 'image':
+                    insert = `![${selection || 'alt'}](url)`;
+                    cursorOffset = -1;
+                    break;
+                case 'code':
+                    insert = `\`${selection || 'code'}\``;
+                    cursorOffset = selection ? 0 : -1;
+                    break;
+                case 'blockcode':
+                    insert = `\n\`\`\`\n${selection || 'code block'}\n\`\`\`\n`;
+                    break;
+                case 'quote':
+                    insert = `\n> ${selection || 'quote'}\n`;
+                    break;
+                case 'hr':
+                    insert = `\n---\n`;
+                    break;
+                case 'table':
+                    insert = `\n| Header 1 | Header 2 |\n| --- | --- |\n| Cell 1 | Cell 2 |\n`;
+                    break;
+            }
+
+            editor.focus();
+            document.execCommand('insertText', false, insert);
+            // Trigger input event manually to update preview
+            editor.dispatchEvent(new Event('input'));
+        }
+    </script>
+</body>
+</html>

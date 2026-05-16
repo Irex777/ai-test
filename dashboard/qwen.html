@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Analytics Dashboard</title>
+    <style>
+        :root {
+            --bg-body: #0f172a;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-orange: #f59e0b;
+            --border: #334155;
+            --chart-line: #38bdf8;
+            --chart-fill: rgba(56, 189, 248, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: auto auto auto;
+            gap: 20px;
+        }
+
+        /* Header */
+        .header {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* Cards */
+        .card {
+            background-color: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-blue);
+        }
+
+        .kpi-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .kpi-title {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 10px;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .kpi-trend {
+            font-size: 0.875rem;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .trend-up { color: var(--accent-green); }
+        .trend-down { color: var(--accent-red); }
+
+        /* Charts Section */
+        .chart-container {
+            grid-column: span 3;
+            min-height: 300px;
+            position: relative;
+        }
+
+        .donut-container {
+            grid-column: span 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chart-header {
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        canvas#lineChart {
+            width: 100%;
+            height: 250px;
+        }
+
+        /* Activity Feed */
+        .activity-feed {
+            grid-column: 1 / -1;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .feed-list {
+            list-style: none;
+        }
+
+        .feed-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .feed-item:last-child {
+            border-bottom: none;
+        }
+
+        .feed-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .feed-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background-color: rgba(255,255,255,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .feed-text {
+            font-size: 0.9rem;
+        }
+
+        .feed-time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        /* Donut Legend */
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.875rem;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            margin-right: 8px;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .dashboard-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .chart-container {
+                grid-column: span 2;
+            }
+            .donut-container {
+                grid-column: span 2;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+            }
+            .chart-container, .donut-container {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Analytics Overview</h1>
+            <div class="live-indicator">
+                <span class="dot"></span>
+                <span>Live Updates</span>
+            </div>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="card kpi-card">
+            <div class="kpi-title">Total Revenue</div>
+            <div class="kpi-value" id="kpi-revenue">$124,500</div>
+            <div class="kpi-trend trend-up">↑ 12% vs last week</div>
+        </div>
+        <div class="card kpi-card">
+            <div class="kpi-title">Active Users</div>
+            <div class="kpi-value" id="kpi-users">8,432</div>
+            <div class="kpi-trend trend-up">↑ 5.4% vs last week</div>
+        </div>
+        <div class="card kpi-card">
+            <div class="kpi-title">New Orders</div>
+            <div class="kpi-value" id="kpi-orders">1,204</div>
+            <div class="kpi-trend trend-down">↓ 2.1% vs last week</div>
+        </div>
+        <div class="card kpi-card">
+            <div class="kpi-title">Conversion Rate</div>
+            <div class="kpi-value" id="kpi-conversion">3.2%</div>
+            <div class="kpi-trend trend-up">↑ 0.4% vs last week</div>
+        </div>
+
+        <!-- Line Chart -->
+        <div class="card chart-container">
+            <div class="chart-header">Weekly Revenue Trend</div>
+            <canvas id="lineChart"></canvas>
+        </div>
+
+        <!-- Donut Chart -->
+        <div class="card donut-container">
+            <div class="chart-header" style="width: 100%; text-align: left;">Revenue Source</div>
+            <canvas id="donutChart" width="200" height="200"></canvas>
+            <div class="legend">
+                <div class="legend-item">
+                    <div style="display:flex; align-items:center;">
+                        <span class="legend-color" style="background: var(--accent-blue);"></span>
+                        <span>Products</span>
+                    </div>
+                    <span id="legend-products">45%</span>
+                </div>
+                <div class="legend-item">
+                    <div style="display:flex; align-items:center;">
+                        <span class="legend-color" style="background: var(--accent-purple);"></span>
+                        <span>Services</span>
+                    </div>
+                    <span id="legend-services">35%</span>
+                </div>
+                <div class="legend-item">
+                    <div style="display:flex; align-items:center;">
+                        <span class="legend-color" style="background: var(--accent-green);"></span>
+                        <span>Subscriptions</span>
+                    </div>
+                    <span id="legend-subs">20%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Feed -->
+        <div class="card activity-feed">
+            <div class="chart-header">Recent Activity</div>
+            <ul class="feed-list" id="activity-feed-list">
+                <!-- Items injected by JS -->
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // --- State Management ---
+        const state = {
+            revenue: 124500,
+            users: 8432,
+            orders: 1204,
+            conversion: 3.2,
+            weeklyData: [12000, 15000, 11000, 18000, 16000, 22000, 19500], // Mon-Sun
+            categories: [45, 35, 20], // Products, Services, Subs
+            activities: [
+                { type: 'order', text: 'New order #1024 placed', time: 'Just now' },
+                { type: 'user', text: 'User registration spike', time: '2 mins ago' },
+                { type: 'alert', text: 'Server load high', time: '15 mins ago' }
+            ]
+        };
+
+        // --- Utilities ---
+        const formatCurrency = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
+        const formatNumber = (num) => new Intl.NumberFormat('en-US').format(num);
+        
+        function randomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1) + min);
+        }
+
+        function animateValue(obj, start, end, duration, prefix = '', suffix = '') {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                // Easing function
+                const ease = 1 - Math.pow(1 - progress, 3); 
+                
+                let val = start + (end - start) * ease;
+                
+                if (suffix === '%') {
+                    obj.innerHTML = prefix + val.toFixed(1) + suffix;
+                } else if (prefix === '$') {
+                    obj.innerHTML = prefix + Math.floor(val).toLocaleString();
+                } else {
+                    obj.innerHTML = prefix + Math.floor(val).toLocaleString();
+                }
+
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        // --- Chart Rendering ---
+        
+        // Line Chart
+        const lineCanvas = document.getElementById('lineChart');
+        const lineCtx = lineCanvas.getContext('2d');
+        
+        // Handle High DPI displays
+        function resizeCanvas(canvas) {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+            return { ctx, width: rect.width, height: rect.height };
+        }
+
+        function drawLineChart() {
+            const { ctx, width, height } = resizeCanvas(lineCanvas);
+            const data = state.weeklyData;
+            const maxVal = Math.max(...data) * 1.2;
+            const minVal = 0;
+            const padding = 40;
+            const chartHeight = height - padding * 2;
+            const chartWidth = width - padding * 2;
+            const stepX = chartWidth / (data.length - 1);
+
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw Grid Lines
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                const y = padding + (chartHeight / 4) * i;
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(width - padding, y);
+                ctx.stroke();
+                
+                // Y Axis Labels
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '10px sans-serif';
+                const val = maxVal - (maxVal / 4) * i;
+                ctx.fillText('$' + (val/1000).toFixed(0) + 'k', 0, y + 3);
+            }
+
+            // Draw Line
+            ctx.beginPath();
+            ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--chart-line');
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            data.forEach((val, i) => {
+                const x = padding + i * stepX;
+                const y = height - padding - ((val - minVal) / (maxVal - minVal)) * chartHeight;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+
+            // Gradient Fill
+            const gradient = ctx.createLinearGradient(0, 0, 0, height);
+            gradient.addColorStop(0, 'rgba(56, 189, 248, 0.4)');
+            gradient.addColorStop(1, 'rgba(56, 189, 248, 0)');
+            
+            ctx.lineTo(padding + (data.length - 1) * stepX, height - padding);
+            ctx.lineTo(padding, height - padding);
+            ctx.closePath();
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            // Draw Points
+            ctx.fillStyle = '#0f172a';
+            data.forEach((val, i) => {
+                const x = padding + i * stepX;
+                const y = height - padding - ((val - minVal) / (maxVal - minVal)) * chartHeight;
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            });
+        }
+
+        // Donut Chart
+        const donutCanvas = document.getElementById('donutChart');
+        const donutCtx = donutCanvas.getContext('2d');
+        
+        function drawDonutChart() {
+            const { ctx, width, height } = resizeCanvas(donutCanvas);
+            const data = state.categories;
+            const total = data.reduce((a, b) => a + b, 0);
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const radius = Math.min(width, height) / 2 - 20;
+            const innerRadius = radius * 0.6;
+            
+            let startAngle = 0;
+            const colors = ['#3b82f6', '#8b5cf6', '#10b981']; // Blue, Purple, Green
+
+            ctx.clearRect(0, 0, width, height);
+
+            data.forEach((val, i) => {
+                const sliceAngle = (val / total) * 2 * Math.PI;
+                
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, startAngle, startAngle + sliceAngle);
+                ctx.arc(centerX, centerY, innerRadius, startAngle + sliceAngle, startAngle, true);
+                ctx.closePath();
+                ctx.fillStyle = colors[i];
+                ctx.fill();
+                
+                startAngle += sliceAngle;
+            });
+
+            // Text in middle
+            ctx.fillStyle = '#f1f5f9';
+            ctx.font = 'bold 16px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('100%', centerX, centerY);
+        }
+
+        // --- Activity Feed Logic ---
+        const feedList = document.getElementById('activity-feed-list');
+        
+        function addActivity() {
+            const types = ['order', 'user', 'alert', 'refund'];
+            const texts = [
+                'New order #10' + randomInt(0, 999) + ' placed',
+                'New user registered from ' + ['US', 'UK', 'DE', 'JP'][randomInt(0,3)],
+                'Payment processed successfully',
+                'Inventory low on SKU-' + randomInt(100, 999),
+                'Refund initiated for Order #10' + randomInt(0, 999)
+            ];
+            
+            const type = types[randomInt(0, 3)];
+            const text = texts[randomInt(0, 4)];
+            
+            const icons = {
+                'order': '📦',
+                'user': '👤',
+                'alert': '⚠️',
+                'refund': '↩️'
+            };
+
+            const newItem = document.createElement('li');
+            newItem.className = 'feed-item';
+            newItem.innerHTML = `
+                <div class="feed-content">
+                    <div class="feed-icon">${icons[type]}</div>
+                    <div class="feed-text">${text}</div>
+                </div>
+                <div class="feed-time">Just now</div>
+            `;
+            
+            feedList.prepend(newItem);
+            
+            if (feedList.children.length > 10) {
+                feedList.removeChild(feedList.lastChild);
+            }
+        }
+
+        // --- Data Simulation ---
+        function updateData() {
+            // Update KPIs
+            const newRev = state.revenue + randomInt(-500, 1500);
+            const newUsers = state.users + randomInt(-10, 50);
+            const newOrders = state.orders + randomInt(-2, 10);
+            const newConv = parseFloat((state.conversion + (Math.random() * 0.2 - 0.1)).toFixed(1));
+
+            animateValue(document.getElementById('kpi-revenue'), state.revenue, newRev, 1000, '$');
+            animateValue(document.getElementById('kpi-users'), state.users, newUsers, 1000);
+            animateValue(document.getElementById('kpi-orders'), state.orders, newOrders, 1000);
+            animateValue(document.getElementById('kpi-conversion'), state.conversion, newConv, 1000, '', '%');
+
+            state.revenue = newRev;
+            state.users = newUsers;
+            state.orders = newOrders;
+            state.conversion = newConv;
+
+            // Update Charts
+            // Shift line chart data
+            state.weeklyData.shift();
+            state.weeklyData.push(randomInt(15000, 25000));
+            drawLineChart();
+
+            // Slightly shift donut data
+            state.categories[0] += randomInt(-2, 2);
+            state.categories[1] += randomInt(-2, 2);
+            state.categories[2] = 100 - state.categories[0] - state.categories[1];
+            drawDonutChart();
+
+            // Update Legend
+            document.getElementById('legend-products').innerText = state.categories[0] + '%';
+            document.getElementById('legend-services').innerText = state.categories[1] + '%';
+            document.getElementById('legend-subs').innerText = state.categories[2] + '%';
+
+            // Add Feed Item
+            addActivity();
+        }
+
+        // --- Initialization ---
+        function init() {
+            // Initial render of charts
+            drawLineChart();
+            drawDonutChart();
+            
+            // Initial Feed
+            state.activities.forEach(() => addActivity());
+
+            // Handle Resize
+            window.addEventListener('resize', () => {
+                drawLineChart();
+                drawDonutChart();
+            });
+
+            // Auto Refresh
+            setInterval(updateData, 5000);
+        }
+
+        // Wait for fonts/styles to load effectively
+        window.onload = init;
+
+    </script>
+</body>
+</html>

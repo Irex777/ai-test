@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Analytics Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .kpi-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 24px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 32px rgba(0, 212, 255, 0.2);
+        }
+
+        .kpi-title {
+            font-size: 0.85rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .kpi-trend {
+            font-size: 0.8rem;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .trend-up {
+            color: #00ff88;
+        }
+
+        .trend-down {
+            color: #ff4757;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #e0e0e0;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .activity-feed {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .activity-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #e0e0e0;
+        }
+
+        .activity-items {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .icon-sale {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+        }
+
+        .icon-user {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+        }
+
+        .icon-order {
+            background: rgba(123, 44, 191, 0.2);
+            color: #7b2cbf;
+        }
+
+        .icon-warning {
+            background: rgba(255, 71, 87, 0.2);
+            color: #ff4757;
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-text {
+            color: #e0e0e0;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+        }
+
+        .activity-time {
+            color: #888;
+            font-size: 0.8rem;
+        }
+
+        .refresh-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .refresh-dot {
+            width: 8px;
+            height: 8px;
+            background: #00d4ff;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(1.2);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <header>
+            <h1>Analytics Dashboard</h1>
+            <p class="subtitle">Real-time business metrics and insights</p>
+        </header>
+
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-title">Revenue</div>
+                <div class="kpi-value" id="revenue">$124K</div>
+                <div class="kpi-trend trend-up">
+                    <span>↑</span>
+                    <span>12.5% vs last week</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-title">Users</div>
+                <div class="kpi-value" id="users">8.4K</div>
+                <div class="kpi-trend trend-up">
+                    <span>↑</span>
+                    <span>8.2% vs last week</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-title">Orders</div>
+                <div class="kpi-value" id="orders">1.2K</div>
+                <div class="kpi-trend trend-down">
+                    <span>↓</span>
+                    <span>2.1% vs last week</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-title">Conversion Rate</div>
+                <div class="kpi-value" id="conversion">3.2%</div>
+                <div class="kpi-trend trend-up">
+                    <span>↑</span>
+                    <span>0.4% vs last week</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-title">Weekly Revenue</div>
+                <div class="chart-container">
+                    <canvas id="lineChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-title">Category Breakdown</div>
+                <div class="chart-container">
+                    <canvas id="donutChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="activity-feed">
+            <div class="activity-title">Recent Activity</div>
+            <div class="activity-items" id="activityFeed">
+                <!-- Activity items will be inserted here -->
+            </div>
+        </div>
+
+        <div class="refresh-indicator">
+            <div class="refresh-dot"></div>
+            <span>Auto-refreshing every 5 seconds</span>
+        </div>
+    </div>
+
+    <script>
+        // Mock data
+        let kpiData = {
+            revenue: 124000,
+            users: 8400,
+            orders: 1200,
+            conversion: 3.2
+        };
+
+        let weeklyRevenue = [45000, 52000, 48000, 61000, 58000, 72000, 68000];
+        let categoryData = [35, 40, 25]; // Products, Services, Subscriptions
+
+        const activities = [
+            { type: 'sale', text: 'New sale: $2,450 from Enterprise client', time: '2 minutes ago' },
+            { type: 'user', text: 'New user registration: john@example.com', time: '5 minutes ago' },
+            { type: 'order', text: 'Order #12345 shipped successfully', time: '8 minutes ago' },
+            { type: 'sale', text: 'Subscription renewed: Premium Plan', time: '12 minutes ago' },
+            { type: 'warning', text: 'Cart abandonment rate increased to 68%', time: '15 minutes ago' },
+            { type: 'user', text: 'User achieved milestone: 100 purchases', time: '18 minutes ago' },
+            { type: 'order', text: 'Bulk order processed: 500 units', time: '22 minutes ago' },
+            { type: 'sale', text: 'Monthly subscription plan upgraded', time: '25 minutes ago' }
+        ];
+
+        // Animated counter function
+        function animateCounter(element, start, end, duration, prefix = '', suffix = '') {
+            const range = end - start;
+            const increment = range / (duration / 16);
+            let current = start;
+            
+            const timer = setInterval(() => {
+                current += increment;
+                if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+                    current = end;
+                    clearInterval(timer);
+                }
+                
+                if (prefix === '$') {
+                    element.textContent = prefix + Math.floor(current).toLocaleString() + suffix;
+                } else if (suffix === '%') {
+                    element.textContent = current.toFixed(1) + suffix;
+                } else if (prefix === '') {
+                    element.textContent = (current / 1000).toFixed(1) + 'K';
+                }
+            }, 16);
+        }
+
+        // Draw line chart
+        function drawLineChart() {
+            const canvas = document.getElementById('lineChart');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            canvas.width = canvas.offsetWidth * 2;
+            canvas.height = canvas.offsetHeight * 2;
+            ctx.scale(2, 2);
+            
+            const width = canvas.offsetWidth;
+            const height = canvas.offsetHeight;
+            const padding = 40;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw grid lines
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            
+            for (let i = 0; i <= 5; i++) {
+                const y = padding + (height - 2 * padding) * i / 5;
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(width - padding, y);
+                ctx.stroke();
+            }
+            
+            // Draw line
+            const maxVal = Math.max(...weeklyRevenue) * 1.1;
+            const minVal = Math.min(...weeklyRevenue) * 0.9;
+            const range = maxVal - minVal;
+            
+            const gradient = ctx.createLinearGradient(0, 0, width, 0);
+            gradient.addColorStop(0, '#00d4ff');
+            gradient.addColorStop(1, '#7b2cbf');
+            
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            weeklyRevenue.forEach((val, i) => {
+                const x = padding + (width - 2 * padding) * i / (weeklyRevenue.length - 1);
+                const y = height - padding - ((val - minVal) / range) * (height - 2 * padding);
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            
+            ctx.stroke();
+            
+            // Draw points
+            weeklyRevenue.forEach((val, i) => {
+                const x = padding + (width - 2 * padding) * i / (weeklyRevenue.length - 1);
+                const y = height - padding - ((val - minVal) / range) * (height - 2 * padding);
+                
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#00d4ff';
+                ctx.fill();
+                
+                // Draw labels
+                ctx.fillStyle = '#888';
+                ctx.font = '10px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i], x, height - padding + 20);
+                
+                // Draw values
+                ctx.fillStyle = '#e0e0e0';
+                ctx.fillText('$' + (val / 1000).toFixed(0) + 'K', x, y - 15);
+            });
+        }
+
+        // Draw donut chart
+        function drawDonutChart() {
+            const canvas = document.getElementById('donutChart');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            canvas.width = canvas.offsetWidth * 2;
+            canvas.height = canvas.offsetHeight * 2;
+            ctx.scale(2, 2);
+            
+            const width = canvas.offsetWidth;
+            const height = canvas.offsetHeight;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const radius = Math.min(width, height) / 2 - 40;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+            
+            const colors = ['#00d4ff', '#7b2cbf', '#00ff88'];
+            const labels = ['Products', 'Services', 'Subscriptions'];
+            const total = categoryData.reduce((a, b) => a + b, 0);
+            
+            let startAngle = -Math.PI / 2;
+            
+            categoryData.forEach((value, i) => {
+                const sliceAngle = (value / total) * Math.PI * 2;
+                const endAngle = startAngle + sliceAngle;
+                
+                // Draw slice
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.closePath();
+                ctx.fillStyle = colors[i];
+                ctx.fill();
+                
+                // Draw label
+                const labelAngle = startAngle + sliceAngle / 2;
+                const labelX = centerX + Math.cos(labelAngle) * (radius * 0.7);
+                const labelY = centerY + Math.sin(labelAngle) * (radius * 0.7);
+                
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(value + '%', labelX, labelY);
+                
+                startAngle = endAngle;
+            });
+            
+            // Draw center circle
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius * 0.4, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(26, 26, 46, 0.9)';
+            ctx.fill();
+            
+            // Draw legend
+            const legendX = 20;
+            let legendY = 20;
+            
+            labels.forEach((label, i) => {
+                ctx.fillStyle = colors[i];
+                ctx.fillRect(legendX, legendY, 15, 15);
+                
+                ctx.fillStyle = '#e0e0e0';
+                ctx.font = '12px sans-serif';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+                ctx.fillText(label, legendX + 25, legendY);
+                
+                legendY += 30;
+            });
+        }
+
+        // Render activity feed
+        function renderActivityFeed() {
+            const feed = document.getElementById('activityFeed');
+            feed.innerHTML = '';
+            
+            activities.forEach(activity => {
+                const item = document.createElement('div');
+                item.className = 'activity-item';
+                
+                const iconClass = `icon-${activity.type}`;
+                const icons = {
+                    sale: '💰',
+                    user: '👤',
+                    order: '📦',
+                    warning: '⚠️'
+                };
+                
+                item.innerHTML = `
+                    <div class="activity-icon ${iconClass}">${icons[activity.type]}</div>
+                    <div class="activity-content">
+                        <div class="activity-text">${activity.text}</div>
+                        <div class="activity-time">${activity.time}</div>
+                    </div>
+                `;
+                
+                feed.appendChild(item);
+            });
+        }
+
+        // Simulate data updates
+        function updateData() {
+            // Update KPI values with small random changes
+            const revenueChange = (Math.random() - 0.5) * 5000;
+            const usersChange = Math.floor((Math.random() - 0.5) * 100);
+            const ordersChange = Math.floor((Math.random() - 0.5) * 50);
+            const conversionChange = (Math.random() - 0.5) * 0.2;
+            
+            kpiData.revenue = Math.max(100000, kpiData.revenue + revenueChange);
+            kpiData.users = Math.max(7000, kpiData.users + usersChange);
+            kpiData.orders = Math.max(1000, kpiData.orders + ordersChange);
+            kpiData.conversion = Math.max(2.5, Math.min(4.5, kpiData.conversion + conversionChange));
+            
+            // Update displays
+            const revenueEl = document.getElementById('revenue');
+            const usersEl = document.getElementById('users');
+            const ordersEl = document.getElementById('orders');
+            const conversionEl = document.getElementById('conversion');
+            
+            const currentRevenue = parseInt(revenueEl.textContent.replace(/\D/g, ''));
+            const currentUsers = parseFloat(usersEl.textContent.replace(/\D/g, '')) * 1000;
+            const currentOrders = parseInt(ordersEl.textContent.replace(/\D/g, '')) * 1000;
+            const currentConversion = parseFloat(conversionEl.textContent.replace(/\D/g, ''));
+            
+            animateCounter(revenueEl, currentRevenue, kpiData.revenue, 1000, '$', 'K');
+            animateCounter(usersEl, currentUsers, kpiData.users, 1000, '', 'K');
+            animateCounter(ordersEl, currentOrders, kpiData.orders, 1000, '', 'K');
+            animateCounter(conversionEl, currentConversion, kpiData.conversion, 1000, '', '%');
+            
+            // Update chart data
+            weeklyRevenue.shift();
+            weeklyRevenue.push(Math.floor(50000 + Math.random() * 30000));
+            drawLineChart();
+            
+            // Update category data slightly
+            categoryData[0] = Math.max(25, Math.min(45, categoryData[0] + (Math.random() - 0.5) * 5));
+            categoryData[1] = Math.max(30, Math.min(50, categoryData[1] + (Math.random() - 0.5) * 5));
+            categoryData[2] = Math.max(15, Math.min(35, categoryData[2] + (Math.random() - 0.5) * 5));
+            drawDonutChart();
+            
+            // Add new activity
+            const newActivities = [
+                { type: 'sale', text: `New sale: $${(Math.random() * 5000).toFixed(0)} from customer`, time: 'Just now' },
+                { type: 'user', text: 'New user registration received', time: 'Just now' },
+                { type: 'order', text: `Order #${Math.floor(Math.random() * 90000) + 10000} processed`, time: 'Just now' },
+                { type: 'warning', text: 'Inventory alert: Low stock on item SKU-' + Math.floor(Math.random() * 1000), time: 'Just now' }
+            ];
+            
+            const newActivity = newActivities[Math.floor(Math.random() * newActivities.length)];
+            activities.unshift(newActivity);
+            
+            if (activities.length > 10) {
+                activities.pop();
+            }
+            
+            // Update activity timestamps
+            activities.forEach((activity, i) => {
+                if (i > 0) {
+                    const minutes = i * 3 + Math.floor(Math.random() * 5);
+                    activity.time = `${minutes} minutes ago`;
+                }
+            });
+            
+            renderActivityFeed();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            drawLineChart();
+            drawDonutChart();
+            renderActivityFeed();
+            
+            // Auto-refresh every 5 seconds
+            setInterval(updateData, 5000);
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            drawLineChart();
+            drawDonutChart();
+        });
+    </script>
+</body>
+</html>

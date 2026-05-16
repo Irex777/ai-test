@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analytics Dashboard</title>
+<style>
+  :root {
+    --bg: #0d0f12;
+    --bg-raised: #151820;
+    --bg-card: #1a1e28;
+    --fg: #e8eaf0;
+    --fg-muted: #6b7394;
+    --accent: #e8a23a;
+    --accent-glow: rgba(232, 162, 58, 0.15);
+    --teal: #2dd4a8;
+    --teal-glow: rgba(45, 212, 168, 0.12);
+    --rose: #f06575;
+    --rose-glow: rgba(240, 101, 117, 0.12);
+    --blue: #5b9cf5;
+    --blue-glow: rgba(91, 156, 245, 0.12);
+    --border: rgba(255,255,255,0.06);
+    --radius: 14px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  @font-face {
+    font-family: 'SystemStack';
+    src: local('Segoe UI'), local('Helvetica Neue'), local('Helvetica'), local('sans-serif');
+  }
+
+  body {
+    font-family: 'SystemStack', sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    min-height: 100vh;
+    overflow-x: hidden;
+    line-height: 1.5;
+  }
+
+  /* Animated background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -40%; left: -20%;
+    width: 70vw; height: 70vw;
+    background: radial-gradient(circle, rgba(232,162,58,0.04) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+    animation: drift 20s ease-in-out infinite alternate;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -30%; right: -15%;
+    width: 60vw; height: 60vw;
+    background: radial-gradient(circle, rgba(45,212,168,0.03) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+    animation: drift 25s ease-in-out infinite alternate-reverse;
+  }
+
+  @keyframes drift {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(60px, 40px) scale(1.1); }
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 1340px;
+    margin: 0 auto;
+    padding: 28px 24px 48px;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header-left h1 {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--fg);
+  }
+  .header-left p {
+    font-size: 13px;
+    color: var(--fg-muted);
+    margin-top: 2px;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 14px;
+    background: var(--teal-glow);
+    border: 1px solid rgba(45,212,168,0.2);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--teal);
+  }
+  .live-dot {
+    width: 7px; height: 7px;
+    background: var(--teal);
+    border-radius: 50%;
+    animation: pulse-dot 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+  .refresh-timer {
+    font-size: 12px;
+    color: var(--fg-muted);
+    min-width: 80px;
+    text-align: right;
+  }
+
+  /* Grid layout */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
+
+  /* Card base */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    box-shadow: var(--shadow);
+    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(255,255,255,0.1);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .card:hover::before { opacity: 1; }
+
+  /* KPI Cards */
+  .kpi-card { cursor: default; }
+  .kpi-card:nth-child(1)::before { background: linear-gradient(90deg, var(--accent), transparent); }
+  .kpi-card:nth-child(2)::before { background: linear-gradient(90deg, var(--teal), transparent); }
+  .kpi-card:nth-child(3)::before { background: linear-gradient(90deg, var(--blue), transparent); }
+  .kpi-card:nth-child(4)::before { background: linear-gradient(90deg, var(--rose), transparent); }
+
+  .kpi-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .kpi-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--fg-muted);
+  }
+  .kpi-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .kpi-icon.amber { background: var(--accent-glow); color: var(--accent); }
+  .kpi-icon.teal { background: var(--teal-glow); color: var(--teal); }
+  .kpi-icon.blue { background: var(--blue-glow); color: var(--blue); }
+  .kpi-icon.rose { background: var(--rose-glow); color: var(--rose); }
+
+  .kpi-value {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+  .kpi-change {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 6px;
+  }
+  .kpi-change.up { color: var(--teal); background: var(--teal-glow); }
+  .kpi-change.down { color: var(--rose); background: var(--rose-glow); }
+  .kpi-change span { color: var(--fg-muted); font-weight: 400; }
+
+  .kpi-sparkline {
+    margin-top: 14px;
+    height: 32px;
+  }
+  .kpi-sparkline canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* Chart cards */
+  .chart-line-card {
+    grid-column: span 3;
+  }
+  .chart-donut-card {
+    grid-column: span 1;
+  }
+
+  .card-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .card-subtitle {
+    font-size: 12px;
+    color: var(--fg-muted);
+    margin-bottom: 20px;
+  }
+  .chart-container {
+    position: relative;
+    width: 100%;
+  }
+  .chart-container canvas {
+    width: 100%;
+    display: block;
+  }
+
+  /* Donut legend */
+  .donut-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .donut-center-text {
+    text-align: center;
+    margin-top: -60px;
+    margin-bottom: 40px;
+    position: relative;
+    z-index: 2;
+  }
+  .donut-center-text .amount {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .donut-center-text .label {
+    font-size: 11px;
+    color: var(--fg-muted);
+  }
+  .donut-legend {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+  }
+  .legend-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .legend-name { color: var(--fg-muted); }
+  .legend-val { font-weight: 700; }
+
+  /* Activity feed */
+  .feed-card {
+    grid-column: span 3;
+  }
+  .feed-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .feed-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    animation: fadeSlideIn 0.4s ease both;
+  }
+  .feed-item:last-child { border-bottom: none; }
+
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .feed-dot-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 4px;
+  }
+  .feed-dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .feed-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .feed-text {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--fg);
+  }
+  .feed-text strong { font-weight: 700; }
+  .feed-meta {
+    font-size: 11px;
+    color: var(--fg-muted);
+    margin-top: 3px;
+  }
+
+  /* Summary stats row */
+  .summary-card {
+    grid-column: span 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .summary-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .summary-stat-label {
+    font-size: 12px;
+    color: var(--fg-muted);
+  }
+  .summary-stat-value {
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .summary-bar-track {
+    width: 100%;
+    height: 5px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: -8px;
+  }
+  .summary-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.8s ease;
+  }
+
+  /* Responsive */
+  @media (max-width: 1024px) {
+    .dashboard-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .chart-line-card { grid-column: span 2; }
+    .chart-donut-card { grid-column: span 1; }
+    .feed-card { grid-column: span 2; }
+    .summary-card { grid-column: span 2; }
+  }
+  @media (max-width: 640px) {
+    .app { padding: 16px 12px 32px; }
+    .dashboard-grid {
+      grid-template-columns: 1fr;
+    }
+    .chart-line-card,
+    .chart-donut-card,
+    .feed-card,
+    .summary-card {
+      grid-column: span 1;
+    }
+    .kpi-value { font-size: 26px; }
+    header { margin-bottom: 20px; }
+  }
+
+  /* Prefers reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="header-left">
+      <h1>Analytics Dashboard</h1>
+      <p id="headerTime">Real-time business intelligence</p>
+    </div>
+    <div class="header-right">
+      <div class="live-badge">
+        <span class="live-dot"></span>
+        Live
+      </div>
+      <div class="refresh-timer" id="refreshTimer">Next update: 5s</div>
+    </div>
+  </header>
+
+  <main class="dashboard-grid">
+    <!-- KPI Cards -->
+    <section class="card kpi-card" aria-label="Revenue KPI">
+      <div class="kpi-header">
+        <span class="kpi-label">Revenue</span>
+        <div class="kpi-icon amber" aria-hidden="true">&#36;</div>
+      </div>
+      <div class="kpi-value" id="kpiRevenue">$0</div>
+      <div class="kpi-change up" id="kpiRevenueChange">
+        &#9650; 12.4% <span>vs last week</span>
+      </div>
+      <div class="kpi-sparkline"><canvas id="sparkRevenue"></canvas></div>
+    </section>
+
+    <section class="card kpi-card" aria-label="Users KPI">
+      <div class="kpi-header">
+        <span class="kpi-label">Users</span>
+        <div class="kpi-icon teal" aria-hidden="true">&#9786;</div>
+      </div>
+      <div class="kpi-value" id="kpiUsers">0</div>
+      <div class="kpi-change up" id="kpiUsersChange">
+        &#9650; 8.1% <span>vs last week</span>
+      </div>
+      <div class="kpi-sparkline"><canvas id="sparkUsers"></canvas></div>
+    </section>
+
+    <section class="card kpi-card" aria-label="Orders KPI">
+      <div class="kpi-header">
+        <span class="kpi-label">Orders</span>
+        <div class="kpi-icon blue" aria-hidden="true">&#9830;</div>
+      </div>
+      <div class="kpi-value" id="kpiOrders">0</div>
+      <div class="kpi-change up" id="kpiOrdersChange">
+        &#9650; 5.7% <span>vs last week</span>
+      </div>
+      <div class="kpi-sparkline"><canvas id="sparkOrders"></canvas></div>
+    </section>
+
+    <section class="card kpi-card" aria-label="Conversion KPI">
+      <div class="kpi-header">
+        <span class="kpi-label">Conversion</span>
+        <div class="kpi-icon rose" aria-hidden="true">&#8644;</div>
+      </div>
+      <div class="kpi-value" id="kpiConversion">0%</div>
+      <div class="kpi-change down" id="kpiConversionChange">
+        &#9660; 0.3% <span>vs last week</span>
+      </div>
+      <div class="kpi-sparkline"><canvas id="sparkConversion"></canvas></div>
+    </section>
+
+    <!-- Line Chart -->
+    <section class="card chart-line-card" aria-label="Weekly Revenue Chart">
+      <div class="card-title">Weekly Revenue</div>
+      <div class="card-subtitle">Revenue trend over the past 7 days</div>
+      <div class="chart-container">
+        <canvas id="lineChart" height="260"></canvas>
+      </div>
+    </section>
+
+    <!-- Donut Chart + Summary -->
+    <section class="card chart-donut-card summary-card" aria-label="Category Breakdown">
+      <div>
+        <div class="card-title">Revenue Breakdown</div>
+        <div class="card-subtitle">Category distribution</div>
+      </div>
+      <div class="donut-wrapper">
+        <canvas id="donutChart" width="200" height="200"></canvas>
+        <div class="donut-center-text">
+          <div class="amount" id="donutTotal">$0</div>
+          <div class="label">Total</div>
+        </div>
+        <div class="donut-legend" id="donutLegend"></div>
+      </div>
+      <div>
+        <div class="summary-stat">
+          <span class="summary-stat-label">Avg. Order Value</span>
+          <span class="summary-stat-value" id="statAOV">$0</span>
+        </div>
+        <div class="summary-bar-track">
+          <div class="summary-bar-fill" id="barAOV" style="width:0%;background:var(--accent);"></div>
+        </div>
+      </div>
+      <div>
+        <div class="summary-stat">
+          <span class="summary-stat-label">Bounce Rate</span>
+          <span class="summary-stat-value" id="statBounce">0%</span>
+        </div>
+        <div class="summary-bar-track">
+          <div class="summary-bar-fill" id="barBounce" style="width:0%;background:var(--rose);"></div>
+        </div>
+      </div>
+      <div>
+        <div class="summary-stat">
+          <span class="summary-stat-label">Session Duration</span>
+          <span class="summary-stat-value" id="statSession">0m</span>
+        </div>
+        <div class="summary-bar-track">
+          <div class="summary-bar-fill" id="barSession" style="width:0%;background:var(--teal);"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Activity Feed -->
+    <section class="card feed-card" aria-label="Recent Activity Feed">
+      <div class="card-title">Recent Activity</div>
+      <div class="card-subtitle">Latest events across the platform</div>
+      <div class="feed-list" id="feedList"></div>
+    </section>
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   DATA STORE — all mock data lives here
+   ============================================================ */
+const store = {
+  revenue: 124000,
+  users: 8400,
+  orders: 1200,
+  conversion: 3.2,
+  revenueChange: 12.4,
+  usersChange: 8.1,
+  ordersChange: 5.7,
+  conversionChange: -0.3,
+  weeklyRevenue: [16200, 19800, 17400, 22100, 18900, 20500, 19400],
+  weekDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  categories: [
+    { name: 'Products', value: 52, color: '#e8a23a' },
+    { name: 'Services', value: 31, color: '#2dd4a8' },
+    { name: 'Subscriptions', value: 17, color: '#5b9cf5' }
+  ],
+  aov: 103,
+  bounce: 34,
+  sessionDuration: 4.2,
+  sparkRevenue: [98, 112, 105, 124, 118, 130, 124],
+  sparkUsers: [6.8, 7.2, 7.0, 7.8, 8.0, 8.2, 8.4],
+  sparkOrders: [0.9, 1.0, 0.95, 1.1, 1.05, 1.15, 1.2],
+  sparkConversion: [3.5, 3.3, 3.4, 3.1, 3.3, 3.0, 3.2],
+  activities: [
+    { type: 'order', text: '<strong>New order #4892</strong> placed for $234.00', time: 'Just now', color: '#5b9cf5' },
+    { type: 'user', text: '<strong>Sarah Chen</strong> upgraded to Premium plan', time: '2 min ago', color: '#2dd4a8' },
+    { type: 'alert', text: '<strong>Server spike</strong> detected on API endpoint /v2/checkout', time: '5 min ago', color: '#f06575' },
+    { type: 'order', text: '<strong>Bulk order #4891</strong> shipped — 42 items', time: '8 min ago', color: '#5b9cf5' },
+    { type: 'user', text: '<strong>Marcus Rivera</strong> registered a new account', time: '12 min ago', color: '#2dd4a8' },
+    { type: 'milestone', text: '<strong>Revenue milestone</strong> — crossed $120K this month', time: '18 min ago', color: '#e8a23a' },
+    { type: 'order', text: '<strong>Refund #R-204</strong> processed for $45.00', time: '24 min ago', color: '#f06575' },
+    { type: 'user', text: '<strong>Aiko Tanaka</strong> left a 5-star review', time: '31 min ago', color: '#2dd4a8' }
+  ]
+};
+
+/* Activity templates for generating new ones */
+const activityTemplates = [
+  { text: '<strong>New order #{id}</strong> placed for ${amount}', type: 'order', color: '#5b9cf5' },
+  { text: '<strong>{name}</strong> upgraded to Premium plan', type: 'user', color: '#2dd4a8' },
+  { text: '<strong>{name}</strong> registered a new account', type: 'user', color: '#2dd4a8' },
+  { text: '<strong>New order #{id}</strong> shipped — {items} items', type: 'order', color: '#5b9cf5' },
+  { text: '<strong>Payment received</strong> — ${amount} from {name}', type: 'milestone', color: '#e8a23a' },
+  { text: '<strong>{name}</strong> left a {stars}-star review', type: 'user', color: '#2dd4a8' },
+  { text: '<strong>Refund #{id}</strong> processed for ${amount}', type: 'order', color: '#f06575' },
+  { text: '<strong>Inventory alert</strong> — {product} running low', type: 'alert', color: '#f06575' }
+];
+const names = ['Emma Liu', 'Jonas Berg', 'Priya Patel', 'Leo Fontaine', 'Yuki Sato', 'Carlos Mendez', 'Ava Thompson', 'Noah Kim'];
+const products = ['Wireless Headphones', 'Smart Watch Pro', 'USB-C Hub', 'Mechanical Keyboard', '4K Monitor', 'Laptop Stand'];
+
+/* ============================================================
+   UTILITY FUNCTIONS
+   ============================================================ */
+function rand(min, max) { return Math.random() * (max - min) + min; }
+function randInt(min, max) { return Math.floor(rand(min, max + 1)); }
+function pick(arr) { return arr[randInt(0, arr.length - 1)]; }
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function formatCurrency(n) { return '$' + Math.round(n).toLocaleString(); }
+function formatCompact(n) {
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+  return n.toFixed(1);
+}
+
+/* Animated counter */
+function animateValue(el, start, end, duration, formatter) {
+  const startTime = performance.now();
+  function tick(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    /* easeOutExpo */
+    const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+    const current = start + (end - start) * eased;
+    el.textContent = formatter(current);
+    if (progress < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ============================================================
+   SPARKLINE RENDERER
+   ============================================================ */
+function drawSparkline(canvasId, data, color) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const w = rect.width;
+  const h = rect.height;
+
+  const min = Math.min(...data) * 0.95;
+  const max = Math.max(...data) * 1.05;
+  const range = Math.max(max - min, 0.001);
+  const step = w / (data.length - 1);
+
+  ctx.clearRect(0, 0, w, h);
+
+  /* Area fill */
+  ctx.beginPath();
+  data.forEach((v, i) => {
+    const x = i * step;
+    const y = h - ((v - min) / range) * h * 0.85 - h * 0.05;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.lineTo(w, h);
+  ctx.lineTo(0, h);
+  ctx.closePath();
+  const grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, color + '30');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  /* Line */
+  ctx.beginPath();
+  data.forEach((v, i) => {
+    const x = i * step;
+    const y = h - ((v - min) / range) * h * 0.85 - h * 0.05;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.8;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  /* End dot */
+  const lastX = (data.length - 1) * step;
+  const lastY = h - ((data[data.length - 1] - min) / range) * h * 0.85 - h * 0.05;
+  ctx.beginPath();
+  ctx.arc(lastX, lastY, 3, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+/* ============================================================
+   LINE CHART RENDERER
+   ============================================================ */
+let lineChartAnim = 0;
+function drawLineChart(progress) {
+  const canvas = document.getElementById('lineChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const w = rect.width;
+  const h = 260;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, w, h);
+
+  const data = store.weeklyRevenue;
+  const labels = store.weekDays;
+  const padLeft = 58;
+  const padRight = 20;
+  const padTop = 20;
+  const padBot = 36;
+  const chartW = w - padLeft - padRight;
+  const chartH = h - padTop - padBot;
+
+  const min = Math.min(...data) * 0.85;
+  const max = Math.max(...data) * 1.1;
+  const range = Math.max(max - min, 1);
+
+  /* Grid lines */
+  const gridLines = 5;
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  ctx.font = '11px sans-serif';
+  for (let i = 0; i <= gridLines; i++) {
+    const y = padTop + (chartH / gridLines) * i;
+    const val = max - (range / gridLines) * i;
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padLeft, y);
+    ctx.lineTo(w - padRight, y);
+    ctx.stroke();
+    ctx.fillStyle = '#6b7394';
+    ctx.fillText('$' + Math.round(val / 1000) + 'K', padLeft - 10, y);
+  }
+
+  /* X labels */
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  const stepX = chartW / (data.length - 1);
+  labels.forEach((label, i) => {
+    const x = padLeft + i * stepX;
+    ctx.fillStyle = '#6b7394';
+    ctx.fillText(label, x, padTop + chartH + 12);
+  });
+
+  /* Points calculation */
+  const points = data.map((v, i) => ({
+    x: padLeft + i * stepX,
+    y: padTop + (1 - (v - min) / range) * chartH
+  }));
+
+  /* Animate: only show up to progress */
+  const visibleCount = Math.ceil(points.length * progress);
+  const visiblePts = points.slice(0, visibleCount);
+
+  if (visiblePts.length > 1) {
+    /* Area gradient */
+    ctx.beginPath();
+    ctx.moveTo(visiblePts[0].x, visiblePts[0].y);
+    for (let i = 1; i < visiblePts.length; i++) {
+      const prev = visiblePts[i - 1];
+      const curr = visiblePts[i];
+      const cpx = (prev.x + curr.x) / 2;
+      ctx.bezierCurveTo(cpx, prev.y, cpx, curr.y, curr.x, curr.y);
+    }
+    ctx.lineTo(visiblePts[visiblePts.length - 1].x, padTop + chartH);
+    ctx.lineTo(visiblePts[0].x, padTop + chartH);
+    ctx.closePath();
+    const areaGrad = ctx.createLinearGradient(0, padTop, 0, padTop + chartH);
+    areaGrad.addColorStop(0, 'rgba(232,162,58,0.18)');
+    areaGrad.addColorStop(1, 'rgba(232,162,58,0)');
+    ctx.fillStyle = areaGrad;
+    ctx.fill();
+
+    /* Line */
+    ctx.beginPath();
+    ctx.moveTo(visiblePts[0].x, visiblePts[0].y);
+    for (let i = 1; i < visiblePts.length; i++) {
+      const prev = visiblePts[i - 1];
+      const curr = visiblePts[i];
+      const cpx = (prev.x + curr.x) / 2;
+      ctx.bezierCurveTo(cpx, prev.y, cpx, curr.y, curr.x, curr.y);
+    }
+    ctx.strokeStyle = '#e8a23a';
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    /* Glow */
+    ctx.shadowColor = 'rgba(232,162,58,0.3)';
+    ctx.shadowBlur = 12;
+    ctx.stroke();
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+
+    /* Dots */
+    visiblePts.forEach((pt, i) => {
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#1a1e28';
+      ctx.fill();
+      ctx.strokeStyle = '#e8a23a';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      /* Value label on last visible point */
+      if (i === visiblePts.length - 1 && progress >= 0.95) {
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillStyle = '#e8a23a';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('$' + (data[i] / 1000).toFixed(1) + 'K', pt.x, pt.y - 12);
+      }
+    });
+  }
+}
+
+function animateLineChart() {
+  const duration = 1200;
+  const start = performance.now();
+  function frame(now) {
+    const p = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - p, 3);
+    drawLineChart(eased);
+    if (p < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ============================================================
+   DONUT CHART RENDERER
+   ============================================================ */
+function drawDonut(progress) {
+  const canvas = document.getElementById('donutChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const size = 200;
+  canvas.width = size * dpr;
+  canvas.height = size * dpr;
+  canvas.style.width = size + 'px';
+  canvas.style.height = size + 'px';
+  ctx.scale(dpr, dpr);
+
+  const cx = size / 2;
+  const cy = size / 2;
+  const outerR = 85;
+  const innerR = 58;
+
+  ctx.clearRect(0, 0, size, size);
+
+  /* Background track */
+  ctx.beginPath();
+  ctx.arc(cx, cy, (outerR + innerR) / 2, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = outerR - innerR;
+  ctx.stroke();
+
+  const total = store.categories.reduce((s, c) => s + c.value, 0);
+  let currentAngle = -Math.PI / 2;
+
+  store.categories.forEach((cat) => {
+    const sliceAngle = (cat.value / total) * Math.PI * 2 * progress;
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR, currentAngle, currentAngle + sliceAngle);
+    ctx.arc(cx, cy, innerR, currentAngle + sliceAngle, currentAngle, true);
+    ctx.closePath();
+    ctx.fillStyle = cat.color;
+    ctx.fill();
+
+    /* Segment shadow */
+    ctx.shadowColor = cat.color + '40';
+    ctx.shadowBlur = 8;
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+
+    currentAngle += sliceAngle;
+  });
+
+  /* Inner circle to clean up center */
+  ctx.beginPath();
+  ctx.arc(cx, cy, innerR - 1, 0, Math.PI * 2);
+  ctx.fillStyle = '#1a1e28';
+  ctx.fill();
+}
+
+function animateDonut() {
+  const duration = 1000;
+  const start = performance.now();
+  function frame(now) {
+    const p = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - p, 3);
+    drawDonut(eased);
+    if (p < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+function updateDonutLegend() {
+  const legend = document.getElementById('donutLegend');
+  const total = store.categories.reduce((s, c) => s + c.value, 0);
+  legend.innerHTML = store.categories.map(cat => `
+    <div class="legend-item">
+      <div class="legend-left">
+        <div class="legend-dot" style="background:${cat.color}"></div>
+        <span class="legend-name">${cat.name}</span>
+      </div>
+      <span class="legend-val">${Math.round(cat.value / total * 100)}%</span>
+    </div>
+  `).join('');
+}
+
+/* ============================================================
+   ACTIVITY FEED
+   ============================================================ */
+function renderFeed() {
+  const list = document.getElementById('feedList');
+  list.innerHTML = store.activities.map((a, i) => `
+    <div class="feed-item" style="animation-delay:${i * 50}ms">
+      <div class="feed-dot-wrap">
+        <div class="feed-dot" style="background:${a.color}"></div>
+      </div>
+      <div class="feed-body">
+        <div class="feed-text">${a.text}</div>
+        <div class="feed-meta">${a.time}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function generateActivity() {
+  const template = pick(activityTemplates);
+  let text = template.text
+    .replace('{id}', randInt(4900, 5100))
+    .replace('{amount}', randInt(18, 450).toFixed(2))
+    .replace('{name}', pick(names))
+    .replace('{items}', randInt(1, 60))
+    .replace('{stars}', pick([3, 4, 4, 5, 5, 5]))
+    .replace('{product}', pick(products));
+  return { type: template.type, text, time: 'Just now', color: template.color };
+}
+
+/* ============================================================
+   KPI UPDATER
+   ============================================================ */
+function updateKPIs(animate) {
+  const dur = animate ? 800 : 0;
+  const rEl = document.getElementById('kpiRevenue');
+  const uEl = document.getElementById('kpiUsers');
+  const oEl = document.getElementById('kpiOrders');
+  const cEl = document.getElementById('kpiConversion');
+
+  if (animate) {
+    const oldR = parseFloat(rEl.dataset.val || 0);
+    const oldU = parseFloat(uEl.dataset.val || 0);
+    const oldO = parseFloat(oEl.dataset.val || 0);
+    const oldC = parseFloat(cEl.dataset.val || 0);
+    animateValue(rEl, oldR, store.revenue, dur, v => '$' + Math.round(v / 1000) + 'K');
+    animateValue(uEl, oldU, store.users, dur, v => formatCompact(v));
+    animateValue(oEl, oldO, store.orders, dur, v => formatCompact(v));
+    animateValue(cEl, oldC, store.conversion, dur, v => v.toFixed(1) + '%');
+  } else {
+    rEl.textContent = '$' + Math.round(store.revenue / 1000) + 'K';
+    uEl.textContent = formatCompact(store.users);
+    oEl.textContent = formatCompact(store.orders);
+    cEl.textContent = store.conversion.toFixed(1) + '%';
+  }
+  rEl.dataset.val = store.revenue;
+  uEl.dataset.val = store.users;
+  oEl.dataset.val = store.orders;
+  cEl.dataset.val = store.conversion;
+
+  /* Changes */
+  function setChange(id, val) {
+    const el = document.getElementById(id);
+    const up = val >= 0;
+    el.className = 'kpi-change ' + (up ? 'up' : 'down');
+    el.innerHTML = (up ? '&#9650;' : '&#9660;') + ' ' + Math.abs(val).toFixed(1) + '% <span>vs last week</span>';
+  }
+  setChange('kpiRevenueChange', store.revenueChange);
+  setChange('kpiUsersChange', store.usersChange);
+  setChange('kpiOrdersChange', store.ordersChange);
+  setChange('kpiConversionChange', store.conversionChange);
+
+  /* Donut total */
+  document.getElementById('donutTotal').textContent = formatCurrency(store.revenue);
+
+  /* Summary stats */
+  document.getElementById('statAOV').textContent = '$' + store.aov;
+  document.getElementById('statBounce').textContent = store.bounce + '%';
+  document.getElementById('statSession').textContent = store.sessionDuration.toFixed(1) + 'm';
+  document.getElementById('barAOV').style.width = clamp(store.aov / 200 * 100, 5, 100) + '%';
+  document.getElementById('barBounce').style.width = clamp(store.bounce, 5, 100) + '%';
+  document.getElementById('barSession').style.width = clamp(store.sessionDuration / 10 * 100, 5, 100) + '%';
+}
+
+/* ============================================================
+   SPARKLINE DATA UPDATE
+   ============================================================ */
+function shiftSparkData(arr, newVal) {
+  arr.shift();
+  arr.push(newVal);
+  return arr;
+}
+
+/* ============================================================
+   AUTO-REFRESH — simulated data changes every 5 seconds
+   ============================================================ */
+let countdown = 5;
+const timerEl = document.getElementById('refreshTimer');
+
+function tick() {
+  countdown--;
+  if (countdown <= 0) {
+    refreshData();
+    countdown = 5;
+  }
+  timerEl.textContent = 'Next update: ' + countdown + 's';
+}
+
+function refreshData() {
+  /* Simulate small data changes */
+  store.revenue += randInt(-800, 2200);
+  store.revenue = Math.max(store.revenue, 80000);
+  store.users += randInt(-50, 180);
+  store.users = Math.max(store.users, 5000);
+  store.orders += randInt(-15, 40);
+  store.orders = Math.max(store.orders, 600);
+  store.conversion += rand(-0.2, 0.3);
+  store.conversion = clamp(store.conversion, 1.5, 6.0);
+  store.revenueChange += rand(-1.5, 1.5);
+  store.revenueChange = clamp(store.revenueChange, -5, 25);
+  store.usersChange += rand(-1, 1);
+  store.usersChange = clamp(store.usersChange, -3, 20);
+  store.ordersChange += rand(-1, 1);
+  store.ordersChange = clamp(store.ordersChange, -3, 15);
+  store.conversionChange += rand(-0.3, 0.3);
+  store.conversionChange = clamp(store.conversionChange, -3, 5);
+
+  /* Weekly revenue: shift + add new */
+  const lastWeek = store.weeklyRevenue[store.weeklyRevenue.length - 1];
+  const newPoint = clamp(lastWeek + randInt(-1200, 1800), 10000, 30000);
+  store.weeklyRevenue.shift();
+  store.weeklyRevenue.push(newPoint);
+
+  /* Categories shift */
+  store.categories.forEach(c => {
+    c.value += rand(-3, 3);
+    c.value = clamp(c.value, 5, 70);
+  });
+
+  /* Summary stats */
+  store.aov = clamp(store.aov + randInt(-5, 8), 60, 200);
+  store.bounce = clamp(store.bounce + randInt(-3, 3), 15, 60);
+  store.sessionDuration = clamp(store.sessionDuration + rand(-0.3, 0.3), 1, 10);
+
+  /* Sparkline data */
+  shiftSparkData(store.sparkRevenue, store.revenue / 1000);
+  shiftSparkData(store.sparkUsers, store.users / 1000);
+  shiftSparkData(store.sparkOrders, store.orders / 1000);
+  shiftSparkData(store.sparkConversion, store.conversion);
+
+  /* Add new activity */
+  const newActivity = generateActivity();
+  store.activities.unshift(newActivity);
+  /* Age existing timestamps */
+  store.activities.forEach((a, i) => {
+    if (i === 0) return;
+    if (a.time === 'Just now') a.time = '1 min ago';
+    else {
+      const match = a.time.match(/(\d+)/);
+      if (match) {
+        const mins = parseInt(match[1]) + 1;
+        a.time = mins + ' min ago';
+      }
+    }
+  });
+  /* Keep only 8 items */
+  if (store.activities.length > 8) store.activities.length = 8;
+
+  /* Re-render everything */
+  updateKPIs(true);
+  animateLineChart();
+  animateDonut();
+  updateDonutLegend();
+  renderFeed();
+  drawSparkline('sparkRevenue', store.sparkRevenue, '#e8a23a');
+  drawSparkline('sparkUsers', store.sparkUsers, '#2dd4a8');
+  drawSparkline('sparkOrders', store.sparkOrders, '#5b9cf5');
+  drawSparkline('sparkConversion', store.sparkConversion, '#f06575');
+}
+
+/* ============================================================
+   INITIAL RENDER
+   ============================================================ */
+function init() {
+  /* Set header time */
+  const now = new Date();
+  document.getElementById('headerTime').textContent =
+    'Real-time business intelligence — ' + now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  updateKPIs(true);
+  animateLineChart();
+  animateDonut();
+  updateDonutLegend();
+  renderFeed();
+
+  /* Small delay for sparklines to ensure canvas is laid out */
+  requestAnimationFrame(() => {
+    drawSparkline('sparkRevenue', store.sparkRevenue, '#e8a23a');
+    drawSparkline('sparkUsers', store.sparkUsers, '#2dd4a8');
+    drawSparkline('sparkOrders', store.sparkOrders, '#5b9cf5');
+    drawSparkline('sparkConversion', store.sparkConversion, '#f06575');
+  });
+
+  /* Start auto-refresh countdown */
+  setInterval(tick, 1000);
+
+  /* Resize handler */
+  let resizeTimeout;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      drawLineChart(1);
+      drawDonut(1);
+      drawSparkline('sparkRevenue', store.sparkRevenue, '#e8a23a');
+      drawSparkline('sparkUsers', store.sparkUsers, '#2dd4a8');
+      drawSparkline('sparkOrders', store.sparkOrders, '#5b9cf5');
+      drawSparkline('sparkConversion', store.sparkConversion, '#f06575');
+    }, 150);
+  });
+}
+
+/* Wait for DOM */
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+</body>
+</html>
