@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess Board</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .header {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+        
+        .turn-indicator {
+            font-size: 20px;
+            font-weight: bold;
+            padding: 10px 20px;
+            background: #333;
+            border-radius: 8px;
+            border: 2px solid #555;
+        }
+        
+        .turn-indicator.white {
+            border-color: #fff;
+            color: #fff;
+        }
+        
+        .turn-indicator.black {
+            border-color: #000;
+            color: #fff;
+        }
+        
+        .chess-board {
+            display: grid;
+            grid-template-columns: repeat(8, 60px);
+            grid-template-rows: repeat(8, 60px);
+            border: 3px solid #444;
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        
+        .square {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .square.light {
+            background-color: #f0d9b5;
+        }
+        
+        .square.dark {
+            background-color: #b58863;
+        }
+        
+        .square.selected {
+            background-color: #7fc97f !important;
+            box-shadow: inset 0 0 0 3px #4caf50;
+        }
+        
+        .square:hover {
+            opacity: 0.8;
+            transform: scale(0.95);
+        }
+        
+        .square.valid-move {
+            background-color: #4caf50 !important;
+        }
+        
+        .square.valid-move::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+        }
+        
+        .new-game-btn {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .new-game-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        .coordinates {
+            display: grid;
+            grid-template-columns: repeat(8, 60px);
+            grid-template-rows: auto;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .file-labels {
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .rank-labels {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 480px;
+            position: absolute;
+            left: -25px;
+            top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <div class="turn-indicator" id="turnIndicator">White's Turn</div>
+            <button class="new-game-btn" onclick="newGame()">New Game</button>
+        </div>
+        <div style="position: relative;">
+            <div class="rank-labels">
+                <span>8</span><span>7</span><span>6</span><span>5</span>
+                <span>4</span><span>3</span><span>2</span><span>1</span>
+            </div>
+            <div class="chess-board" id="chessBoard"></div>
+            <div class="file-labels" style="display: flex; justify-content: space-between; width: 480px; margin-left: 30px;">
+                <span>a</span><span>b</span><span>c</span><span>d</span>
+                <span>e</span><span>f</span><span>g</span><span>h</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const pieces = {
+            white: {
+                king: '♔',
+                queen: '♕',
+                rook: '♖',
+                bishop: '♗',
+                knight: '♘',
+                pawn: '♙'
+            },
+            black: {
+                king: '♚',
+                queen: '♛',
+                rook: '♜',
+                bishop: '♝',
+                knight: '♞',
+                pawn: '♟'
+            }
+        };
+
+        let board = [];
+        let selectedSquare = null;
+        let currentTurn = 'white';
+        let validMoves = [];
+
+        function initializeBoard() {
+            board = [
+                ['♜', '♞', '♝', '♛', '♚', '♝', '♞', '♜'],
+                ['♟', '♟', '♟', '♟', '♟', '♟', '♟', '♟'],
+                [null, null, null, null, null, null, null, null],
+                [null, null, null, null, null, null, null, null],
+                [null, null, null, null, null, null, null, null],
+                [null, null, null, null, null, null, null, null],
+                ['♙', '♙', '♙', '♙', '♙', '♙', '♙', '♙'],
+                ['♖', '♘', '♗', '♕', '♔', '♗', '♘', '♖']
+            ];
+        }
+
+        function createBoard() {
+            const chessBoard = document.getElementById('chessBoard');
+            chessBoard.innerHTML = '';
+
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const square = document.createElement('div');
+                    square.className = 'square';
+                    square.className += (row + col) % 2 === 0 ? ' light' : ' dark';
+                    square.dataset.row = row;
+                    square.dataset.col = col;
+                    
+                    const piece = board[row][col];
+                    if (piece) {
+                        square.textContent = piece;
+                    }
+                    
+                    square.addEventListener('click', handleSquareClick);
+                    chessBoard.appendChild(square);
+                }
+            }
+        }
+
+        function handleSquareClick(event) {
+            const row = parseInt(event.target.dataset.row);
+            const col = parseInt(event.target.dataset.col);
+            const clickedPiece = board[row][col];
+
+            clearSelection();
+
+            if (selectedSquare && validMoves.some(move => move.row === row && move.col === col)) {
+                // Move piece
+                board[row][col] = board[selectedSquare.row][selectedSquare.col];
+                board[selectedSquare.row][selectedSquare.col] = null;
+                selectedSquare = null;
+                validMoves = [];
+                currentTurn = currentTurn === 'white' ? 'black' : 'white';
+                updateTurnIndicator();
+                createBoard();
+                return;
+            }
+
+            if (clickedPiece && isPieceOwnedByCurrentTurn(clickedPiece)) {
+                // Select piece
+                selectedSquare = { row, col };
+                event.target.classList.add('selected');
+                showValidMoves(row, col);
+            }
+        }
+
+        function isPieceOwnedByCurrentTurn(piece) {
+            if (currentTurn === 'white') {
+                return Object.values(pieces.white).includes(piece);
+            } else {
+                return Object.values(pieces.black).includes(piece);
+            }
+        }
+
+        function showValidMoves(row, col) {
+            validMoves = [];
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if (r !== row || c !== col) {
+                        validMoves.push({ row: r, col: c });
+                    }
+                }
+            }
+
+            validMoves.forEach(move => {
+                const square = document.querySelector(`[data-row="${move.row}"][data-col="${move.col}"]`);
+                if (square) {
+                    square.classList.add('valid-move');
+                }
+            });
+        }
+
+        function clearSelection() {
+            selectedSquare = null;
+            validMoves = [];
+            document.querySelectorAll('.square').forEach(square => {
+                square.classList.remove('selected', 'valid-move');
+            });
+        }
+
+        function updateTurnIndicator() {
+            const indicator = document.getElementById('turnIndicator');
+            indicator.textContent = `${currentTurn.charAt(0).toUpperCase() + currentTurn.slice(1)}'s Turn`;
+            indicator.className = `turn-indicator ${currentTurn}`;
+        }
+
+        function newGame() {
+            currentTurn = 'white';
+            selectedSquare = null;
+            validMoves = [];
+            updateTurnIndicator();
+            initializeBoard();
+            createBoard();
+        }
+
+        // Initialize the game
+        initializeBoard();
+        createBoard();
+    </script>
+</body>
+</html>
