@@ -11,3 +11,5 @@ COPY snake/ /usr/share/nginx/html/snake/
 COPY pomodoro/ /usr/share/nginx/html/pomodoro/
 COPY weather/ /usr/share/nginx/html/weather/
 COPY password/ /usr/share/nginx/html/password/
+COPY gta/ /usr/share/nginx/html/gta/
+COPY webos/ /usr/share/nginx/html/webos/
