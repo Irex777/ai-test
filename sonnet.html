@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanban Board</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border-color: #475569;
+            --priority-low: #22c55e;
+            --priority-medium: #f97316;
+            --priority-high: #ef4444;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --danger: #dc2626;
+            --danger-hover: #b91c1c;
+            --shadow: rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 40px 12px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .search-box::after {
+            content: '🔍';
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+            opacity: 0.5;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: var(--danger-hover);
+        }
+
+        .btn-icon {
+            padding: 8px;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+
+        .btn-icon:hover {
+            color: var(--text-primary);
+            background: var(--bg-tertiary);
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+            align-items: start;
+        }
+
+        .column {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 400px;
+            border: 1px solid var(--border-color);
+        }
+
+        .column-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .column-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .task-count {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .task-list {
+            min-height: 300px;
+        }
+
+        .task {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: grab;
+            border: 1px solid var(--border-color);
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .task:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow);
+            border-color: var(--accent);
+        }
+
+        .task.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .task-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            flex: 1;
+            word-break: break-word;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .task:hover .task-actions {
+            opacity: 1;
+        }
+
+        .task-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .task-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .priority-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .priority-low {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--priority-low);
+        }
+
+        .priority-medium {
+            background: rgba(249, 115, 22, 0.2);
+            color: var(--priority-medium);
+        }
+
+        .priority-high {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--priority-high);
+        }
+
+        .timestamp {
+            font-size: 0.75rem;
+        }
+
+        .column.drag-over {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .task-list.drag-over {
+            background: rgba(59, 130, 246, 0.05);
+            border-radius: 8px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 30px;
+            width: 90%;
+            max-width: 500px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 60px var(--shadow);
+            animation: modalIn 0.3s ease;
+        }
+
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .modal-header {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            .board {
+                grid-template-columns: 1fr;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .search-box {
+                max-width: 100%;
+            }
+
+            .task-actions {
+                opacity: 1;
+            }
+        }
+
+        .task-editing {
+            padding: 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--accent);
+            border-radius: 6px;
+        }
+
+        .task-editing input,
+        .task-editing textarea,
+        .task-editing select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .task-editing input:focus,
+        .task-editing textarea:focus,
+        .task-editing select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .edit-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📋 Kanban Board</h1>
+        </header>
+
+        <div class="controls">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search tasks..." />
+            </div>
+            <button class="btn btn-primary" onclick="openModal()">
+                <span>➕</span> Add Task
+            </button>
+        </div>
+
+        <div class="board">
+            <div class="column" data-column="todo">
+                <div class="column-header">
+                    <span class="column-title">📝 To Do</span>
+                    <span class="task-count" id="todo-count">0</span>
+                </div>
+                <div class="task-list" data-column="todo" id="todo-list"></div>
+            </div>
+
+            <div class="column" data-column="inprogress">
+                <div class="column-header">
+                    <span class="column-title">🚀 In Progress</span>
+                    <span class="task-count" id="inprogress-count">0</span>
+                </div>
+                <div class="task-list" data-column="inprogress" id="inprogress-list"></div>
+            </div>
+
+            <div class="column" data-column="done">
+                <div class="column-header">
+                    <span class="column-title">✅ Done</span>
+                    <span class="task-count" id="done-count">0</span>
+                </div>
+                <div class="task-list" data-column="done" id="done-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="taskModal">
+        <div class="modal-content">
+            <div class="modal-header">Add New Task</div>
+            <form id="taskForm">
+                <div class="form-group">
+                    <label for="taskTitle">Title *</label>
+                    <input type="text" id="taskTitle" required placeholder="Enter task title" />
+                </div>
+                <div class="form-group">
+                    <label for="taskDescription">Description</label>
+                    <textarea id="taskDescription" placeholder="Enter task description (optional)"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="taskPriority">Priority</label>
+                    <select id="taskPriority">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn" onclick="closeModal()" style="background: var(--bg-tertiary); color: var(--text-primary);">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let tasks = [];
+        let draggedTask = null;
+        let editingTaskId = null;
+
+        const columns = ['todo', 'inprogress', 'done'];
+
+        function loadTasks() {
+            const saved = localStorage.getItem('kanban-tasks');
+            if (saved) {
+                tasks = JSON.parse(saved);
+            }
+            renderAllTasks();
+        }
+
+        function saveTasks() {
+            localStorage.setItem('kanban-tasks', JSON.stringify(tasks));
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        function formatDate(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function createTaskElement(task) {
+            const taskEl = document.createElement('div');
+            taskEl.className = 'task';
+            taskEl.draggable = true;
+            taskEl.dataset.id = task.id;
+
+            taskEl.innerHTML = `
+                <div class="task-header">
+                    <div class="task-title">${escapeHtml(task.title)}</div>
+                    <div class="task-actions">
+                        <button class="btn-icon" onclick="startEditTask('${task.id}')" title="Edit">✏️</button>
+                        <button class="btn-icon" onclick="deleteTask('${task.id}')" title="Delete">🗑️</button>
+                    </div>
+                </div>
+                ${task.description ? `<div class="task-description">${escapeHtml(task.description)}</div>` : ''}
+                <div class="task-meta">
+                    <span class="priority-badge priority-${task.priority}">${task.priority}</span>
+                    <span class="timestamp">${formatDate(task.createdAt)}</span>
+                </div>
+            `;
+
+            taskEl.addEventListener('dragstart', handleDragStart);
+            taskEl.addEventListener('dragend', handleDragEnd);
+
+            return taskEl;
+        }
+
+        function renderAllTasks() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            columns.forEach(column => {
+                const listEl = document.getElementById(`${column}-list`);
+                const countEl = document.getElementById(`${column}-count`);
+                const columnTasks = tasks.filter(task => {
+                    const matchesColumn = task.column === column;
+                    const matchesSearch = !searchTerm || 
+                        task.title.toLowerCase().includes(searchTerm) ||
+                        (task.description && task.description.toLowerCase().includes(searchTerm));
+                    return matchesColumn && matchesSearch;
+                });
+
+                listEl.innerHTML = '';
+                columnTasks.forEach(task => {
+                    listEl.appendChild(createTaskElement(task));
+                });
+
+                countEl.textContent = columnTasks.length;
+
+                if (columnTasks.length === 0) {
+                    listEl.innerHTML = '<div class="empty-state">No tasks yet</div>';
+                }
+            });
+        }
+
+        function openModal() {
+            document.getElementById('taskModal').classList.add('active');
+            document.getElementById('taskTitle').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('taskModal').classList.remove('active');
+            document.getElementById('taskForm').reset();
+        }
+
+        document.getElementById('taskForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const title = document.getElementById('taskTitle').value.trim();
+            const description = document.getElementById('taskDescription').value.trim();
+            const priority = document.getElementById('taskPriority').value;
+
+            if (!title) return;
+
+            const newTask = {
+                id: generateId(),
+                title,
+                description,
+                priority,
+                column: 'todo',
+                createdAt: Date.now()
+            };
+
+            tasks.push(newTask);
+            saveTasks();
+            renderAllTasks();
+            closeModal();
+        });
+
+        function deleteTask(id) {
+            tasks = tasks.filter(task => task.id !== id);
+            saveTasks();
+            renderAllTasks();
+        }
+
+        function startEditTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+
+            editingTaskId = id;
+            const taskEl = document.querySelector(`[data-id="${id}"]`);
+            if (!taskEl) return;
+
+            taskEl.classList.add('task-editing');
+            taskEl.innerHTML = `
+                <input type="text" id="edit-title" value="${escapeHtml(task.title)}" placeholder="Task title" />
+                <textarea id="edit-description" placeholder="Description">${escapeHtml(task.description || '')}</textarea>
+                <select id="edit-priority">
+                    <option value="low" ${task.priority === 'low' ? 'selected' : ''}>Low</option>
+                    <option value="medium" ${task.priority === 'medium' ? 'selected' : ''}>Medium</option>
+                    <option value="high" ${task.priority === 'high' ? 'selected' : ''}>High</option>
+                </select>
+                <div class="edit-actions">
+                    <button type="button" class="btn btn-icon" onclick="cancelEdit()">❌</button>
+                    <button type="button" class="btn btn-primary" onclick="saveEdit()">💾 Save</button>
+                </div>
+            `;
+
+            document.getElementById('edit-title').focus();
+        }
+
+        function cancelEdit() {
+            editingTaskId = null;
+            renderAllTasks();
+        }
+
+        function saveEdit() {
+            if (!editingTaskId) return;
+
+            const task = tasks.find(t => t.id === editingTaskId);
+            if (!task) return;
+
+            const title = document.getElementById('edit-title').value.trim();
+            const description = document.getElementById('edit-description').value.trim();
+            const priority = document.getElementById('edit-priority').value;
+
+            if (!title) {
+                alert('Title is required');
+                return;
+            }
+
+            task.title = title;
+            task.description = description;
+            task.priority = priority;
+
+            editingTaskId = null;
+            saveTasks();
+            renderAllTasks();
+        }
+
+        function handleDragStart(e) {
+            draggedTask = e.target;
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            document.querySelectorAll('.column').forEach(col => {
+                col.classList.remove('drag-over');
+            });
+            document.querySelectorAll('.task-list').forEach(list => {
+                list.classList.remove('drag-over');
+            });
+        }
+
+        columns.forEach(column => {
+            const listEl = document.getElementById(`${column}-list`);
+
+            listEl.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                listEl.classList.add('drag-over');
+            });
+
+            listEl.addEventListener('dragleave', () => {
+                listEl.classList.remove('drag-over');
+            });
+
+            listEl.addEventListener('drop', (e) => {
+                e.preventDefault();
+                listEl.classList.remove('drag-over');
+
+                if (!draggedTask) return;
+
+                const taskId = draggedTask.dataset.id;
+                const task = tasks.find(t => t.id === taskId);
+
+                if (task && task.column !== column) {
+                    task.column = column;
+                    saveTasks();
+                    renderAllTasks();
+                }
+
+                draggedTask = null;
+            });
+        });
+
+        document.getElementById('searchInput').addEventListener('input', () => {
+            renderAllTasks();
+        });
+
+        document.getElementById('taskModal').addEventListener('click', (e) => {
+            if (e.target.id === 'taskModal') {
+                closeModal();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+                if (editingTaskId) {
+                    cancelEdit();
+                }
+            }
+        });
+
+        loadTasks();
+    </script>
+</body>
+</html>
