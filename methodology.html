@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Bake-Off — Methodology</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#08080d;--s1:#0f0f18;--s2:#181826;--s3:#222238;--bd:#2a2a40;--t1:#e8e8f0;--t2:#8888a0;--t3:#555570;--r:12px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--t1);line-height:1.7}
+a{color:#4ecdc4;text-decoration:none}
+
+.header{padding:24px 32px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:16px}
+.back{color:var(--t2);font-size:13px;font-weight:600;padding:6px 12px;border-radius:8px;border:1px solid var(--bd);transition:all .2s}
+.back:hover{color:var(--t1);border-color:var(--t3)}
+h1{font-size:28px;font-weight:900}
+
+.section{padding:28px 32px;border-bottom:1px solid var(--bd)}
+.section h2{font-size:20px;font-weight:800;margin-bottom:16px}
+.section h3{font-size:16px;font-weight:700;margin:20px 0 8px;color:var(--t2)}
+.section p{color:var(--t2);margin-bottom:12px;max-width:800px}
+
+.warn{background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.3);border-radius:var(--r);padding:16px 20px;margin:16px 0;font-size:14px}
+.note{background:rgba(78,205,196,.08);border:1px solid rgba(78,205,196,.2);border-radius:var(--r);padding:16px 20px;margin:16px 0;font-size:14px}
+
+table{width:100%;border-collapse:collapse;font-size:13px;margin:12px 0}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--bd)}
+th{color:var(--t3);font-size:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+td{color:var(--t2)}
+td code{background:var(--s2);padding:2px 6px;border-radius:4px;font-size:12px;color:var(--t1)}
+.fail{color:#ff6b6b;font-weight:700}
+.fast{color:#4ecdc4}.medium{color:#d4a574}.slow{color:#ff6b6b}
+
+.pcard{background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:12px;overflow:hidden}
+.ph{padding:12px 16px;font-weight:700;font-size:14px;border-bottom:1px solid var(--bd);background:var(--s2)}
+.pcat{color:var(--t3);font-size:11px;font-weight:600;margin-left:8px}
+.prompt{padding:16px;font-size:12px;color:var(--t2);white-space:pre-wrap;font-family:'SF Mono',Monaco,Consolas,monospace;line-height:1.5;overflow-x:auto}
+
+.step{display:flex;gap:12px;margin-bottom:12px;align-items:flex-start}
+.step-n{background:var(--s2);color:var(--t1);font-weight:800;font-size:14px;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.step-t{color:var(--t2);font-size:14px;padding-top:3px}
+</style>
+</head>
+<body>
+<div class="header">
+  <a href="/" class="back">← Back</a>
+  <h1>Methodology</h1>
+</div>
+
+<div class="section">
+  <h2>Overview</h2>
+  <p>4 AI models were given the exact same prompt for each of 9 coding tasks. Each model produced a single self-contained HTML file. No edits, no fixes, no follow-up prompts. The raw output is what you see on this site.</p>
+  
+  <div class="note">
+    <strong>No Claude Code was used to generate any results.</strong> Claude Code is Anthropic's agentic coding CLI -- it can read files, run commands, and iterate. That would be an unfair advantage. Instead, each model was called via a <strong>single-shot API call or CLI prompt</strong> with zero iteration. One prompt in, one HTML file out.
+  </div>
+
+  <h3>Models Tested</h3>
+  <table>
+    <tr><th>Model</th><th>Provider</th><th>Cost</th><th>Endpoint</th><th>Parameters</th></tr>
+<tr>
+  <td><span style="color:#d4a574">Claude Sonnet 4.6</span></td>
+  <td>Anthropic</td>
+  <td>Pro ($20/mo)</td>
+  <td><code>claude -p (CLI)</code></td>
+  <td>temperature: default, max-turns: 1</td>
+</tr>
+<tr>
+  <td><span style="color:#c084fc">Claude Opus 4.7</span></td>
+  <td>Anthropic</td>
+  <td>Pro ($20/mo)</td>
+  <td><code>claude -p --model claude-opus-4-20250514 (CLI)</code></td>
+  <td>temperature: default, max-turns: 1</td>
+</tr>
+<tr>
+  <td><span style="color:#4ecdc4">GLM 5.1</span></td>
+  <td>ZAI / z.ai</td>
+  <td>API (pay-per-token)</td>
+  <td><code>api.z.ai (OpenAI-compatible)</code></td>
+  <td>temperature: 0.7, max_tokens: 32768, stream: true</td>
+</tr>
+<tr>
+  <td><span style="color:#ff6b6b">Qwen 3.6 27B</span></td>
+  <td>Local llama.cpp</td>
+  <td>Free (self-hosted)</td>
+  <td><code>10.0.0.160:8081 (local)</code></td>
+  <td>temperature: 0.7, max_tokens: 8192</td>
+</tr>
+  </table>
+
+  <h3>How Each Model Was Called</h3>
+  <div class="step"><div class="step-n">1</div><div class="step-t"><strong>Claude Sonnet 4.6 &amp; Opus 4.7</strong> — Called via the <code>claude</code> CLI (<code>claude -p</code>) in non-interactive print mode with <code>--dangerously-skip-permissions</code> and <code>--max-turns 1</code>. This is a single-shot generation with no file access, no tool use, no iteration. Opus was selected with <code>--model claude-opus-4-20250514</code>. The CLI is part of a Claude Pro subscription ($20/mo).</div></div>
+  <div class="step"><div class="step-n">2</div><div class="step-t"><strong>GLM 5.1</strong> — Called via the ZAI API (<code>api.z.ai</code>) using OpenAI-compatible chat completions endpoint. Parameters: <code>temperature: 0.7</code>, <code>max_tokens: 32768</code>, <code>stream: true</code>. GLM 5.1 is a reasoning model that produces thinking tokens before content. The 32K token budget was necessary because reasoning tokens consume the output budget.</div></div>
+  <div class="step"><div class="step-n">3</div><div class="step-t"><strong>Qwen 3.6 27B</strong> — Called via a local llama.cpp server running on a Mac Mini at <code>10.0.0.160:8081</code>. Model: <code>Qwen3.6-27B-Q4_K_M-mtp.gguf</code> (quantized to 4-bit). Parameters: <code>temperature: 0.7</code>, <code>max_tokens: 8192</code>. 100% local inference, no data leaves the machine.</div></div>
+
+  <div class="warn">
+    <strong>GLM Chess Note:</strong> GLM 5.1 (reasoning model) failed to generate chess after 6 attempts across multiple sessions (10+ minutes each, all reasoning tokens, zero content output). The chess output shown for GLM was generated by <code>glm-5</code> (non-reasoning variant of the same family). This is noted as a legitimate finding -- reasoning models can get stuck on complex game logic tasks.
+  </div>
+</div>
+
+<div class="section">
+  <h2>Test Prompts</h2>
+  <p>Every model received the exact same prompt for each test. The only instruction was to produce a single HTML file -- no explanations, no markdown wrapping. All prompts ended with "Output ONLY raw HTML starting with &lt;!DOCTYPE html&gt;."</p>
+
+<div class="pcard">
+  <div class="ph">📋 Todo Kanban <span class="pcat">App</span></div>
+  <pre class="prompt">Create a complete, self-contained Todo Kanban board application as a single HTML file (inline CSS + JS, no external dependencies). Requirements: Three columns (To Do, In Progress, Done). Add new tasks with title, description, priority (Low/Medium/High). Drag and drop between columns. Dark theme with CSS variables. LocalStorage persistence. Search/filter tasks. Responsive design. Task count per column. Timestamps. Delete and edit tasks. Animations on drag. Output ONLY raw HTML starting with <!DOCTYPE html>.</pre>
+</div>
+<div class="pcard">
+  <div class="ph">📊 Analytics Dashboard <span class="pcat">Data</span></div>
+  <pre class="prompt">Create a complete analytics dashboard as a single HTML file (inline CSS + JS, no external dependencies). Requirements: KPI cards with animated counters (Revenue $847K, Users 12.4K, Orders 3.2K, Growth +24%). Revenue chart using SVG/Canvas. Recent activity feed (10 items). Dark theme. Responsive grid layout. Auto-refresh timer (simulated data updates). Date range filter. Export button. Hover effects on cards. Output ONLY raw HTML starting with <!DOCTYPE html>.</pre>
+</div>
+<div class="pcard">
+  <div class="ph">♟ Chess Game <span class="pcat">Game</span></div>
+  <pre class="prompt">Create a chess game as a single HTML file with inline CSS+JS, no external dependencies. Requirements: 8x8 board with Unicode pieces. Click piece to select, click square to move. Turn indicator (white/black). Dark theme. New Game button. Captured pieces display. Move history. Highlight selected piece and valid moves. Check detection with visual indicator. Output ONLY raw HTML starting with <!DOCTYPE html>.</pre>
+</div>
+<div class="pcard">
+  <div class="ph">✏️ Markdown Editor <span class="pcat">App</span></div>
+  <pre class="prompt">Create a markdown editor with live preview as a single HTML file (inline CSS+JS, no external dependencies). Requirements: Split-pane layout (editor left, preview right). Formatting toolbar (bold, italic, heading, link, list, code). Live preview that parses markdown (headings, bold, italic, links, lists, code blocks, blockquotes). Dark theme. Default sample content. Word count. Copy markdown button. Responsive (stack on mobile). Output ONLY raw HTML starting with <!DOCTYPE html>.</pre>
+</div>
+<div class="pcard">
+  <div class="ph">🧮 Calculator <span class="pcat">Utility</span></div>
+  <pre class="prompt">Create a calculator app as a single HTML file (inline CSS+JS, no external dependencies). Requirements: CSS grid button layout (0-9, +, -, *, /, =, C, CE, %, +/-, decimal). Display showing current input and expression history. Chain operations (5+3*2=16). Dark theme. Keyboard support for all operations. Error handling (divide by zero). Backspace button. Memory functions (M+, M-, MR, MC). Responsive. Output ONLY raw HTML starting with <!DOCTYPE html>.</pre>
+</div>
+<div class="pcard">
+  <div class="ph">🐍 Snake Game <span class="pcat">Game</span></div>
+  <pre class="prompt">Create a Snake game as a single HTML file (inline CSS+JS, no external dependencies). Requirements: Canvas-based game area. Arrow key controls. Score display. Speed increases with score. Game over on wall/self collision with restart. Food spawning. High score saved to localStorage. Dark theme. Start screen. Grid overlay. Touch controls (swipe). Output ONLY raw HTML starting with <!DOCTYPE html>.</pre>
+</div>
+<div class="pcard">
+  <div class="ph">⏱ Pomodoro Timer <span class="pcat">Utility</span></div>
+  <pre class="prompt">Create a Pomodoro timer app as a single HTML file (inline CSS+JS, no external dependencies). Requirements: Circular SVG progress ring showing time remaining. Work (25min) / Short Break (5min) / Long Break (15min) modes. Start/Pause/Reset controls. Session counter. Audio notification when timer ends (use Web Audio API beep). Settings to customize durations. Dark theme. Animated progress ring. Auto-switch between work/break. Output ONLY raw HTML starting with <!DOCTYPE html>.</pre>
+</div>
+<div class="pcard">
+  <div class="ph">🌤 Weather Dashboard <span class="pcat">Data</span></div>
+  <pre class="prompt">Create a weather dashboard as a single HTML file (inline CSS+JS, no external dependencies). Requirements: Current weather card with temp, humidity, wind, conditions (use hardcoded fake data for Prague). 5-day forecast row. SVG temperature chart showing daily highs/lows. Weather condition icons (sun, cloud, rain - draw with SVG/CSS). Toggle Celsius/Fahrenheit. Dark theme. Responsive. Air quality indicator. Sunrise/sunset times. Output ONLY raw HTML starting with <!DOCTYPE html>.</pre>
+</div>
+<div class="pcard">
+  <div class="ph">🔐 Password Generator <span class="pcat">Utility</span></div>
+  <pre class="prompt">Create a password generator app as a single HTML file (inline CSS+JS, no external dependencies). Requirements: Password length slider (8-64). Toggles for uppercase, lowercase, numbers, symbols. Generated password display with copy button. Strength meter (weak/medium/strong/very strong) with color bar. Generate button. History of last 10 generated passwords. Character count. Dark theme. Exclude ambiguous characters option. Entropy bits display. Output ONLY raw HTML starting with <!DOCTYPE html>.</pre>
+</div>
+</div>
+
+<div class="section">
+  <h2>Scoring System</h2>
+  <p>Each test was scored on 14 automated criteria. Scoring is based purely on code analysis -- no human judgment, no subjective quality ratings. A Python script checks each output file for specific patterns and features.</p>
+  <table>
+    <tr><th>Criterion</th><th>Points</th><th>Detection Method</th></tr>
+
+<tr><td>Code Volume</td><td>0-3</td><td>&lt;5KB=0, 5-15KB=1, 15-25KB=2, 25KB+=3</td></tr>
+<tr><td>Dark Theme</td><td>0-1</td><td>Dark background colors detected in CSS</td></tr>
+<tr><td>Responsive</td><td>0-1</td><td>@media queries present</td></tr>
+<tr><td>Animations</td><td>0-1</td><td>transition + @keyframes/animation</td></tr>
+<tr><td>SVG Usage</td><td>0-1</td><td>&lt;svg&gt; elements in output</td></tr>
+<tr><td>Canvas</td><td>0-1</td><td>&lt;canvas&gt; element in output</td></tr>
+<tr><td>LocalStorage</td><td>0-1</td><td>localStorage API used</td></tr>
+<tr><td>Keyboard Support</td><td>0-1</td><td>keydown/keyboard event listeners</td></tr>
+<tr><td>Touch Support</td><td>0-1</td><td>touchstart/touchmove/swipe handlers</td></tr>
+<tr><td>CSS Variables</td><td>0-1</td><td>More than 5 custom properties (--var)</td></tr>
+<tr><td>Code Organization</td><td>0-1</td><td>More than 10 functions or 15 arrow functions</td></tr>
+<tr><td>Comments</td><td>0-1</td><td>More than 10 code comments</td></tr>
+  </table>
+  <p><strong>Max score per test: 14. Max total: 126 (14 × 9 tests).</strong></p>
+  
+  <div class="note">
+    <strong>Scoring bias note:</strong> This scoring system rewards feature completeness and code volume. Models that produce more code with more features score higher. It does not measure code correctness, UI polish, or user experience. A model writing 40KB of broken code could outscore one writing 10KB of perfect code. Keep this in mind when interpreting results.
+  </div>
+</div>
+
+<div class="section">
+  <h2>Generation Times</h2>
+  <p>Wall-clock time from request sent to full response received. Includes network latency for cloud models.</p>
+  <table>
+    <tr><th>Test</th><th>Sonnet</th><th>Opus</th><th>GLM</th><th>Qwen</th></tr>
+<tr><td>📋 Todo Kanban</td><td class="fast">0s</td><td class="fast">0s</td><td class="slow">166s</td><td class="fast">0s</td></tr>
+<tr><td>📊 Analytics Dashboard</td><td class="fast">0s</td><td class="fast">0s</td><td class="slow">199s</td><td class="fast">0s</td></tr>
+<tr><td>♟ Chess Game</td><td class="fast">0s</td><td class="fast">0s</td><td class="slow">652s</td><td class="fast">0s</td></tr>
+<tr><td>✏️ Markdown Editor</td><td class="fast">0s</td><td class="fast">0s</td><td class="slow">211s</td><td class="fast">0s</td></tr>
+<tr><td>🧮 Calculator</td><td class="fast">33s</td><td class="fast">22s</td><td class="slow">486s</td><td class="fast">58s</td></tr>
+<tr><td>🐍 Snake Game</td><td class="fast">44s</td><td class="fast">36s</td><td class="slow">135s</td><td class="fast">54s</td></tr>
+<tr><td>⏱ Pomodoro Timer</td><td class="fast">33s</td><td class="fast">57s</td><td class="slow">454s</td><td class="fast">60s</td></tr>
+<tr><td>🌤 Weather Dashboard</td><td class="fast">38s</td><td class="fast">48s</td><td class="slow">519s</td><td class="medium">98s</td></tr>
+<tr><td>🔐 Password Generator</td><td class="fast">43s</td><td class="fast">32s</td><td class="slow">574s</td><td class="medium">75s</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h2>Output Sizes (bytes)</h2>
+  <table>
+    <tr><th>Test</th><th>Sonnet</th><th>Opus</th><th>GLM</th><th>Qwen</th></tr>
+<tr><td>📋 Todo Kanban</td><td>23,426</td><td>32,222</td><td>32,776</td><td>22,560</td></tr>
+<tr><td>📊 Analytics Dashboard</td><td>21,642</td><td>20,864</td><td>36,661</td><td>20,352</td></tr>
+<tr><td>♟ Chess Game</td><td>27,257</td><td>41,943</td><td>22,864</td><td>26,729</td></tr>
+<tr><td>✏️ Markdown Editor</td><td>15,121</td><td>22,574</td><td>35,531</td><td>15,994</td></tr>
+<tr><td>🧮 Calculator</td><td>16,145</td><td>15,750</td><td>22,658</td><td>15,292</td></tr>
+<tr><td>🐍 Snake Game</td><td>12,908</td><td>10,766</td><td>24,981</td><td>12,626</td></tr>
+<tr><td>⏱ Pomodoro Timer</td><td>15,542</td><td>14,381</td><td>38,383</td><td>13,012</td></tr>
+<tr><td>🌤 Weather Dashboard</td><td>22,388</td><td>19,553</td><td>24,871</td><td>18,647</td></tr>
+<tr><td>🔐 Password Generator</td><td>18,549</td><td>19,259</td><td>27,628</td><td>16,408</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h2>Failure &amp; Retry Log</h2>
+  <p>Some models failed on first attempt (output was empty, garbage, or non-HTML). These were retried once with the same prompt. The retry results are what's shown on the site.</p>
+  <table>
+    <tr><th>Model</th><th>Test</th><th>Issue</th><th>Resolution</th></tr>
+    <tr><td>Sonnet 4.6</td><td>Snake</td><td>28-byte garbage output</td><td>Retried successfully (12,908 chars)</td></tr>
+    <tr><td>Opus 4.7</td><td>Calculator</td><td>28-byte garbage output</td><td>Retried successfully (15,750 chars)</td></tr>
+    <tr><td>Opus 4.7</td><td>Pomodoro</td><td>28-byte garbage output</td><td>Retried successfully (14,381 chars)</td></tr>
+    <tr><td>Opus 4.7</td><td>Weather</td><td>28-byte garbage output</td><td>Retried successfully (19,553 chars)</td></tr>
+    <tr><td>GLM 5.1</td><td>Chess</td><td>6 attempts, all timed out (10+ min, zero content)</td><td>Fallback to glm-5 (non-reasoning) succeeded in 109s</td></tr>
+  </table>
+  
+  <div class="note">
+    <strong>Why did Claude models produce "28-byte garbage"?</strong> The <code>claude -p</code> CLI sometimes outputs a brief text acknowledgment instead of code when it decides to "think" about the task rather than generate. This happened 4 times with Opus and 1 time with Sonnet. All retries succeeded.
+  </div>
+</div>
+
+<div class="section">
+  <h2>Post-Processing</h2>
+  <p>The only post-processing applied to model outputs:</p>
+  <div class="step"><div class="step-n">1</div><div class="step-t"><strong>Markdown wrapper removal</strong> — If the model wrapped output in <code>```html ... ```</code>, the wrappers were stripped.</div></div>
+  <div class="step"><div class="step-n">2</div><div class="step-t"><strong>HTML extraction</strong> — If the model included text before/after the HTML, only the content between <code>&lt;!DOCTYPE html&gt;</code> and <code>&lt;/html&gt;</code> was kept.</div></div>
+  <div class="step"><div class="step-n">3</div><div class="step-t"><strong>Qwen chess bug fix</strong> — One line added: <code>renderBoard()</code> call inside <code>initGame()</code>. The model defined the function but forgot to call it on init.</div></div>
+  <p>No other edits were made to any model output. What you see is what the model generated.</p>
+</div>
+
+</body>
+</html>
