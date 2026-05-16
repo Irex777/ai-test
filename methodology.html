@@ -45,7 +45,10 @@ td code{background:var(--s2);padding:2px 6px;border-radius:4px;font-size:12px;co
   <p>4 AI models were given the exact same prompt for each of 9 coding tasks. Each model produced a single self-contained HTML file. No edits, no fixes, no follow-up prompts. The raw output is what you see on this site.</p>
   
   <div class="warn">
-    <strong>Fairness note on invocation method:</strong> Claude Sonnet &amp; Opus were called via the <code>claude -p</code> CLI (OAuth-authenticated, Claude Pro subscription). GLM 5.1 and Qwen 3.6 27B were called via direct API endpoints. The <code>claude</code> CLI may add system prompts or formatting that could influence output quality. Ideally, all models would be called via identical raw API endpoints, but the Claude CLI uses OAuth and cannot be used for non-Anthropic models. This asymmetry is a limitation of this test. Keep it in mind when comparing results.
+    <strong>Why aren't all models called through the same interface?</strong><br><br>
+    We attempted to run all 4 models through <code>claude -p</code> (Claude Code CLI) for a perfectly fair test. Both GLM and Qwen have Anthropic-compatible API endpoints (<code>/v1/messages</code>). However, the <code>claude</code> CLI with <code>--max-turns 1</code> expects Anthropic-specific tool-use behavior and returns <em>"Error: Reached max turns (1)"</em> for non-Anthropic models — even though the same endpoints work perfectly via <code>curl</code> and raw API calls. The CLI is not a generic Anthropic API client; it's an agent wrapper that expects Claude's agentic capabilities.<br><br>
+    <strong>What we tried:</strong> Setting <code>ANTHROPIC_BASE_URL</code> to the ZAI and llama.cpp Anthropic-compatible endpoints, with the correct auth tokens. The raw Anthropic Messages API works for both GLM and Qwen, but the <code>claude</code> CLI rejects them.<br><br>
+    <strong>What this means:</strong> Sonnet and Opus were called via <code>claude -p</code> (which may add its own system prompt or formatting). GLM and Qwen were called via direct API endpoints with no middleware. This is a limitation of the test setup, not a deliberate choice. We could not make it more fair without an Anthropic API key (the CLI uses OAuth tied to a Pro subscription, not an API key).
   </div>
 
   <div class="note">
