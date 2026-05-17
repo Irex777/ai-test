@@ -6,37 +6,39 @@
     <title>Dark Mode Markdown Editor</title>
     <style>
         :root {
-            --bg-color: #1e1e1e;
-            --editor-bg: #252526;
-            --preview-bg: #1e1e1e;
-            --text-color: #d4d4d4;
-            --accent-color: #007acc;
-            --border-color: #333333;
-            --toolbar-bg: #333333;
-            --hover-color: #444444;
+            --bg-dark: #1e1e1e;
+            --bg-darker: #121212;
+            --bg-panel: #252526;
+            --text-main: #d4d4d4;
+            --text-muted: #858585;
+            --accent: #007acc;
+            --border: #3e3e42;
+            --code-bg: #101010;
+            --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --font-code: Consolas, "Courier New", monospace;
         }
 
         * {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            font-family: var(--font-ui);
+            background-color: var(--bg-darker);
+            color: var(--text-main);
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
-        /* Header / Toolbar */
+        /* Header & Toolbar */
         header {
-            background-color: var(--toolbar-bg);
-            padding: 10px;
-            border-bottom: 1px solid var(--border-color);
+            background-color: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 15px;
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
@@ -47,31 +49,37 @@
         .toolbar-group {
             display: flex;
             gap: 5px;
+            align-items: center;
         }
 
         button {
-            background-color: var(--editor-bg);
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
-            padding: 5px 10px;
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 6px 10px;
+            border-radius: 4px;
             cursor: pointer;
-            border-radius: 3px;
             font-size: 14px;
             transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         button:hover {
-            background-color: var(--hover-color);
+            background-color: var(--border);
         }
 
-        button:active {
-            background-color: var(--accent-color);
+        button svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
         }
 
         .status-bar {
-            font-size: 0.85rem;
-            color: #888;
-            min-width: 120px;
+            font-size: 12px;
+            color: var(--text-muted);
+            min-width: 80px;
             text-align: right;
         }
 
@@ -79,251 +87,319 @@
         .container {
             display: flex;
             flex: 1;
-            height: calc(100vh - 60px); /* Adjust based on header height */
+            height: calc(100vh - 60px);
+            overflow: hidden;
         }
 
         .pane {
             flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .pane-header {
+            background-color: var(--bg-panel);
+            padding: 8px 15px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            border-top: 1px solid var(--border);
         }
 
         /* Editor Styles */
         #editor {
-            background-color: var(--editor-bg);
-            color: var(--text-color);
+            flex: 1;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
             border: none;
+            padding: 20px;
             resize: none;
-            outline: none;
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-family: var(--font-code);
             font-size: 16px;
             line-height: 1.6;
-            width: 100%;
-            height: 100%;
+            outline: none;
+            overflow-y: auto;
         }
 
         /* Preview Styles */
         #preview {
-            background-color: var(--preview-bg);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            flex: 1;
+            background-color: var(--bg-darker);
+            color: var(--text-main);
+            padding: 20px;
+            overflow-y: auto;
             line-height: 1.6;
         }
 
-        /* Markdown Content Styling */
+        /* Markdown Rendered Styles */
         #preview h1, #preview h2, #preview h3 {
-            border-bottom: 1px solid var(--border-color);
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+            border-bottom: 1px solid var(--border);
             padding-bottom: 0.3em;
-            margin-top: 1.5em;
             color: #fff;
         }
         
+        #preview h1 { font-size: 2em; }
+        #preview h2 { font-size: 1.5em; }
+        #preview h3 { font-size: 1.2em; }
+
         #preview p { margin-bottom: 1em; }
 
-        #preview a { color: var(--accent-color); text-decoration: none; }
+        #preview strong { color: #fff; font-weight: 700; }
+        #preview em { color: #dcdcaa; font-style: italic; }
+
+        #preview a {
+            color: var(--accent);
+            text-decoration: none;
+        }
         #preview a:hover { text-decoration: underline; }
 
-        #preview blockquote {
-            border-left: 4px solid var(--accent-color);
-            margin: 1em 0;
-            padding: 0.5em 1em;
-            background: var(--editor-bg);
-            color: #aaa;
-        }
-
         #preview code {
-            background-color: #3c3c3c;
+            background-color: var(--code-bg);
             padding: 2px 4px;
             border-radius: 3px;
-            font-family: monospace;
-            font-size: 0.9em;
+            font-family: var(--font-code);
+            color: #ce9178;
         }
 
         #preview pre {
-            background-color: #151515;
-            padding: 10px;
+            background-color: var(--code-bg);
+            padding: 15px;
             border-radius: 5px;
             overflow-x: auto;
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--border);
+            margin-bottom: 1em;
         }
 
         #preview pre code {
-            background-color: transparent;
+            background: none;
             padding: 0;
+            color: var(--text-main);
+        }
+
+        #preview blockquote {
+            border-left: 4px solid var(--accent);
+            padding-left: 15px;
+            margin-left: 0;
+            color: var(--text-muted);
+            font-style: italic;
         }
 
         #preview ul, #preview ol {
-            padding-left: 2em;
+            padding-left: 25px;
+            margin-bottom: 1em;
         }
 
-        /* Responsive Design */
+        #preview li { margin-bottom: 5px; }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: var(--bg-darker); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        /* Responsive */
         @media (max-width: 768px) {
-            .container {
-                flex-direction: column;
-                height: auto;
-                overflow-y: auto;
-            }
-            
-            .pane {
-                height: 50vh;
-                border-right: none;
-                border-bottom: 1px solid var(--border-color);
-            }
-            
-            #editor {
-                height: 100%;
-            }
+            .container { flex-direction: column; }
+            .pane { height: 50%; }
+            header { padding: 10px; }
         }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="toolbar-group">
-            <button onclick="insertMarkdown('**', '**')" title="Bold"><b>B</b></button>
-            <button onclick="insertMarkdown('*', '*')" title="Italic"><i>I</i></button>
-            <button onclick="insertMarkdown('# ', '')" title="Heading">H1</button>
-            <button onclick="insertMarkdown('## ', '')" title="Heading">H2</button>
-            <button onclick="insertMarkdown('[](', ')\n')" title="Link">🔗</button>
-            <button onclick="insertMarkdown('- ', '')" title="List">• List</button>
-            <button onclick="insertMarkdown('\`\`\`\n', '\n\`\`\`')" title="Code Block">Code</button>
-        </div>
-        
-        <div class="status-bar">
-            <span id="word-count">0 words</span> | 
-            <button onclick="copyToClipboard()" style="padding: 2px 8px; font-size: 12px;">Copy MD</button>
-        </div>
-    </header>
-
-    <div class="container">
-        <div class="pane">
-            <textarea id="editor" placeholder="Type your markdown here..."></textarea>
-        </div>
-        <div class="pane" id="preview">
-            <!-- Preview renders here -->
-        </div>
+<header>
+    <div class="toolbar-group">
+        <button onclick="insertMd('**', '**')" title="Bold"><b>B</b></button>
+        <button onclick="insertMd('*', '*')" title="Italic"><i>I</i></button>
+        <button onclick="insertMd('# ', '')" title="Heading">H</button>
+        <button onclick="insertMd('[', '](url)')" title="Link">🔗</button>
+        <button onclick="insertMd('- ', '')" title="List">☰</button>
+        <button onclick="insertMd('`', '`')" title="Inline Code">&lt;/&gt;</button>
+        <button onclick="insertMd('\n```\n', '\n```\n')" title="Code Block">{ }</button>
+        <button onclick="insertMd('> ', '')" title="Quote">❝</button>
     </div>
+    <div class="toolbar-group">
+        <button onclick="copyMarkdown()" title="Copy Markdown">📋 Copy</button>
+    </div>
+    <div class="status-bar">
+        Words: <span id="word-count">0</span>
+    </div>
+</header>
 
-    <script>
-        const editor = document.getElementById('editor');
-        const preview = document.getElementById('preview');
-        const wordCountDisplay = document.getElementById('word-count');
+<div class="container">
+    <div class="pane">
+        <div class="pane-header">Markdown Editor</div>
+        <textarea id="editor" spellcheck="false"></textarea>
+    </div>
+    <div class="pane">
+        <div class="pane-header">Live Preview</div>
+        <div id="preview"></div>
+    </div>
+</div>
 
-        // Default Content
-        const defaultContent = `# Welcome to Markdown Editor
+<script>
+    const editor = document.getElementById('editor');
+    const preview = document.getElementById('preview');
+    const wordCountSpan = document.getElementById('word-count');
 
-This is a **live preview** markdown editor. Type on the left, see results on the right.
+    // Default Content
+    const defaultContent = `# Welcome to Dark Markdown Editor
+
+This is a **live preview** markdown editor. Type on the left, see the result on the right.
 
 ## Features
-- Live Rendering
-- Dark Theme
-- Copy to Clipboard
-- No External Dependencies
+- Split-pane layout
+- Dark theme (easy on the eyes)
+- Live parsing
+- Responsive design
 
 ### Formatting Examples
 
-You can write *italic* or **bold** text.
+**Bold text** and *italic text*. 
+You can also use \`inline code\` for technical terms.
 
-> This is a blockquote. It's useful for notes.
+> "The best way to predict the future is to create it." - Peter Drucker
 
-Here is some code:
+### Code Blocks
+
+Here is a JavaScript snippet:
+
 \`\`\`javascript
 function hello() {
-    console.log("Hello World!");
+    console.log("Hello, World!");
 }
 \`\`\`
 
-And a link to [Google](https://google.com).
+### Links and Lists
 
-Happy writing!
+1. First item
+2. Second item
+3. [Visit GitHub](https://github.com)
+
+Enjoy writing!
 `;
 
-        // Initialize
-        if (localStorage.getItem('md-content')) {
-            editor.value = localStorage.getItem('md-content');
-        } else {
-            editor.value = defaultContent;
-        }
-        
-        updatePreview();
+    // Initialize
+    editor.value = defaultContent;
+    updatePreview();
 
-        // Event Listeners
-        editor.addEventListener('input', () => {
-            updatePreview();
-            saveToLocalStorage();
+    // Event Listeners
+    editor.addEventListener('input', () => {
+        updatePreview();
+        updateWordCount();
+    });
+
+    function updatePreview() {
+        const markdown = editor.value;
+        preview.innerHTML = parseMarkdown(markdown);
+    }
+
+    function updateWordCount() {
+        const text = editor.value.trim();
+        const count = text === '' ? 0 : text.split(/\s+/).length;
+        wordCountSpan.textContent = count;
+    }
+
+    // Simple Markdown Parser
+    function parseMarkdown(text) {
+        // Escape HTML to prevent XSS
+        let html = text.replace(/&/g, "&amp;")
+                       .replace(/</g, "&lt;")
+                       .replace(/>/g, "&gt;");
+
+        // Code Blocks (``` ... ```) - Handle first to prevent inner parsing
+        html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+
+        // Headings (# to ######)
+        html = html.replace(/^###### (.*$)/gim, '<h6>$1</h6>');
+        html = html.replace(/^##### (.*$)/gim, '<h5>$1</h5>');
+        html = html.replace(/^#### (.*$)/gim, '<h4>$1</h4>');
+        html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+        html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+        html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+        // Blockquotes
+        html = html.replace(/^&gt; (.*$)/gim, '<blockquote>$1</blockquote>');
+
+        // Bold and Italic (Order matters)
+        html = html.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>'); // Bold+Italic
+        html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Bold
+        html = html.replace(/\*(.*?)\*/g, '<em>$1</em>'); // Italic
+        html = html.replace(/__(.*?)__/g, '<strong>$1</strong>'); // Bold alternative
+        html = html.replace(/_(.*?)_/g, '<em>$1</em>'); // Italic alternative
+
+        // Inline Code
+        html = html.replace(/`(.*?)`/g, '<code>$1</code>');
+
+        // Links
+        html = html.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+        // Lists (Unordered)
+        html = html.replace(/^- (.*$)/gim, '<li>$1</li>');
+        html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+
+        // Lists (Ordered) - Simple regex approach
+        html = html.replace(/^\d+\. (.*$)/gim, '<li>$1</li>');
+        
+        // Wrap consecutive <li> not inside <ul> (for ordered lists or missed unordered)
+        html = html.replace(/(<li>.*<\/li>)/g, (match) => {
+             return match; 
         });
 
-        // Core Logic
-        function updatePreview() {
-            const rawMarkdown = editor.value;
-            
-            // Update Word Count
-            const words = rawMarkdown.trim() === '' ? 0 : rawMarkdown.trim().split(/\s+/).length;
-            wordCountDisplay.textContent = `${words} words`;
+        // Basic Paragraphs (Double newlines)
+        // Wrap remaining text blocks that aren't already wrapped in block elements
+        html = html.replace(/\n\n/g, '</p><p>');
+        html = '<p>' + html + '</p>';
 
-            // Parse Markdown
-            let html = rawMarkdown
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                // Code Blocks (handle before paragraphs to avoid interference)
-                .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-                // Headings
-                .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-                .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-                // Bold and Italic
-                .replace(/\*\*(.*)\*\*/gim, '<b>$1</b>')
-                .replace(/\*(.*)\*/gim, '<i>$1</i>')
-                // Blockquotes
-                .replace(/^> (.*$)/gim, '<blockquote>$1</blockquote>')
-                // Links
-                .replace(/\[(.*?)\]\((.*?)\)/gim, '<a href="$2" target="_blank">$1</a>')
-                // Inline Code
-                .replace(/`([^`]+)`/g, '<code>$1</code>')
-                // Unordered Lists (Simple regex for - items)
-                .replace(/^- (.*$)/gim, '<li>$1</li>')
-                // Wrap consecutive <li> in <ul> (Simplified approach)
-                .replace(/(<li>.*<\/li>\n?)+/gim, '<ul>$&</ul>')
-                // Line Breaks / Paragraphs
-                .replace(/\n/gim, '<br>');
+        // Cleanup empty paragraphs
+        html = html.replace(/<p><\/p>/g, '');
+        html = html.replace(/<p>(<h[1-6]>)/g, '$1');
+        html = html.replace(/(<\/h[1-6]>)<\/p>/g, '$1');
+        html = html.replace(/<p>(<ul>)/g, '$1');
+        html = html.replace(/(<\/ul>)<\/p>/g, '$1');
+        html = html.replace(/<p>(<pre>)/g, '$1');
+        html = html.replace(/(<\/pre>)<\/p>/g, '$1');
+        html = html.replace(/<p>(<blockquote>)/g, '$1');
+        html = html.replace(/(<\/blockquote>)<\/p>/g, '$1');
 
-            preview.innerHTML = html;
-        }
+        return html;
+    }
 
-        // Toolbar Insertion Logic
-        function insertMarkdown(before, after) {
-            const start = editor.selectionStart;
-            const end = editor.selectionEnd;
-            const text = editor.value;
-            const selectedText = text.substring(start, end);
-            
-            const replacement = before + selectedText + after;
-            
-            editor.value = text.substring(0, start) + replacement + text.substring(end);
-            
-            editor.focus();
-            
-            // Move cursor after the insertion
-            const newCursorPos = start + before.length + selectedText.length;
-            editor.setSelectionRange(newCursorPos, newCursorPos);
-            
-            updatePreview();
-        }
+    // Toolbar Helper: Insert text around selection
+    function insertMd(before, after) {
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+        const text = editor.value;
+        const selection = text.substring(start, end);
+        
+        const newText = text.substring(0, start) + before + selection + after + text.substring(end);
+        
+        editor.value = newText;
+        editor.focus();
+        
+        // Restore selection around the inserted text
+        const newCursorPos = start + before.length;
+        editor.setSelectionRange(newCursorPos, newCursorPos + selection.length);
+        
+        updatePreview();
+    }
 
-        // Utility Functions
-        function copyToClipboard() {
-            navigator.clipboard.writeText(editor.value).then(() => {
-                const btn = document.querySelector('.status-bar button');
-                const originalText = btn.textContent;
-                btn.textContent = "Copied!";
-                setTimeout(() => btn.textContent = originalText, 1500);
-            });
-        }
+    // Copy Markdown to Clipboard
+    function copyMarkdown() {
+        editor.select();
+        navigator.clipboard.writeText(editor.value).then(() => {
+            alert('Markdown copied to clipboard!');
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+        });
+    }
+</script>
 
-        function saveToLocalStorage() {
-            localStorage.setItem('md-content', editor.value);
-        }
-    </script>
 </body>
 </html>
