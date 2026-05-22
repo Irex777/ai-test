@@ -1,879 +1,461 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebOS</title>
-    <style>
-        :root {
-            --bg-color: #1e1e2e;
-            --taskbar-color: #181825;
-            --window-bg: #262636;
-            --window-header: #313244;
-            --text-color: #cdd6f4;
-            --accent-color: #89b4fa;
-            --hover-color: #45475a;
-            --border-color: #585b70;
-            --success-color: #a6e3a1;
-            --error-color: #f38ba8;
-        }
+<meta charset="UTF-8">
+<title>WebOS</title>
+<style>
+:root {
+  --bg: #121212;
+  --panel: #1e1e1e;
+  --accent: #4fc3f7;
+  --text: #e0e0e0;
+  --border: #333;
+  --title: #2c2c2c;
+  --win: #181818;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; }
 
-        * {
-            box-sizing: border-box;
-            user-select: none;
-        }
+/* BOOT */
+#boot-screen {
+  position: fixed; inset: 0; background: #000; z-index: 10000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  transition: opacity 0.8s;
+}
+.spinner {
+  width: 50px; height: 50px; border: 4px solid #333; border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #0f0f13;
-            color: var(--text-color);
-        }
+/* DESKTOP */
+#desktop {
+  position: absolute; inset: 0; padding-bottom: 48px;
+  background: linear-gradient(135deg, #121212 0%, #0a0a0a 100%);
+}
+#icon-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, 90px);
+  gap: 10px; padding: 20px;
+}
+.desktop-icon {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 10px 5px; border-radius: 4px; cursor: pointer;
+  transition: background 0.2s;
+}
+.desktop-icon:hover { background: rgba(255,255,255,0.08); }
+.desktop-icon .ico { font-size: 32px; margin-bottom: 6px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+.desktop-icon span { font-size: 12px; text-align: center; text-shadow: 0 1px 3px #000; }
 
-        /* Boot Screen */
-        #boot-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            z-index: 10000;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: var(--accent-color);
-            font-family: 'Courier New', monospace;
-            transition: opacity 0.5s ease;
-        }
+/* CONTEXT MENU */
+#ctx-menu {
+  position: fixed; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 0; min-width: 160px; display: none; z-index: 9999;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+.ctx-item { padding: 8px 16px; cursor: pointer; font-size: 13px; }
+.ctx-item:hover { background: var(--accent); color: #000; }
 
-        .loader {
-            margin-top: 20px;
-            width: 48px;
-            height: 48px;
-            border: 5px solid #FFF;
-            border-bottom-color: transparent;
-            border-radius: 50%;
-            animation: rotation 1s linear infinite;
-        }
+/* TASKBAR */
+#taskbar {
+  position: fixed; bottom: 0; left: 0; right: 0; height: 48px;
+  background: var(--panel); border-top: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 8px; z-index: 1000;
+}
+#start-btn {
+  padding: 6px 14px; background: var(--accent); color: #000; border: none;
+  border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px;
+}
+#start-btn:hover { opacity: 0.9; }
+#running-apps {
+  display: flex; gap: 4px; margin-left: 10px; flex: 1; overflow-x: auto;
+}
+.task-btn {
+  padding: 4px 10px; background: #333; color: var(--text); border: none;
+  border-radius: 3px; cursor: pointer; font-size: 12px; max-width: 120px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.task-btn.active { background: var(--accent); color: #000; }
+#tray { margin-left: auto; font-size: 12px; padding: 0 10px; }
 
-        @keyframes rotation {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+/* START MENU */
+#start-menu {
+  position: fixed; bottom: 48px; left: 8px; width: 240px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+  padding: 6px; display: none; z-index: 1001;
+  box-shadow: 0 0 20px rgba(0,0,0,0.6);
+}
+.sm-item {
+  padding: 10px 12px; cursor: pointer; border-radius: 4px; display: flex;
+  align-items: center; gap: 10px; font-size: 13px;
+}
+.sm-item:hover { background: rgba(255,255,255,0.1); }
+.sm-item.shut { color: #f44336; border-top: 1px solid var(--border); margin-top: 6px; padding-top: 12px; }
 
-        /* Desktop */
-        #desktop {
-            width: 100%;
-            height: calc(100% - 40px);
-            background: linear-gradient(135deg, #1e1e2e 0%, #181825 100%);
-            position: relative;
-            padding: 20px;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, 100px);
-            grid-template-rows: repeat(auto-fill, 110px);
-            gap: 10px;
-            align-content: start;
-        }
+/* WINDOWS */
+.window {
+  position: absolute; background: var(--win); border: 1px solid var(--border);
+  border-radius: 6px; min-width: 220px; min-height: 160px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.title-bar {
+  height: 32px; background: var(--title); display: flex; align-items: center;
+  padding: 0 8px; cursor: default;
+}
+.title-text { flex: 1; font-size: 12px; margin-left: 6px; pointer-events: none; }
+.win-btns { display: flex; gap: 6px; }
+.win-btn {
+  width: 14px; height: 14px; border-radius: 50%; border: none; cursor: pointer;
+}
+.btn-close { background: #f44336; }
+.btn-max { background: #ff9800; }
+.btn-min { background: #8bc34a; }
+.win-content { flex: 1; overflow: auto; position: relative; }
 
-        /* Icons */
-        .icon {
-            width: 90px;
-            height: 100px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: background 0.2s;
-            color: white;
-            text-shadow: 1px 1px 2px black;
-        }
+/* RESIZE HANDLE */
+.resize-handle {
+  position: absolute; bottom: 0; right: 0; width: 16px; height: 16px;
+  cursor: nwse-resize;
+}
 
-        .icon:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .icon-img {
-            font-size: 32px;
-            margin-bottom: 5px;
-            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5));
-        }
-
-        .icon-label {
-            font-size: 12px;
-            text-align: center;
-            word-wrap: break-word;
-        }
-
-        /* Windows */
-        .window {
-            position: absolute;
-            background: var(--window-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            display: flex;
-            flex-direction: column;
-            min-width: 200px;
-            min-height: 150px;
-            overflow: hidden;
-            animation: popIn 0.2s ease-out;
-        }
-
-        @keyframes popIn {
-            from { transform: scale(0.95); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-
-        .window-header {
-            background: var(--window-header);
-            padding: 8px 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: grab;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .window-header:active {
-            cursor: grabbing;
-        }
-
-        .window-title {
-            font-size: 14px;
-            font-weight: bold;
-            pointer-events: none;
-        }
-
-        .window-controls {
-            display: flex;
-            gap: 8px;
-        }
-
-        .win-btn {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-        }
-
-        .btn-close { background: var(--error-color); }
-        .btn-max { background: var(--success-color); }
-        .btn-min { background: var(--accent-color); }
-
-        .window-content {
-            flex: 1;
-            padding: 10px;
-            overflow: auto;
-            position: relative;
-            color: var(--text-color);
-        }
-
-        /* Taskbar */
-        #taskbar {
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            height: 40px;
-            background: var(--taskbar-color);
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            padding: 0 10px;
-            z-index: 9000;
-        }
-
-        #start-btn {
-            background: var(--accent-color);
-            color: #1e1e2e;
-            border: none;
-            padding: 5px 15px;
-            border-radius: 4px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-right: 10px;
-        }
-
-        #start-btn:hover { filter: brightness(1.1); }
-
-        #taskbar-apps {
-            flex: 1;
-            display: flex;
-            gap: 5px;
-            overflow-x: auto;
-        }
-
-        .taskbar-item {
-            background: rgba(255,255,255,0.05);
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            max-width: 150px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            border-bottom: 2px solid transparent;
-        }
-
-        .taskbar-item.active {
-            background: rgba(255,255,255,0.1);
-            border-bottom: 2px solid var(--accent-color);
-        }
-
-        #clock {
-            font-size: 12px;
-            margin-left: 10px;
-            color: var(--text-color);
-        }
-
-        /* Start Menu */
-        #start-menu {
-            position: fixed;
-            bottom: 45px;
-            left: 5px;
-            width: 250px;
-            background: var(--window-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 10px;
-            display: none;
-            flex-direction: column;
-            gap: 5px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
-            z-index: 9999;
-        }
-
-        .start-item {
-            padding: 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .start-item:hover { background: var(--hover-color); }
-
-        /* Context Menu */
-        #context-menu {
-            position: fixed;
-            background: var(--window-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
-            padding: 5px 0;
-            display: none;
-            flex-direction: column;
-            z-index: 10001;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-            min-width: 150px;
-        }
-
-        .ctx-item {
-            padding: 8px 15px;
-            font-size: 13px;
-            cursor: pointer;
-        }
-        .ctx-item:hover { background: var(--hover-color); }
-
-        /* App Specific Styles */
-        /* Calculator */
-        .calc-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 5px;
-            height: 100%;
-        }
-        .calc-display {
-            grid-column: span 4;
-            background: #111;
-            color: white;
-            font-size: 24px;
-            text-align: right;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 5px;
-            border: 1px solid #333;
-        }
-        .calc-btn {
-            background: var(--window-header);
-            border: 1px solid var(--border-color);
-            color: white;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        .calc-btn:hover { background: var(--hover-color); }
-        .calc-btn.op { background: var(--accent-color); color: #1e1e2e; }
-
-        /* Terminal */
-        .terminal-body {
-            background: #000;
-            color: #0f0;
-            font-family: 'Courier New', monospace;
-            height: 100%;
-            padding: 5px;
-            overflow-y: auto;
-        }
-        .term-line { margin-bottom: 2px; }
-        .term-input-line { display: flex; }
-        .term-prompt { margin-right: 5px; color: #fff; }
-        .term-input {
-            background: transparent;
-            border: none;
-            color: #0f0;
-            font-family: inherit;
-            flex: 1;
-            outline: none;
-        }
-
-        /* Notepad */
-        .notepad-area {
-            width: 100%;
-            height: 100%;
-            background: #1e1e2e;
-            color: #ddd;
-            border: none;
-            resize: none;
-            outline: none;
-            font-family: monospace;
-            padding: 5px;
-        }
-        .notepad-menu {
-            background: var(--window-header);
-            padding: 2px;
-            border-bottom: 1px solid var(--border-color);
-        }
-        .menu-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-color);
-            padding: 4px 8px;
-            cursor: pointer;
-        }
-        .menu-btn:hover { background: var(--hover-color); }
-
-        /* Browser */
-        .browser-bar {
-            display: flex;
-            gap: 5px;
-            margin-bottom: 5px;
-        }
-        .browser-input {
-            flex: 1;
-            background: #111;
-            border: 1px solid #333;
-            color: white;
-            padding: 2px 5px;
-            border-radius: 3px;
-        }
-        .browser-frame {
-            width: 100%;
-            height: calc(100% - 30px);
-            background: white;
-            border: none;
-            border-radius: 2px;
-        }
-
-        /* Settings */
-        .settings-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-    </style>
+/* APP SPECIFIC */
+.notepad-area {
+  width: 100%; height: 100%; background: #111; color: #eee; border: none;
+  padding: 8px; resize: none; font-family: monospace; font-size: 14px; outline: none;
+}
+.calc-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 8px; height: 100%;
+}
+.calc-btn {
+  background: #333; color: #fff; border: none; border-radius: 4px;
+  font-size: 16px; cursor: pointer;
+}
+.calc-btn:hover { background: #444; }
+.calc-btn.op { background: var(--accent); color: #000; }
+.calc-disp {
+  grid-column: span 4; background: #000; color: var(--accent);
+  text-align: right; padding: 10px; font-size: 20px; border-radius: 4px;
+  margin-bottom: 4px; font-family: monospace;
+}
+.term-out {
+  background: #000; color: #0f0; padding: 8px; font-family: monospace;
+  font-size: 13px; height: calc(100% - 35px); overflow-y: auto; white-space: pre-wrap;
+}
+.term-input-line {
+  display: flex; background: #000; padding: 4px 8px;
+}
+.term-input-line span { color: #0f0; margin-right: 6px; font-family: monospace; }
+.term-input {
+  flex: 1; background: transparent; border: none; color: #0f0;
+  font-family: monospace; outline: none;
+}
+.browser-frame { width: 100%; height: 100%; border: none; background: #fff; }
+.settings-panel { padding: 16px; }
+.settings-panel h3 { margin-bottom: 10px; color: var(--accent); }
+.settings-panel p { margin-bottom: 12px; font-size: 13px; }
+.pics-grid { display: grid; grid-template-columns: repeat(auto-fill, 80px); gap: 8px; padding: 10px; }
+.pics-grid div {
+  width: 80px; height: 80px; background: linear-gradient(45deg, #333, #555);
+  border-radius: 4px; display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+}
+</style>
 </head>
 <body>
 
-    <!-- Boot Screen -->
-    <div id="boot-screen">
-        <h1>WebOS</h1>
-        <div class="loader"></div>
-        <p style="margin-top: 10px; font-size: 12px;">Initializing System...</p>
-    </div>
+<!-- BOOT SCREEN -->
+<div id="boot-screen">
+  <div class="spinner"></div>
+  <div style="color:#aaa; font-size:14px;">WebOS is loading...</div>
+</div>
 
-    <!-- Desktop Icons -->
-    <div id="desktop">
-        <!-- Icons generated by JS -->
-    </div>
+<!-- DESKTOP -->
+<div id="desktop">
+  <div id="icon-grid">
+    <div class="desktop-icon" data-app="computer"><div class="ico">💻</div><span>My Computer</span></div>
+    <div class="desktop-icon" data-app="recycle"><div class="ico">🗑️</div><span>Recycle Bin</span></div>
+    <div class="desktop-icon" data-app="notepad"><div class="ico">📝</div><span>Notepad</span></div>
+    <div class="desktop-icon" data-app="calc"><div class="ico">🧮</div><span>Calculator</span></div>
+    <div class="desktop-icon" data-app="browser"><div class="ico">🌐</div><span>Browser</span></div>
+    <div class="desktop-icon" data-app="terminal"><div class="ico">💻</div><span>Terminal</span></div>
+    <div class="desktop-icon" data-app="settings"><div class="ico">⚙️</div><span>Settings</span></div>
+    <div class="desktop-icon" data-app="pictures"><div class="ico">🖼️</div><span>Pictures</span></div>
+  </div>
+</div>
 
-    <!-- Context Menu -->
-    <div id="context-menu">
-        <div class="ctx-item" onclick="location.reload()">Refresh</div>
-        <div class="ctx-item" onclick="toggleTheme()">Toggle Theme</div>
-        <div class="ctx-item" onclick="openApp('settings')">Settings</div>
-    </div>
+<!-- CONTEXT MENU -->
+<div id="ctx-menu">
+  <div class="ctx-item" id="ctx-refresh">Refresh Desktop</div>
+  <div class="ctx-item" id="ctx-settings">Settings</div>
+  <div class="ctx-item" id="ctx-terminal">Open Terminal</div>
+</div>
 
-    <!-- Taskbar -->
-    <div id="taskbar">
-        <button id="start-btn">Start</button>
-        <div id="taskbar-apps"></div>
-        <div id="clock">00:00</div>
-    </div>
+<!-- TASKBAR -->
+<div id="taskbar">
+  <button id="start-btn">Start</button>
+  <div id="running-apps"></div>
+  <div id="tray"></div>
+</div>
 
-    <!-- Start Menu -->
-    <div id="start-menu">
-        <div style="padding: 10px; border-bottom: 1px solid var(--border-color); font-weight: bold;">Applications</div>
-        <!-- App list generated by JS -->
-        <div class="start-item" onclick="shutDown()" style="color: var(--error-color); margin-top: 10px;">
-            <span>🛑</span> Shutdown
+<!-- START MENU -->
+<div id="start-menu">
+  <div class="sm-item" data-app="notepad">📝 Notepad</div>
+  <div class="sm-item" data-app="calc">🧮 Calculator</div>
+  <div class="sm-item" data-app="browser">🌐 Browser</div>
+  <div class="sm-item" data-app="terminal">💻 Terminal</div>
+  <div class="sm-item" data-app="settings">⚙️ Settings</div>
+  <div class="sm-item" data-app="pictures">🖼️ Pictures</div>
+  <div class="sm-item shut" id="shut-btn">⏻ Shut Down</div>
+</div>
+
+<script>
+(function(){
+  // Boot
+  setTimeout(() => {
+    document.getElementById('boot-screen').style.opacity = '0';
+    setTimeout(() => document.getElementById('boot-screen').remove(), 800);
+  }, 1500);
+
+  // Clock
+  function updateClock() {
+    const d = new Date();
+    document.getElementById('tray').textContent = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  }
+  updateClock(); setInterval(updateClock, 1000);
+
+  // Z-order
+  let z = 100;
+  function focusWin(w) { z++; w.style.zIndex = z; }
+
+  // Window factory
+  function createWindow(title, w, h, contentHTML, appId) {
+    const win = document.createElement('div');
+    win.className = 'window';
+    win.style.width = w + 'px'; win.style.height = h + 'px';
+    win.style.left = (80 + Math.random()*200) + 'px';
+    win.style.top = (40 + Math.random()*100) + 'px';
+    win.dataset.appId = appId;
+    win.innerHTML = `
+      <div class="title-bar">
+        <span class="title-text">${title}</span>
+        <div class="win-btns">
+          <button class="win-btn btn-min"></button>
+          <button class="win-btn btn-max"></button>
+          <button class="win-btn btn-close"></button>
         </div>
-    </div>
+      </div>
+      <div class="win-content">${contentHTML}</div>
+      <div class="resize-handle"></div>
+    `;
+    document.getElementById('desktop').appendChild(win);
+    focusWin(win);
 
-    <script>
-        // --- System Config & State ---
-        const apps = [
-            { id: 'computer', name: 'My Computer', icon: '💻', action: () => alert('System Info: WebOS v1.0\nMemory: 8GB\nDisk: 256GB SSD') },
-            { id: 'recycle', name: 'Recycle Bin', icon: '🗑️', action: () => alert('Bin is empty.') },
-            { id: 'notepad', name: 'Notepad', icon: '📝', action: () => openApp('notepad') },
-            { id: 'calc', name: 'Calculator', icon: '🧮', action: () => openApp('calc') },
-            { id: 'browser', name: 'Browser', icon: '🌐', action: () => openApp('browser') },
-            { id: 'terminal', name: 'Terminal', icon: '💻', action: () => openApp('terminal') },
-            { id: 'settings', name: 'Settings', icon: '⚙️', action: () => openApp('settings') },
-            { id: 'pictures', name: 'Pictures', icon: '🖼️', action: () => alert('No images found.') }
-        ];
+    // Buttons
+    win.querySelector('.btn-close').onclick = () => { win.remove(); removeTask(appId); };
+    win.querySelector('.btn-min').onclick = () => { win.style.display='none'; };
+    win.querySelector('.btn-max').onclick = () => {
+      if(win.style.width === '100%') { win.style.width=w+'px'; win.style.height=h+'px'; win.style.left='100px'; win.style.top='50px'; }
+      else { win.style.width='100%'; win.style.height='100%'; win.style.left='0'; win.style.top='0'; }
+    };
 
-        let windowCount = 0;
-        let zIndexCounter = 100;
-        const desktop = document.getElementById('desktop');
-        const taskbarApps = document.getElementById('taskbar-apps');
-        const startMenu = document.getElementById('start-menu');
-        const contextMenu = document.getElementById('context-menu');
+    // Drag
+    const tb = win.querySelector('.title-bar');
+    let dragging = false, ox, oy;
+    tb.onmousedown = e => {
+      if(e.target.classList.contains('win-btn')) return;
+      dragging = true; ox = e.clientX - win.offsetLeft; oy = e.clientY - win.offsetTop;
+      focusWin(win);
+    };
+    document.addEventListener('mousemove', e => { if(dragging) { win.style.left = (e.clientX-ox)+'px'; win.style.top = (e.clientY-oy)+'px'; } });
+    document.addEventListener('mouseup', () => dragging = false);
 
-        // --- Boot Sequence ---
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                document.getElementById('boot-screen').style.opacity = '0';
-                setTimeout(() => {
-                    document.getElementById('boot-screen').style.display = 'none';
-                }, 500);
-            }, 1500);
-            initDesktop();
-            updateClock();
-            setInterval(updateClock, 1000);
-        });
+    // Resize
+    const rh = win.querySelector('.resize-handle');
+    let resizing = false, rx, ry, rw, rht;
+    rh.onmousedown = e => {
+      resizing = true; rx = e.clientX; ry = e.clientY; rw = win.offsetWidth; rht = win.offsetHeight;
+      e.stopPropagation();
+    };
+    document.addEventListener('mousemove', e => { if(resizing) { win.style.width = Math.max(220, rw + e.clientX - rx) + 'px'; win.style.height = Math.max(160, rht + e.clientY - ry) + 'px'; } });
+    document.addEventListener('mouseup', () => resizing = false);
 
-        // --- Initialization ---
-        function initDesktop() {
-            // Render Icons
-            apps.forEach(app => {
-                const icon = document.createElement('div');
-                icon.className = 'icon';
-                icon.innerHTML = `<div class="icon-img">${app.icon}</div><div class="icon-label">${app.name}</div>`;
-                icon.ondblclick = app.action;
-                desktop.appendChild(icon);
-            });
+    win.onclick = () => focusWin(win);
+    addTask(title, win);
+    return win;
+  }
 
-            // Render Start Menu
-            const menuContainer = document.getElementById('start-menu');
-            apps.forEach(app => {
-                const item = document.createElement('div');
-                item.className = 'start-item';
-                item.innerHTML = `<span>${app.icon}</span> <span>${app.name}</span>`;
-                item.onclick = () => {
-                    app.action();
-                    startMenu.style.display = 'none';
-                };
-                menuContainer.insertBefore(item, menuContainer.lastElementChild);
-            });
-        }
+  // Taskbar
+  const tasks = {};
+  function addTask(name, win) {
+    if(tasks[name]) { tasks[name].style.display=''; focusWin(tasks[name]); return; }
+    tasks[name] = win;
+    const btn = document.createElement('button');
+    btn.className = 'task-btn active'; btn.textContent = name;
+    btn.onclick = () => {
+      if(win.style.display === 'none') { win.style.display=''; focusWin(win); }
+      else { win.style.display='none'; }
+    };
+    document.getElementById('running-apps').appendChild(btn);
+  }
+  function removeTask(name) {
+    const btns = document.querySelectorAll('.task-btn');
+    btns.forEach(b => { if(b.textContent === name) b.remove(); });
+    delete tasks[name];
+  }
 
-        // --- Clock ---
-        function updateClock() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            document.getElementById('clock').innerText = timeString;
-        }
+  // Apps
+  function openNotepad() {
+    const saved = localStorage.getItem('webos_notepad') || '';
+    const html = `<div style="height:100%;display:flex;flex-direction:column;">
+      <div style="padding:4px;background:#222;font-size:12px;">
+        <span style="margin-right:10px;cursor:pointer;" id="np-new">New</span>
+        <span style="margin-right:10px;cursor:pointer;" id="np-open">Open</span>
+        <span style="cursor:pointer;" id="np-save">Save</span>
+      </div>
+      <textarea class="notepad-area" id="np-area">${saved}</textarea>
+    </div>`;
+    const win = createWindow('Notepad', 400, 300, html, 'notepad');
+    win.querySelector('#np-new').onclick = () => { win.querySelector('#np-area').value = ''; };
+    win.querySelector('#np-save').onclick = () => { localStorage.setItem('webos_notepad', win.querySelector('#np-area').value); alert('Saved!'); };
+    win.querySelector('#np-open').onclick = () => { win.querySelector('#np-area').value = localStorage.getItem('webos_notepad') || ''; };
+  }
 
-        // --- Window Management ---
-        function openApp(appId, titleOverride = null) {
-            const app = apps.find(a => a.id === appId);
-            if (!app) return;
+  function openCalc() {
+    const html = `<div class="calc-grid">
+      <div class="calc-disp" id="calc-d">0</div>
+      <button class="calc-btn" data-v="C">C</button>
+      <button class="calc-btn" data-v="/">/</button>
+      <button class="calc-btn" data-v="*">*</button>
+      <button class="calc-btn" data-v="-">-</button>
+      <button class="calc-btn" data-v="7">7</button>
+      <button class="calc-btn" data-v="8">8</button>
+      <button class="calc-btn" data-v="9">9</button>
+      <button class="calc-btn" data-v="+">+</button>
+      <button class="calc-btn" data-v="4">4</button>
+      <button class="calc-btn" data-v="5">5</button>
+      <button class="calc-btn" data-v="6">6</button>
+      <button class="calc-btn op" data-v="=" style="grid-row:span 2;">=</button>
+      <button class="calc-btn" data-v="1">1</button>
+      <button class="calc-btn" data-v="2">2</button>
+      <button class="calc-btn" data-v="3">3</button>
+      <button class="calc-btn" data-v="0" style="grid-column:span 2;">0</button>
+      <button class="calc-btn" data-v=".">.</button>
+    </div>`;
+    const win = createWindow('Calculator', 260, 320, html, 'calc');
+    let expr = '';
+    win.querySelectorAll('.calc-btn').forEach(b => {
+      b.onclick = () => {
+        const v = b.dataset.v;
+        if(v === 'C') { expr = ''; win.querySelector('#calc-d').textContent = '0'; }
+        else if(v === '=') { try { win.querySelector('#calc-d').textContent = eval(expr); expr = win.querySelector('#calc-d').textContent; } catch(e) { win.querySelector('#calc-d').textContent = 'Error'; expr=''; } }
+        else { expr += v; win.querySelector('#calc-d').textContent = expr; }
+      };
+    });
+  }
 
-            windowCount++;
-            const winId = `win-${windowCount}`;
-            const win = document.createElement('div');
-            win.className = 'window';
-            win.id = winId;
-            win.style.zIndex = ++zIndexCounter;
-            win.style.left = (50 + (windowCount * 20) % 300) + 'px';
-            win.style.top = (50 + (windowCount * 20) % 200) + 'px';
-            win.style.width = '400px';
-            win.style.height = '300px';
+  function openTerminal() {
+    const html = `<div class="term-out" id="t-out">WebOS Terminal v1.0\nType 'help' for commands.\n</div>
+    <div class="term-input-line"><span>></span><input class="term-input" id="t-in" autofocus></div>`;
+    const win = createWindow('Terminal', 500, 350, html, 'terminal');
+    const out = win.querySelector('#t-out');
+    const inp = win.querySelector('#t-in');
+    inp.onkeydown = e => {
+      if(e.key === 'Enter') {
+        const cmd = inp.value.trim();
+        out.textContent += `> ${cmd}\n`;
+        if(!cmd) {}
+        else if(cmd === 'help') out.textContent += "Commands: help, date, echo [text], clear, ls\n";
+        else if(cmd === 'date') out.textContent += new Date().toString() + '\n';
+        else if(cmd === 'clear') out.textContent = '';
+        else if(cmd === 'ls') out.textContent += "My Computer  Recycle Bin  Notepad  Calculator  Browser  Terminal  Settings  Pictures\n";
+        else if(cmd.startsWith('echo ')) out.textContent += cmd.slice(5) + '\n';
+        else out.textContent += `Command not found: ${cmd}\n`;
+        inp.value = '';
+        out.scrollTop = out.scrollHeight;
+      }
+    };
+    win.onclick = () => inp.focus();
+  }
 
-            const content = getAppContent(appId);
-            
-            win.innerHTML = `
-                <div class="window-header" onmousedown="startDrag(event, '${winId}')">
-                    <div class="window-title">${titleOverride || app.name}</div>
-                    <div class="window-controls">
-                        <button class="win-btn btn-min" onclick="minimizeWindow('${winId}')"></button>
-                        <button class="win-btn btn-max" onclick="maximizeWindow('${winId}')"></button>
-                        <button class="win-btn btn-close" onclick="closeWindow('${winId}')"></button>
-                    </div>
-                </div>
-                <div class="window-content" id="${winId}-content">
-                    ${content}
-                </div>
-            `;
+  function openBrowser() {
+    const html = `<iframe src="https://www.wikipedia.org" class="browser-frame"></iframe>`;
+    createWindow('Browser', 600, 400, html, 'browser');
+  }
 
-            // Bring to front on click
-            win.onmousedown = () => {
-                win.style.zIndex = ++zIndexCounter;
-                highlightTaskbar(winId, true);
-            };
+  function openSettings() {
+    const html = `<div class="settings-panel">
+      <h3>WebOS Settings</h3>
+      <p>Version: 1.0.0</p>
+      <p>Theme: Dark</p>
+      <p>Storage: localStorage</p>
+      <button onclick="alert('Settings saved!')" style="padding:6px 12px;background:var(--accent);border:none;border-radius:4px;cursor:pointer;">Apply</button>
+    </div>`;
+    createWindow('Settings', 300, 200, html, 'settings');
+  }
 
-            // Add Resizer (simple bottom-right)
-            const resizer = document.createElement('div');
-            resizer.style.width = '15px';
-            resizer.style.height = '15px';
-            resizer.style.position = 'absolute';
-            resizer.style.bottom = '0';
-            resizer.style.right = '0';
-            resizer.style.cursor = 'se-resize';
-            resizer.onmousedown = (e) => startResize(e, win);
-            win.appendChild(resizer);
+  function openPictures() {
+    const html = `<div class="pics-grid">
+      <div>🏔️</div><div>🌊</div><div>🌲</div><div>🌸</div><div>🦊</div><div>🦋</div><div>🌅</div><div>🏙️</div>
+    </div>`;
+    createWindow('Pictures', 320, 240, html, 'pictures');
+  }
 
-            desktop.appendChild(win);
-            addTaskbarItem(winId, titleOverride || app.name);
-            highlightTaskbar(winId, true);
+  function openComputer() { alert('My Computer: C: (Web Storage) - 100% Free'); }
+  function openRecycle() { alert('Recycle Bin is empty.'); }
 
-            // App specific init
-            if (appId === 'terminal') initTerminal(winId);
-        }
+  // Icon clicks
+  document.querySelectorAll('.desktop-icon').forEach(ic => {
+    ic.onclick = () => {
+      const app = ic.dataset.app;
+      if(app === 'notepad') openNotepad();
+      else if(app === 'calc') openCalc();
+      else if(app === 'terminal') openTerminal();
+      else if(app === 'browser') openBrowser();
+      else if(app === 'settings') openSettings();
+      else if(app === 'pictures') openPictures();
+      else if(app === 'computer') openComputer();
+      else if(app === 'recycle') openRecycle();
+    };
+  });
 
-        function getAppContent(id) {
-            switch(id) {
-                case 'notepad':
-                    return `
-                        <div class="notepad-menu">
-                            <button class="menu-btn" onclick="notepadNew('${id}')">New</button>
-                            <button class="menu-btn" onclick="notepadSave('${id}')">Save</button>
-                        </div>
-                        <textarea class="notepad-area" id="np-${id}" placeholder="Type here..."></textarea>
-                    `;
-                case 'calc':
-                    return `
-                        <div class="calc-grid">
-                            <div class="calc-display" id="calc-disp-${id}">0</div>
-                            <button class="calc-btn" onclick="calcInput('${id}', 'C')">C</button>
-                            <button class="calc-btn" onclick="calcInput('${id}', '/')">/</button>
-                            <button class="calc-btn" onclick="calcInput('${id}', '*')">*</button>
-                            <button class="calc-btn" onclick="calcInput('${id}', '-')">-</button>
-                            <button class="calc-btn" onclick="calcInput('${id}', '7')">7</button>
-                            <button class="calc-btn" onclick="calcInput('${id}', '8')">8</button>
-                            <button class="calc-btn" onclick="calcInput('${id}', '9')">9</button>
-                            <button class="calc-btn" onclick="calcInput('${id}', '+')">+</button>
-                            <button class="calc-btn" onclick="calcInput('${id}', '4')">4</button>
-                            <button class="calc-btn" onclick="calcInput('${id}', '5')">5</button>
-                            <button class="calc-btn" onclick="calcInput('${id}', '6')">6</button>
-                            <button class="calc-btn op" onclick="calcInput('${id}', '=')" style="grid-row: span 3">=</button>
-                            <button class="calc-btn" onclick="calcInput('${id}', '1')">1</button>
-                            <button class="calc-btn" onclick="calcInput('${id}', '2')">2</button>
-                            <button class="calc-btn" onclick="calcInput('${id}', '3')">3</button>
-                            <button class="calc-btn" onclick="calcInput('${id}', '0')" style="grid-column: span 2">0</button>
-                            <button class="calc-btn" onclick="calcInput('${id}', '.')">.</button>
-                        </div>
-                    `;
-                case 'terminal':
-                    return `
-                        <div class="terminal-body" id="term-body-${id}" onclick="document.getElementById('term-in-${id}').focus()">
-                            <div class="term-line">WebOS Terminal v1.0</div>
-                            <div class="term-line">Type 'help' for commands.</div>
-                            <br>
-                            <div class="term-input-line">
-                                <span class="term-prompt">user@webos:~$</span>
-                                <input type="text" class="term-input" id="term-in-${id}" autocomplete="off">
-                            </div>
-                        </div>
-                    `;
-                case 'browser':
-                    return `
-                        <div class="browser-bar">
-                            <input type="text" class="browser-input" value="https://www.wikipedia.org" id="url-${id}">
-                            <button onclick="loadUrl('${id}')">Go</button>
-                        </div>
-                        <iframe src="https://www.wikipedia.org" class="browser-frame" id="frame-${id}"></iframe>
-                    `;
-                case 'settings':
-                    return `
-                        <h3>System Settings</h3>
-                        <div class="settings-row">
-                            <span>Wallpaper</span>
-                            <button onclick="changeWallpaper()">Change</button>
-                        </div>
-                        <div class="settings-row">
-                            <span>Dark Mode</span>
-                            <span>Enabled</span>
-                        </div>
-                    `;
-                default:
-                    return '<p>Application content not found.</p>';
-            }
-        }
+  // Start menu items
+  document.querySelectorAll('.sm-item[data-app]').forEach(it => {
+    it.onclick = () => {
+      const app = it.dataset.app;
+      if(app === 'notepad') openNotepad();
+      else if(app === 'calc') openCalc();
+      else if(app === 'terminal') openTerminal();
+      else if(app === 'browser') openBrowser();
+      else if(app === 'settings') openSettings();
+      else if(app === 'pictures') openPictures();
+      document.getElementById('start-menu').style.display = 'none';
+    };
+  });
 
-        // --- Window Actions ---
-        function closeWindow(id) {
-            const win = document.getElementById(id);
-            if (win) win.remove();
-            removeTaskbarItem(id);
-        }
+  // Start button
+  document.getElementById('start-btn').onclick = () => {
+    document.getElementById('start-menu').style.display = document.getElementById('start-menu').style.display === 'block' ? 'none' : 'block';
+  };
 
-        function minimizeWindow(id) {
-            const win = document.getElementById(id);
-            if (win) {
-                win.style.display = 'none';
-                highlightTaskbar(id, false);
-            }
-        }
+  // Shutdown
+  document.getElementById('shut-btn').onclick = () => {
+    document.body.innerHTML = '<div style="height:100vh;display:flex;align-items:center;justify-content:center;color:#555;font-size:20px;">It\'s now safe to close your tab.</div>';
+  };
 
-        function maximizeWindow(id) {
-            const win = document.getElementById(id);
-            if (win.style.width === '100%' && win.style.height === 'calc(100% - 40px)') {
-                // Restore
-                win.style.width = '400px';
-                win.style.height = '300px';
-                win.style.top = '50px';
-                win.style.left = '50px';
-            } else {
-                // Maximize
-                win.style.width = '100%';
-                win.style.height = 'calc(100% - 40px)';
-                win.style.top = '0';
-                win.style.left = '0';
-            }
-        }
+  // Context menu
+  const ctx = document.getElementById('ctx-menu');
+  document.getElementById('desktop').oncontextmenu = e => {
+    e.preventDefault();
+    ctx.style.display = 'block';
+    ctx.style.left = e.clientX + 'px';
+    ctx.style.top = e.clientY + 'px';
+  };
+  document.addEventListener('click', () => ctx.style.display = 'none');
+  document.getElementById('ctx-refresh').onclick = () => location.reload();
+  document.getElementById('ctx-settings').onclick = () => { openSettings(); ctx.style.display='none'; };
+  document.getElementById('ctx-terminal').onclick = () => { openTerminal(); ctx.style.display='none'; };
 
-        function toggleWindow(id) {
-            const win = document.getElementById(id);
-            if (win.style.display === 'none') {
-                win.style.display = 'flex';
-                win.style.zIndex = ++zIndexCounter;
-                highlightTaskbar(id, true);
-            } else {
-                // Check if it's the top window
-                if (win.style.zIndex == zIndexCounter) {
-                    minimizeWindow(id);
-                } else {
-                    win.style.zIndex = ++zIndexCounter;
-                    highlightTaskbar(id, true);
-                }
-            }
-        }
-
-        // --- Drag & Resize Logic ---
-        let isDragging = false;
-        let dragOffset = { x: 0, y: 0 };
-        let currentDragWin = null;
-
-        function startDrag(e, id) {
-            if (e.target.classList.contains('win-btn')) return; // Don't drag if clicking buttons
-            isDragging = true;
-            currentDragWin = document.getElementById(id);
-            dragOffset.x = e.clientX - currentDragWin.offsetLeft;
-            dragOffset.y = e.clientY - currentDragWin.offsetTop;
-            currentDragWin.style.zIndex = ++zIndexCounter;
-        }
-
-        document.addEventListener('mousemove', (e) => {
-            if (isDragging && currentDragWin) {
-                e.preventDefault();
-                currentDragWin.style.left = (e.clientX - dragOffset.x) + 'px';
-                currentDragWin.style.top = (e.clientY - dragOffset.y) + 'px';
-            } else if (isResizing && currentResizeWin) {
-                e.preventDefault();
-                currentResizeWin.style.width = (e.clientX - currentResizeWin.offsetLeft) + 'px';
-                currentResizeWin.style.height = (e.clientY - currentResizeWin.offsetTop) + 'px';
-            }
-        });
-
-        document.addEventListener('mouseup', () => {
-            isDragging = false;
-            currentDragWin = null;
-            isResizing = false;
-            currentResizeWin = null;
-        });
-
-        let isResizing = false;
-        let currentResizeWin = null;
-
-        function startResize(e, win) {
-            isResizing = true;
-            currentResizeWin = win;
-            e.stopPropagation(); // Prevent drag
-        }
-
-        // --- Taskbar Logic ---
-        function addTaskbarItem(id, name) {
-            const item = document.createElement('div');
-            item.className = 'taskbar-item';
-            item.id = `tb-${id}`;
-            item.innerText = name;
-            item.onclick = () => toggleWindow(id);
-            taskbarApps.appendChild(item);
-        }
-
-        function removeTaskbarItem(id) {
-            const item = document.getElementById(`tb-${id}`);
-            if (item) item.remove();
-        }
-
-        function highlightTaskbar(id, active) {
-            const item = document.getElementById(`tb-${id}`);
-            if (item) {
-                if (active) item.classList.add('active');
-                else item.classList.remove('active');
-            }
-        }
-
-        // --- Start Menu Logic ---
-        document.getElementById('start-btn').onclick = () => {
-            startMenu.style.display = startMenu.style.display === 'flex' ? 'none' : 'flex';
-        };
-
-        document.addEventListener('click', (e) => {
-            if (!startMenu.contains(e.target) && e.target.id !== 'start-btn') {
-                startMenu.style.display = 'none';
-            }
-            if (!contextMenu.contains(e.target)) {
-                contextMenu.style.display = 'none';
-            }
-        });
-
-        // --- Context Menu ---
-        desktop.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            contextMenu.style.display = 'flex';
-            contextMenu.style.left = e.clientX + 'px';
-            contextMenu.style.top = e.clientY + 'px';
-        });
-
-        // --- App Logic: Notepad ---
-        function notepadNew(id) {
-            document.getElementById(`np-${id}`).value = '';
-        }
-        function notepadSave(id) {
-            const content = document.getElementById(`np-${id}`).value;
-            localStorage.setItem('notepad_content', content);
-            alert('Saved to LocalStorage!');
-        }
-        // Load notepad on init if exists
-        window.addEventListener('load', () => {
-            const saved = localStorage.getItem('notepad_content');
-            if(saved) console.log("Notepad data ready");
-        });
-
-        // --- App Logic: Calculator ---
-        let calcExpr = '';
-        function calcInput(id, val) {
-            const disp = document.getElementById(`calc-disp-${id}`);
-            if (val === 'C') {
-                calcExpr = '';
-                disp.innerText = '0';
-            } else if (val === '=') {
-                try {
-                    // eslint-disable-next-line no-eval
-                    calcExpr = eval(calcExpr).toString();
-                    disp.innerText = calcExpr;
-                } catch {
-                    disp.innerText = 'Error';
-                    calcExpr = '';
-                }
-            } else {
-                if (disp.innerText === '0' && val !== '.') calcExpr = val;
-                else calcExpr += val;
-                disp.innerText = calcExpr;
-            }
-        }
-
-        // --- App Logic: Terminal ---
-        function initTerminal(id) {
-            const input = document.getElementById(`term-in-${id}`);
-            input.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    const cmd = input.value.trim();
-                    const body = document.getElementById(`term-body-${id}`);
-                    
-                    // Add old line
-                    const line = document.createElement('div');
-                    line.className = 'term-line';
-                    line.innerHTML = `<span class="term-prompt">user@webos:~$</span> ${cmd}`;
-                    body.insertBefore(line, body.lastElementChild);
-
-                    // Process Command
-                    let output = '';
-                    if (cmd === 'help') output = 'Available: help, date, clear, echo [msg], ls';
-                    else if (cmd === 'date') output = new Date().toString();
-                    else if (cmd === 'clear') {
-                        body.innerHTML = ''; // Clear
-                        // Re-add input line
-                        const inputLine = document.createElement('div');
-                        inputLine.className = 'term-input-line';
-                        inputLine.innerHTML = `<span class="term-prompt">user@webos:~$</span><input type="text" class="term-input" id="term-in-${id}" autocomplete="off">`;
-                        body.appendChild(inputLine);
-                        document.getElementById(`term-in-${id}`).focus();
-                        return;
-                    }
-                    else if (cmd.startsWith('echo ')) output = cmd.substring(5);
-                    else if (cmd === 'ls') output = 'bin  etc  home  var  usr';
-                    else if (cmd !== '') output = `Command not found: ${cmd}`;
-
-                    if (output) {
-                        const outLine = document.createElement('div');
-                        outLine.className = 'term-line';
-                        outLine.innerText = output;
-                        outLine.style.color = '#ccc';
-                        body.insertBefore(outLine, body.lastElementChild);
-                    }
-
-                    input.value = '';
-                    body.scrollTop = body.scrollHeight;
-                }
-            });
-        }
-
-        // --- App Logic: Browser ---
-        function loadUrl(id) {
-            const url = document.getElementById(`url-${id}`).value;
-            const frame = document.getElementById(`frame-${id}`);
-            if(url) frame.src = url;
-        }
-
-        // --- System Functions ---
-        function shutDown() {
-            document.body.innerHTML = '<div style="width:100%;height:100%;background:black;color:white;display:flex;justify-content:center;align-items:center;font-family:sans-serif;">Shutting down...</div>';
-            setTimeout(() => {
-                document.body.innerHTML = '<div style="width:100%;height:100%;background:black;"></div>';
-            }, 2000);
-        }
-
-        function changeWallpaper() {
-            const colors = ['#1e1e2e', '#2e1e1e', '#1e2e1e', '#1e2e2e'];
-            const random = colors[Math.floor(Math.random() * colors.length)];
-            document.getElementById('desktop').style.background = random;
-        }
-
-        function toggleTheme() {
-            // Simple inversion for demo
-            const root = document.documentElement;
-            const current = getComputedStyle(root).getPropertyValue('--bg-color');
-            if (current === '#1e1e2e') {
-                root.style.setProperty('--bg-color', '#2e2e3e');
-                root.style.setProperty('--window-bg', '#363646');
-            } else {
-                root.style.setProperty('--bg-color', '#1e1e2e');
-                root.style.setProperty('--window-bg', '#262636');
-            }
-        }
-    </script>
+})();
+</script>
 </body>
 </html>

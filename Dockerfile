@@ -1,8 +1,6 @@
 FROM nginx:alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY index.html /usr/share/nginx/html/
-COPY methodology.html /usr/share/nginx/html/
-COPY cli.html /usr/share/nginx/html/
+COPY index.html /usr/share/nginx/html/index.html
 COPY kanban/ /usr/share/nginx/html/kanban/
 COPY dashboard/ /usr/share/nginx/html/dashboard/
 COPY chess/ /usr/share/nginx/html/chess/

@@ -3,50 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dark Chess</title>
+    <title>Dark Theme Chess</title>
     <style>
         :root {
             --bg-color: #1e1e1e;
-            --board-dark: #769656;
-            --board-light: #eeeed2;
+            --panel-color: #252526;
+            --text-color: #cccccc;
+            --accent-color: #007acc;
+            --board-light: #b0b0b0;
+            --board-dark: #606060;
             --highlight: rgba(255, 255, 0, 0.5);
-            --valid-move: rgba(0, 0, 0, 0.2);
-            --check-color: #ff4d4d;
-            --text-color: #e0e0e0;
-            --panel-bg: #2d2d2d;
-            --btn-bg: #4caf50;
-            --btn-hover: #45a049;
+            --valid-move: rgba(0, 255, 0, 0.3);
+            --check-color: #ff4444;
         }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
-            margin: 0;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
+            justify-content: center;
             min-height: 100vh;
+            margin: 0;
+            user-select: none;
         }
 
-        .container {
+        .game-container {
             display: flex;
             gap: 20px;
-            padding: 20px;
-            background: #121212;
-            border-radius: 8px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            max-width: 1200px;
-            width: 100%;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
         /* Board Styling */
-        .board {
+        #chessboard {
             display: grid;
             grid-template-columns: repeat(8, 60px);
             grid-template-rows: repeat(8, 60px);
-            border: 5px solid #444;
-            user-select: none;
+            border: 5px solid #333;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
         }
 
         .square {
@@ -61,92 +59,83 @@
         }
 
         .square.light { background-color: var(--board-light); color: black; }
-        .square.dark { background-color: var(--board-dark); color: black; }
+        .square.dark { background-color: var(--board-dark); color: white; }
 
-        /* Pieces */
-        .piece {
-            cursor: pointer;
-            z-index: 2;
-        }
-        
-        /* Piece colors specifically */
-        .piece.white { color: #fff; text-shadow: 0 0 2px #000; }
-        .piece.black { color: #000; text-shadow: 0 0 1px #fff; }
+        /* Piece Colors override */
+        .piece-white { color: #fff; text-shadow: 0 0 2px #000; }
+        .piece-black { color: #000; text-shadow: 0 0 1px #fff; }
 
         /* Highlights */
         .selected { background-color: var(--highlight) !important; }
-        .check-indicator { background-color: var(--check-color) !important; }
-        
         .valid-move::after {
             content: '';
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            background-color: rgba(0, 0, 0, 0.3);
+            width: 15px;
+            height: 15px;
+            background-color: rgba(0, 255, 0, 0.5);
             border-radius: 50%;
-            z-index: 1;
         }
-        
-        .valid-capture::after {
-            content: '';
-            position: absolute;
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(0, 0, 0, 0.3);
-            border-radius: 50%;
-            z-index: 1;
-        }
+        .valid-capture { background-color: rgba(255, 0, 0, 0.4) !important; }
+        .in-check { background-color: var(--check-color) !important; }
 
-        /* Sidebar */
+        /* Sidebar Styling */
         .sidebar {
-            width: 300px;
+            width: 250px;
+            background-color: var(--panel-color);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             display: flex;
             flex-direction: column;
             gap: 15px;
         }
 
-        .panel {
-            background-color: var(--panel-bg);
-            padding: 15px;
-            border-radius: 5px;
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-        }
+        h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: var(--accent-color); }
 
-        h2, h3 { margin-top: 0; text-align: center; }
-
-        .turn-indicator {
-            text-align: center;
-            font-size: 1.2em;
-            font-weight: bold;
+        .status-box {
             padding: 10px;
             background: #333;
             border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .turn-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .turn-dot {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
             border: 1px solid #555;
         }
-        
-        .turn-indicator.white-turn { border-left: 5px solid #fff; }
-        .turn-indicator.black-turn { border-left: 5px solid #000; }
+        .turn-dot.white { background-color: #fff; }
+        .turn-dot.black { background-color: #000; }
 
         .captured-area {
-            min-height: 50px;
+            min-height: 40px;
+            background: #333;
+            border-radius: 4px;
+            padding: 5px;
             display: flex;
             flex-wrap: wrap;
-            gap: 5px;
-            font-size: 24px;
+            font-size: 20px;
         }
 
         .history-log {
+            height: 200px;
             overflow-y: auto;
-            max-height: 300px;
+            background: #1e1e1e;
+            padding: 10px;
+            border: 1px solid #444;
             font-family: monospace;
-            font-size: 14px;
-            border-top: 1px solid #444;
-            margin-top: 10px;
-            padding-top: 10px;
+            font-size: 0.9rem;
         }
-
+        
         .history-row {
             display: flex;
             justify-content: space-between;
@@ -155,432 +144,414 @@
         }
 
         button {
-            background-color: var(--btn-bg);
+            background-color: var(--accent-color);
             color: white;
             border: none;
             padding: 10px;
-            font-size: 16px;
-            cursor: pointer;
             border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
             transition: background 0.2s;
         }
+        button:hover { background-color: #005fa3; }
 
-        button:hover { background-color: var(--btn-hover); }
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1e1e1e; }
+        ::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
 
-        /* Responsive */
-        @media (max-width: 900px) {
-            .container { flex-direction: column; align-items: center; }
-            .sidebar { width: 100%; max-width: 480px; }
-            .board { grid-template-columns: repeat(8, 11vw); grid-template-rows: repeat(8, 11vw); }
-            .square { width: 11vw; height: 11vw; font-size: 8vw; }
-        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="board" id="chessboard">
-        <!-- Board generated by JS -->
-    </div>
+<div class="game-container">
+    <div id="chessboard"></div>
 
     <div class="sidebar">
-        <div class="turn-indicator white-turn" id="turnIndicator">White's Turn</div>
-        <button onclick="resetGame()">New Game</button>
+        <div class="status-box" id="gameStatus">White's Turn</div>
         
-        <div class="panel">
-            <h3>Captured</h3>
-            <div class="captured-area" id="capturedWhite"></div>
-            <div class="captured-area" id="capturedBlack"></div>
+        <div>
+            <h2>Captured (White)</h2>
+            <div id="capturedWhite" class="captured-area"></div>
+        </div>
+        <div>
+            <h2>Captured (Black)</h2>
+            <div id="capturedBlack" class="captured-area"></div>
         </div>
 
-        <div class="panel">
-            <h3>History</h3>
-            <div class="history-log" id="moveHistory"></div>
+        <div>
+            <h2>Move History</h2>
+            <div id="moveHistory" class="history-log"></div>
         </div>
+
+        <button onclick="initGame()">New Game</button>
     </div>
 </div>
 
 <script>
-    const boardElement = document.getElementById('chessboard');
-    const turnIndicator = document.getElementById('turnIndicator');
-    const capturedWhiteEl = document.getElementById('capturedWhite');
-    const capturedBlackEl = document.getElementById('capturedBlack');
-    const historyEl = document.getElementById('moveHistory');
-
-    // Game State
-    let board = [];
-    let turn = 'white';
-    let selectedSquare = null;
-    let validMoves = [];
-    let capturedPieces = { white: [], black: [] };
-    let moveHistoryList = [];
-    let gameOver = false;
-
-    // Unicode Pieces
+    // --- Game State & Constants ---
+    const BOARD_SIZE = 8;
     const PIECES = {
         w: { k: '♔', q: '♕', r: '♖', b: '♗', n: '♘', p: '♙' },
         b: { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' }
     };
+    
+    let board = [];
+    let turn = 'w'; // 'w' or 'b'
+    let selectedSquare = null; // {r, c}
+    let validMoves = []; // Array of {r, c}
+    let capturedW = [];
+    let capturedB = [];
+    let moveHistory = [];
+    let kingPos = { w: {r:7, c:4}, b: {r:0, c:4} };
+    let gameOver = false;
 
-    const INITIAL_BOARD = [
-        ['br', 'bn', 'bb', 'bq', 'bk', 'bb', 'bn', 'br'],
-        ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp'],
-        ['', '', '', '', '', '', '', ''],
-        ['', '', '', '', '', '', '', ''],
-        ['', '', '', '', '', '', '', ''],
-        ['', '', '', '', '', '', '', ''],
-        ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
-        ['wr', 'wn', 'wb', 'wq', 'wk', 'wb', 'wn', 'wr']
-    ];
-
+    // --- Initialization ---
     function initGame() {
-        // Deep copy initial board
-        board = JSON.parse(JSON.stringify(INITIAL_BOARD));
-        turn = 'white';
+        // Standard starting position
+        // r=0: Black, r=7: White
+        const initialSetup = [
+            ['br', 'bn', 'bb', 'bq', 'bk', 'bb', 'bn', 'br'],
+            ['bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp', 'bp'],
+            [null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null],
+            ['wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp', 'wp'],
+            ['wr', 'wn', 'wb', 'wq', 'wk', 'wb', 'wn', 'wr']
+        ];
+
+        board = JSON.parse(JSON.stringify(initialSetup)); // Deep copy
+        turn = 'w';
         selectedSquare = null;
         validMoves = [];
-        capturedPieces = { white: [], black: [] };
-        moveHistoryList = [];
+        capturedW = [];
+        capturedB = [];
+        moveHistory = [];
+        kingPos = { w: {r:7, c:4}, b: {r:0, c:4} };
         gameOver = false;
-        
+
         updateUI();
     }
 
-    function resetGame() {
-        initGame();
-    }
+    // --- Core Logic ---
 
     function getPiece(r, c) {
-        if (r < 0 || r > 7 || c < 0 || c > 7) return null;
+        if (r < 0 || r >= 8 || c < 0 || c >= 8) return undefined;
         return board[r][c];
     }
 
-    function getPieceColor(code) {
-        if (!code) return null;
-        return code.charAt(0) === 'w' ? 'white' : 'black';
+    function getPieceColor(piece) {
+        if (!piece) return null;
+        return piece.charAt(0);
     }
 
-    function getPieceType(code) {
-        if (!code) return null;
-        return code.charAt(1);
+    function getPieceType(piece) {
+        if (!piece) return null;
+        return piece.charAt(1);
     }
 
-    function renderBoard() {
-        boardElement.innerHTML = '';
-        let kingInCheck = isKingInCheck(turn);
+    // Generate all pseudo-legal moves for a piece at (r, c)
+    function getPseudoMoves(r, c) {
+        const piece = board[r][c];
+        if (!piece) return [];
+        
+        const color = piece[0];
+        const type = piece[1];
+        const moves = [];
+
+        const directions = {
+            'r': [[0,1], [0,-1], [1,0], [-1,0]],
+            'b': [[1,1], [1,-1], [-1,1], [-1,-1]],
+            'n': [[2,1], [2,-1], [-2,1], [-2,-1], [1,2], [1,-2], [-1,2], [-1,-2]],
+            'q': [[0,1], [0,-1], [1,0], [-1,0], [1,1], [1,-1], [-1,1], [-1,-1]],
+            'k': [[0,1], [0,-1], [1,0], [-1,0], [1,1], [1,-1], [-1,1], [-1,-1]]
+        };
+
+        // Sliding pieces (Rook, Bishop, Queen)
+        if (['r', 'b', 'q'].includes(type)) {
+            for (let d of directions[type]) {
+                for (let i = 1; i < 8; i++) {
+                    const nr = r + d[0] * i;
+                    const nc = c + d[1] * i;
+                    if (nr < 0 || nr >= 8 || nc < 0 || nc >= 8) break;
+                    
+                    const target = board[nr][nc];
+                    if (target === null) {
+                        moves.push({r: nr, c: nc});
+                    } else {
+                        if (target[0] !== color) moves.push({r: nr, c: nc}); // Capture
+                        break; // Blocked
+                    }
+                }
+            }
+        }
+
+        // Knight & King (Single step)
+        if (['n', 'k'].includes(type)) {
+            for (let d of directions[type]) {
+                const nr = r + d[0];
+                const nc = c + d[1];
+                if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+                    const target = board[nr][nc];
+                    if (target === null || target[0] !== color) {
+                        moves.push({r: nr, c: nc});
+                    }
+                }
+            }
+        }
+
+        // Pawn
+        if (type === 'p') {
+            const dir = color === 'w' ? -1 : 1;
+            const startRow = color === 'w' ? 6 : 1;
+            
+            // Move forward 1
+            if (board[r + dir] && board[r + dir][c] === null) {
+                moves.push({r: r + dir, c: c});
+                // Move forward 2
+                if (r === startRow && board[r + dir * 2][c] === null) {
+                    moves.push({r: r + dir * 2, c: c});
+                }
+            }
+            // Capture
+            [[dir, 1], [dir, -1]].forEach(d => {
+                const nr = r + d[0];
+                const nc = c + d[1];
+                if (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
+                    const target = board[nr][nc];
+                    if (target && target[0] !== color) {
+                        moves.push({r: nr, c: nc});
+                    }
+                }
+            });
+        }
+
+        return moves;
+    }
+
+    // Filter moves that leave King in check
+    function getValidMoves(r, c) {
+        const pseudoMoves = getPseudoMoves(r, c);
+        const piece = board[r][c];
+        const color = piece[0];
+        const realMoves = [];
+
+        pseudoMoves.forEach(m => {
+            // Simulate move
+            const originalTarget = board[m.r][m.c];
+            board[m.r][m.c] = piece;
+            board[r][c] = null;
+            
+            // Update temp king pos if king moved
+            const oldKingPos = {...kingPos[color]};
+            if (piece[1] === 'k') kingPos[color] = {r: m.r, c: m.c};
+
+            if (!isKingInCheck(color)) {
+                realMoves.push(m);
+            }
+
+            // Undo move
+            board[r][c] = piece;
+            board[m.r][m.c] = originalTarget;
+            kingPos[color] = oldKingPos;
+        });
+
+        return realMoves;
+    }
+
+    function isKingInCheck(color) {
+        const kingR = kingPos[color].r;
+        const kingC = kingPos[color].c;
+        const enemyColor = color === 'w' ? 'b' : 'w';
+
+        // Check all enemy pieces to see if they attack the king
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                const p = board[r][c];
+                if (p && p[0] === enemyColor) {
+                    // Use getPseudoMoves because we just want to know if they *can* hit the square
+                    // Note: For a full engine, we'd optimize this, but for this UI demo, iterating is fine.
+                    // We need to be careful not to recurse infinitely.
+                    const attacks = getPseudoMoves(r, c);
+                    if (attacks.some(m => m.r === kingR && m.c === kingC)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    function hasLegalMoves(color) {
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                if (board[r][c] && board[r][c][0] === color) {
+                    if (getValidMoves(r, c).length > 0) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // --- Interaction ---
+
+    function handleSquareClick(r, c) {
+        if (gameOver) return;
+
+        const clickedPiece = board[r][c];
+        const isSameColor = clickedPiece && clickedPiece[0] === turn;
+
+        // 1. Select a piece
+        if (isSameColor) {
+            selectedSquare = {r, c};
+            validMoves = getValidMoves(r, c);
+            updateUI();
+            return;
+        }
+
+        // 2. Move to a valid square
+        if (selectedSquare) {
+            const isMove = validMoves.some(m => m.r === r && m.c === c);
+            if (isMove) {
+                executeMove(selectedSquare, {r, c});
+            } else {
+                // Deselect if clicking empty space or invalid enemy
+                selectedSquare = null;
+                validMoves = [];
+                updateUI();
+            }
+        }
+    }
+
+    function executeMove(from, to) {
+        const piece = board[from.r][from.c];
+        const target = board[to.r][to.c];
+        
+        // Handle Capture
+        if (target) {
+            if (target[0] === 'w') capturedW.push(target);
+            else capturedB.push(target);
+        }
+
+        // Move piece
+        board[to.r][to.c] = piece;
+        board[from.r][from.c] = null;
+
+        // Update King Position
+        if (piece[1] === 'k') {
+            kingPos[turn] = {r: to.r, c: to.c};
+        }
+
+        // Pawn Promotion (Simple: Auto-Queen)
+        if (piece[1] === 'p') {
+            if ((turn === 'w' && to.r === 0) || (turn === 'b' && to.r === 7)) {
+                board[to.r][to.c] = turn + 'q';
+            }
+        }
+
+        // Log History
+        const files = ['a','b','c','d','e','f','g','h'];
+        const ranks = ['8','7','6','5','4','3','2','1'];
+        const notation = `${piece[1].toUpperCase()}${files[from.c]}${ranks[from.r]} -> ${files[to.c]}${ranks[to.r]}`;
+        moveHistory.push(notation);
+
+        // Switch Turn
+        turn = turn === 'w' ? 'b' : 'w';
+        selectedSquare = null;
+        validMoves = [];
+
+        // Check Game Over (Checkmate/Stalemate)
+        const inCheck = isKingInCheck(turn);
+        const hasMoves = hasLegalMoves(turn);
+
+        if (!hasMoves) {
+            gameOver = true;
+            if (inCheck) {
+                document.getElementById('gameStatus').innerText = `Checkmate! ${turn === 'w' ? 'Black' : 'White'} wins.`;
+                document.getElementById('gameStatus').style.color = '#ff4444';
+            } else {
+                document.getElementById('gameStatus').innerText = "Stalemate! Draw.";
+                document.getElementById('gameStatus').style.color = '#ffff00';
+            }
+        } else {
+            document.getElementById('gameStatus').innerText = 
+                (turn === 'w' ? "White's" : "Black's") + " Turn" + (inCheck ? " (Check!)" : "");
+        }
+
+        updateUI();
+    }
+
+    // --- Rendering ---
+
+    function updateUI() {
+        const boardEl = document.getElementById('chessboard');
+        boardEl.innerHTML = '';
+
+        const inCheck = isKingInCheck(turn);
 
         for (let r = 0; r < 8; r++) {
             for (let c = 0; c < 8; c++) {
                 const square = document.createElement('div');
-                square.className = `square ${(r + c) % 2 === 0 ? 'light' : 'dark'}`;
-                square.dataset.r = r;
-                square.dataset.c = c;
-
-                const pieceCode = board[r][c];
+                const isDark = (r + c) % 2 === 1;
+                square.className = `square ${isDark ? 'dark' : 'light'}`;
                 
-                // Highlight selected
+                // Piece
+                const pieceCode = board[r][c];
+                if (pieceCode) {
+                    const color = pieceCode[0];
+                    const type = pieceCode[1];
+                    const span = document.createElement('span');
+                    span.textContent = PIECES[color][type];
+                    span.className = color === 'w' ? 'piece-white' : 'piece-black';
+                    square.appendChild(span);
+
+                    // Highlight King in Check
+                    if (type === 'k' && color === turn && inCheck) {
+                        square.classList.add('in-check');
+                    }
+                }
+
+                // Highlight Selection
                 if (selectedSquare && selectedSquare.r === r && selectedSquare.c === c) {
                     square.classList.add('selected');
                 }
 
-                // Highlight Check
-                if (kingInCheck && pieceCode && getPieceType(pieceCode) === 'k' && getPieceColor(pieceCode) === turn) {
-                    square.classList.add('check-indicator');
-                }
-
-                // Highlight valid moves
-                const move = validMoves.find(m => m.r === r && m.c === c);
-                if (move) {
-                    if (pieceCode) {
+                // Highlight Valid Moves
+                const validMove = validMoves.find(m => m.r === r && m.c === c);
+                if (validMove) {
+                    if (board[r][c]) {
                         square.classList.add('valid-capture');
                     } else {
                         square.classList.add('valid-move');
                     }
                 }
 
-                // Render Piece
-                if (pieceCode) {
-                    const color = getPieceColor(pieceCode);
-                    const type = getPieceType(pieceCode);
-                    const pieceSpan = document.createElement('span');
-                    pieceSpan.className = `piece ${color}`;
-                    pieceSpan.textContent = PIECES[color === 'white' ? 'w' : 'b'][type];
-                    square.appendChild(pieceSpan);
-                }
-
-                square.addEventListener('click', () => handleSquareClick(r, c));
-                boardElement.appendChild(square);
+                square.onclick = () => handleSquareClick(r, c);
+                boardEl.appendChild(square);
             }
         }
-    }
-
-    function handleSquareClick(r, c) {
-        if (gameOver) return;
-
-        const clickedPieceCode = board[r][c];
-        const clickedColor = getPieceColor(clickedPieceCode);
-
-        // If clicking a valid move for currently selected piece
-        const move = validMoves.find(m => m.r === r && m.c === c);
-
-        if (selectedSquare && move) {
-            executeMove(selectedSquare, {r, c});
-            return;
-        }
-
-        // If clicking own piece, select it
-        if (clickedColor === turn) {
-            selectedSquare = { r, c };
-            calculateValidMoves(r, c, board[r][c]);
-            renderBoard();
-            return;
-        }
-
-        // Deselect if clicking elsewhere
-        selectedSquare = null;
-        validMoves = [];
-        renderBoard();
-    }
-
-    function calculateValidMoves(r, c, pieceCode) {
-        validMoves = [];
-        const color = getPieceColor(pieceCode);
-        const type = getPieceType(pieceCode);
-
-        const directions = {
-            'p': [], // Handled separately
-            'n': [-2, -1, -1, -2, 1, -2, 2, -1, 2, 1, 1, 2],
-            'b': [-1, -1, -1, 1, 1, -1, 1, 1],
-            'r': [-1, 0, 1, 0, 0, -1, 0, 1],
-            'q': [-1, -1, -1, 1, 1, -1, 1, 1, -1, 0, 1, 0, 0, -1, 0, 1],
-            'k': [-1, -1, -1, 1, 1, -1, 1, 1, -1, 0, 1, 0, 0, -1, 0, 1]
-        };
-
-        // Helper to check if a square is safe (doesn't leave king in check)
-        const isSafe = (tr, tc) => {
-            // Temporarily move piece
-            const originalTarget = board[tr][tc];
-            board[tr][tc] = pieceCode;
-            board[r][c] = '';
-            
-            const inCheck = isKingInCheck(color);
-            
-            // Revert
-            board[r][c] = pieceCode;
-            board[tr][tc] = originalTarget;
-            
-            return !inCheck;
-        };
-
-        if (type === 'p') {
-            const dir = color === 'white' ? -1 : 1;
-            const startRow = color === 'white' ? 6 : 1;
-
-            // Move forward 1
-            if (!getPiece(r + dir, c)) {
-                if (isSafe(r + dir, c)) validMoves.push({r: r + dir, c: c});
-                // Move forward 2
-                if (r === startRow && !getPiece(r + dir * 2, c)) {
-                    if (isSafe(r + dir * 2, c)) validMoves.push({r: r + dir * 2, c: c});
-                }
-            }
-            // Captures
-            [[dir, -1], [dir, 1]].forEach(offset => {
-                const tr = r + offset[0];
-                const tc = c + offset[1];
-                const target = getPiece(tr, tc);
-                if (target && getPieceColor(target) !== color) {
-                    if (isSafe(tr, tc)) validMoves.push({r: tr, c: tc});
-                }
-            });
-        } else {
-            // Sliding & Stepping pieces
-            const moves = directions[type];
-            const isSliding = ['b', 'r', 'q'].includes(type);
-
-            for (let i = 0; i < moves.length; i += 2) {
-                let dr = moves[i];
-                let dc = moves[i+1];
-                let tr = r + dr;
-                let tc = c + dc;
-
-                while (tr >= 0 && tr < 8 && tc >= 0 && tc < 8) {
-                    const target = board[tr][tc];
-                    if (!target) {
-                        if (isSafe(tr, tc)) validMoves.push({r: tr, c: tc});
-                    } else {
-                        if (getPieceColor(target) !== color) {
-                            if (isSafe(tr, tc)) validMoves.push({r: tr, c: tc});
-                        }
-                        break; // Blocked
-                    }
-                    if (!isSliding) break; // Knight/King only step once
-                    tr += dr;
-                    tc += dc;
-                }
-            }
-        }
-    }
-
-    function executeMove(from, to) {
-        const pieceCode = board[from.r][from.c];
-        const targetCode = board[to.r][to.c];
-        
-        // Capture logic
-        if (targetCode) {
-            const capturedColor = getPieceColor(targetCode);
-            capturedPieces[capturedColor].push(targetCode);
-        }
-
-        // Move logic
-        board[to.r][to.c] = pieceCode;
-        board[from.r][from.c] = '';
-
-        // Pawn Promotion (Auto-Queen for simplicity)
-        if (getPieceType(pieceCode) === 'p') {
-            if ((turn === 'white' && to.r === 0) || (turn === 'black' && to.r === 7)) {
-                board[to.r][to.c] = turn === 'white' ? 'wq' : 'bq';
-            }
-        }
-
-        // Record History
-        const cols = ['a','b','c','d','e','f','g','h'];
-        const rows = ['8','7','6','5','4','3','2','1'];
-        const notation = `${getPieceType(pieceCode).toUpperCase()} ${cols[from.c]}${rows[from.r]}→${cols[to.c]}${rows[to.r]}`;
-        moveHistoryList.push(notation);
-
-        // Switch turn
-        turn = turn === 'white' ? 'black' : 'white';
-        
-        // Check for Game Over (Stalemate or Checkmate)
-        if (!hasValidMoves(turn)) {
-            gameOver = true;
-            if (isKingInCheck(turn)) {
-                alert(`Checkmate! ${turn === 'white' ? 'Black' : 'White'} wins!`);
-            } else {
-                alert("Stalemate! It's a draw.");
-            }
-        }
-
-        selectedSquare = null;
-        validMoves = [];
-        updateUI();
-    }
-
-    function hasValidMoves(playerColor) {
-        for (let r = 0; r < 8; r++) {
-            for (let c = 0; c < 8; c++) {
-                const piece = board[r][c];
-                if (piece && getPieceColor(piece) === playerColor) {
-                    // Calculate moves but ignore the 'isSafe' check for infinite recursion
-                    // We just need to know if the piece can physically move anywhere
-                    // But for Checkmate detection, we specifically need to know if any move LEGALIZES the board
-                    // So we reuse calculateValidMoves which includes safety checks
-                    
-                    // Temporarily hijack logic to avoid rendering
-                    const oldValid = validMoves;
-                    calculateValidMoves(r, c, piece);
-                    if (validMoves.length > 0) {
-                        validMoves = oldValid;
-                        return true;
-                    }
-                    validMoves = oldValid;
-                }
-            }
-        }
-        return false;
-    }
-
-    function isKingInCheck(color) {
-        // Find King
-        let kR, kC;
-        for (let r = 0; r < 8; r++) {
-            for (let c = 0; c < 8; c++) {
-                const p = board[r][c];
-                if (p && getPieceColor(p) === color && getPieceType(p) === 'k') {
-                    kR = r;
-                    kC = c;
-                    break;
-                }
-            }
-        }
-        if (kR === undefined) return true; // Should not happen unless king captured (bug)
-
-        const enemyColor = color === 'white' ? 'black' : 'white';
-
-        // Check all enemy pieces to see if they attack (kR, kC)
-        for (let r = 0; r < 8; r++) {
-            for (let c = 0; c < 8; c++) {
-                const p = board[r][c];
-                if (p && getPieceColor(p) === enemyColor) {
-                    // Simplified attack check (without recursion for safety)
-                    if (canPieceAttack(r, c, p, kR, kC)) return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    function canPieceAttack(r, c, pieceCode, targetR, targetC) {
-        const type = getPieceType(pieceCode);
-        const dr = targetR - r;
-        const dc = targetC - c;
-        const absDr = Math.abs(dr);
-        const absDc = Math.abs(dc);
-
-        if (type === 'p') {
-            const dir = getPieceColor(pieceCode) === 'white' ? -1 : 1;
-            return (dr === dir && absDc === 1);
-        }
-        if (type === 'n') {
-            return (absDr === 2 && absDc === 1) || (absDr === 1 && absDc === 2);
-        }
-        if (type === 'k') {
-            return absDr <= 1 && absDc <= 1;
-        }
-        
-        // Sliding pieces
-        const isDiagonal = absDr === absDc;
-        const isStraight = (r === targetR) || (c === targetC);
-
-        if (type === 'b') { if (!isDiagonal) return false; }
-        else if (type === 'r') { if (!isStraight) return false; }
-        else if (type === 'q') { if (!isDiagonal && !isStraight) return false; }
-
-        // Check path obstruction
-        const stepR = dr === 0 ? 0 : dr / absDr;
-        const stepC = dc === 0 ? 0 : dc / absDc;
-        
-        let currR = r + stepR;
-        let currC = c + stepC;
-        
-        while (currR !== targetR || currC !== targetC) {
-            if (board[currR][currC] !== '') return false;
-            currR += stepR;
-            currC += stepC;
-        }
-        return true;
-    }
-
-    function updateUI() {
-        renderBoard();
-        
-        // Update Turn Indicator
-        turnIndicator.textContent = turn === 'white' ? "White's Turn" : "Black's Turn";
-        turnIndicator.className = `turn-indicator ${turn}-turn`;
 
         // Update Captured
-        capturedWhiteEl.innerHTML = capturedPieces.white.map(p => `<span class="piece white">${PIECES.w[getPieceType(p)]}</span>`).join('');
-        capturedBlackEl.innerHTML = capturedPieces.black.map(p => `<span class="piece black">${PIECES.b[getPieceType(p)]}</span>`).join('');
+        document.getElementById('capturedWhite').innerHTML = capturedW.map(p => 
+            `<span style="color:white">${PIECES['b'][p[1]]}</span>`
+        ).join('');
+        document.getElementById('capturedBlack').innerHTML = capturedB.map(p => 
+            `<span style="color:white">${PIECES['w'][p[1]]}</span>`
+        ).join('');
 
         // Update History
-        historyEl.innerHTML = moveHistoryList.map(m => `<div class="history-row">${m}</div>`).join('');
-        historyEl.scrollTop = historyEl.scrollHeight;
+        const histEl = document.getElementById('moveHistory');
+        histEl.innerHTML = moveHistory.map((m, i) => 
+            `<div class="history-row"><span>${Math.floor(i/2)+1}.</span> <span>${m}</span></div>`
+        ).join('');
+        histEl.scrollTop = histEl.scrollHeight;
     }
 
     // Start
     initGame();
 
 </script>
+
 </body>
 </html>

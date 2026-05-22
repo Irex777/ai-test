@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon City - Top Down GTA</title>
+    <title>Neon City GTA</title>
     <style>
         * {
             margin: 0;
@@ -12,64 +12,54 @@
         }
         
         body {
-            background: #0a0a0a;
-            color: #0ff;
-            font-family: 'Courier New', monospace;
+            background: #0a0a0f;
             overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        
-        #gameContainer {
-            position: relative;
-            border: 3px solid #0ff;
-            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+            font-family: 'Courier New', monospace;
+            color: #0ff;
         }
         
         #gameCanvas {
             display: block;
-            background: #111;
+            margin: 0 auto;
         }
         
-        #hud {
+        #ui {
             position: absolute;
             top: 10px;
             left: 10px;
-            color: #0ff;
-            font-size: 14px;
-            text-shadow: 0 0 10px #0ff;
+            pointer-events: none;
         }
         
-        #healthBar {
-            width: 150px;
-            height: 15px;
-            background: #333;
-            border: 2px solid #0ff;
-            margin-bottom: 5px;
+        .health-bar {
+            width: 200px;
+            height: 20px;
+            background: rgba(255, 0, 0, 0.3);
+            border: 2px solid #f00;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 10px;
         }
         
-        #healthFill {
+        .health-fill {
             height: 100%;
-            background: linear-gradient(90deg, #f00, #ff0);
+            background: linear-gradient(90deg, #f00, #ff6600);
             transition: width 0.3s;
         }
         
-        #wantedLevel {
+        .wanted-stars {
             font-size: 24px;
             color: #ff0;
             text-shadow: 0 0 10px #ff0;
-            margin: 5px 0;
+            margin-bottom: 10px;
         }
         
-        #score {
+        .money {
             font-size: 18px;
             color: #0f0;
             text-shadow: 0 0 10px #0f0;
         }
         
-        #money {
+        .score {
             font-size: 18px;
             color: #0ff;
             text-shadow: 0 0 10px #0ff;
@@ -81,8 +71,9 @@
             right: 10px;
             width: 150px;
             height: 150px;
+            background: rgba(0, 20, 40, 0.8);
             border: 2px solid #0ff;
-            background: rgba(0, 0, 0, 0.7);
+            border-radius: 5px;
         }
         
         #controls {
@@ -91,6 +82,9 @@
             left: 10px;
             font-size: 12px;
             color: #888;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
         }
         
         #gameOver {
@@ -99,68 +93,66 @@
             left: 50%;
             transform: translate(-50%, -50%);
             background: rgba(0, 0, 0, 0.9);
+            padding: 40px;
             border: 3px solid #f00;
-            padding: 30px;
+            border-radius: 10px;
             text-align: center;
             display: none;
         }
         
         #gameOver h1 {
             color: #f00;
-            font-size: 36px;
-            margin-bottom: 20px;
+            font-size: 48px;
             text-shadow: 0 0 20px #f00;
+            margin-bottom: 20px;
         }
         
         #gameOver p {
-            color: #fff;
+            font-size: 24px;
             margin: 10px 0;
         }
         
-        #restartBtn {
+        #gameOver button {
             background: #f00;
-            color: #fff;
+            color: white;
             border: none;
-            padding: 10px 30px;
+            padding: 15px 30px;
             font-size: 18px;
             cursor: pointer;
             margin-top: 20px;
-            font-family: 'Courier New', monospace;
+            border-radius: 5px;
+            pointer-events: auto;
         }
         
-        #restartBtn:hover {
-            background: #ff0;
-            color: #000;
-        }
-        
-        .star {
-            color: #ff0;
+        #gameOver button:hover {
+            background: #ff3333;
         }
     </style>
 </head>
 <body>
-    <div id="gameContainer">
-        <canvas id="gameCanvas" width="1000" height="700"></canvas>
-        
-        <div id="hud">
-            <div id="healthBar"><div id="healthFill"></div></div>
-            <div id="wantedLevel">★<span id="stars"></span></div>
-            <div id="score">Score: <span id="scoreValue">0</span></div>
-            <div id="money">Money: $<span id="moneyValue">0</span></div>
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="ui">
+        <div class="health-bar">
+            <div class="health-fill" id="healthFill"></div>
         </div>
-        
-        <canvas id="minimap"></canvas>
-        
-        <div id="controls">
-            WASD: Walk | Arrow Keys: Drive | E: Enter/Exit Car | Space: Brake
-        </div>
-        
-        <div id="gameOver">
-            <h1>WASTED</h1>
-            <p>Final Score: <span id="finalScore">0</span></p>
-            <p>Money Earned: $<span id="finalMoney">0</span></p>
-            <button id="restartBtn">RESTART</button>
-        </div>
+        <div class="wanted-stars" id="wantedStars">☆☆☆☆☆</div>
+        <div class="score" id="score">Score: 0</div>
+        <div class="money" id="money">$0</div>
+    </div>
+    
+    <canvas id="minimap"></canvas>
+    
+    <div id="controls">
+        WASD - Move | E - Enter/Exit Vehicle<br>
+        Arrows - Drive | Space - Brake
+    </div>
+    
+    <div id="gameOver">
+        <h1>WASTED</h1>
+        <p id="finalScore">Score: 0</p>
+        <p id="finalMoney">Money: $0</p>
+        <button onclick="restartGame()">Try Again</button>
     </div>
 
     <script>
@@ -169,589 +161,571 @@
         const minimapCanvas = document.getElementById('minimap');
         const minimapCtx = minimapCanvas.getContext('2d');
         
-        // Game state
-        let gameState = {
-            running: true,
-            score: 0,
-            money: 0,
-            wantedLevel: 0,
-            wantedTimer: 0
-        };
-        
-        // City layout
-        const TILE_SIZE = 80;
-        const MAP_WIDTH = 25;
-        const MAP_HEIGHT = 18;
-        
-        // Tile types
-        const TILES = {
-            ROAD: 0,
-            SIDEWALK: 1,
-            BUILDING: 2,
-            PARKING: 3
-        };
-        
-        // Generate city map
-        let map = [];
-        function generateCity() {
-            map = [];
-            for (let y = 0; y < MAP_HEIGHT; y++) {
-                let row = [];
-                for (let x = 0; x < MAP_WIDTH; x++) {
-                    // Create grid of roads with buildings between
-                    if (x % 4 === 0 || y % 4 === 0) {
-                        row.push(TILES.ROAD);
-                    } else if ((x % 4 === 1 || x % 4 === 3) && (y % 4 === 1 || y % 4 === 3)) {
-                        row.push(TILES.SIDEWALK);
-                    } else {
-                        row.push(TILES.BUILDING);
-                    }
-                }
-                map.push(row);
-            }
-            
-            // Add some parking spaces
-            for (let i = 0; i < 15; i++) {
-                let px = Math.floor(Math.random() * (MAP_WIDTH - 2)) + 1;
-                let py = Math.floor(Math.random() * (MAP_HEIGHT - 2)) + 1;
-                if (map[py][px] === TILES.BUILDING) {
-                    map[py][px] = TILES.PARKING;
-                }
-            }
+        // Set canvas size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
         }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        minimapCanvas.width = 150;
+        minimapCanvas.height = 150;
+        
+        // Game state
+        let gameOver = false;
+        let score = 0;
+        let money = 0;
+        let wantedLevel = 0;
+        let wantedTimer = 0;
+        
+        // World size
+        const worldWidth = 2000;
+        const worldHeight = 2000;
+        
+        // Camera
+        const camera = {
+            x: 0,
+            y: 0
+        };
         
         // Player
-        let player = {
-            x: 400,
-            y: 300,
+        const player = {
+            x: 1000,
+            y: 1000,
             width: 20,
             height: 20,
             speed: 3,
             health: 100,
             maxHealth: 100,
             angle: 0,
-            inVehicle: null,
-            isPlayer: true
+            inVehicle: null
         };
         
-        // Vehicles
+        // Input
+        const keys = {};
+        
+        // Game objects
+        let buildings = [];
+        let roads = [];
         let vehicles = [];
-        function spawnVehicles() {
+        let npcs = [];
+        let policeCars = [];
+        let moneyDrops = [];
+        
+        // Generate city
+        function generateCity() {
+            buildings = [];
+            roads = [];
             vehicles = [];
-            for (let i = 0; i < 20; i++) {
-                let x, y;
-                do {
-                    x = Math.floor(Math.random() * MAP_WIDTH);
-                    y = Math.floor(Math.random() * MAP_HEIGHT);
-                } while (map[y][x] !== TILES.ROAD && map[y][x] !== TILES.PARKING);
-                
+            npcs = [];
+            
+            // Create grid-based city
+            const blockSize = 200;
+            const roadWidth = 40;
+            
+            for (let x = 0; x < worldWidth; x += blockSize) {
+                for (let y = 0; y < worldHeight; y += blockSize) {
+                    // Random building placement
+                    if (Math.random() > 0.3) {
+                        const buildingWidth = 80 + Math.random() * 60;
+                        const buildingHeight = 80 + Math.random() * 60;
+                        const offsetX = roadWidth + Math.random() * (blockSize - roadWidth * 2 - buildingWidth);
+                        const offsetY = roadWidth + Math.random() * (blockSize - roadWidth * 2 - buildingHeight);
+                        
+                        buildings.push({
+                            x: x + offsetX,
+                            y: y + offsetY,
+                            width: buildingWidth,
+                            height: buildingHeight,
+                            color: `hsl(${Math.random() * 60 + 200}, 50%, ${Math.random() * 20 + 10}%)`,
+                            neonColor: `hsl(${Math.random() * 360}, 100%, 50%)`
+                        });
+                    }
+                    
+                    // Add roads
+                    roads.push({
+                        x: x,
+                        y: y + blockSize - roadWidth,
+                        width: blockSize,
+                        height: roadWidth,
+                        horizontal: true
+                    });
+                    
+                    roads.push({
+                        x: x + blockSize - roadWidth,
+                        y: y,
+                        width: roadWidth,
+                        height: blockSize,
+                        horizontal: false
+                    });
+                }
+            }
+            
+            // Spawn vehicles
+            for (let i = 0; i < 30; i++) {
+                const road = roads[Math.floor(Math.random() * roads.length)];
                 vehicles.push({
-                    x: x * TILE_SIZE + TILE_SIZE / 2,
-                    y: y * TILE_SIZE + TILE_SIZE / 2,
-                    width: 40,
-                    height: 25,
-                    angle: Math.random() * Math.PI * 2,
+                    x: road.x + Math.random() * (road.width - 30),
+                    y: road.y + Math.random() * (road.height - 30),
+                    width: 30,
+                    height: 20,
+                    angle: road.horizontal ? 0 : Math.PI / 2,
                     speed: 0,
                     maxSpeed: 8,
-                    acceleration: 0.15,
-                    handling: 0.05,
-                    color: `hsl(${Math.random() * 360}, 70%, 50%)`,
+                    color: `hsl(${Math.random() * 360}, 70%, 40%)`,
                     isPolice: false,
-                    velocity: { x: 0, y: 0 }
+                    occupied: false
                 });
             }
-        }
-        
-        // NPCs
-        let npcs = [];
-        function spawnNPCs() {
-            npcs = [];
-            for (let i = 0; i < 30; i++) {
-                let x, y;
-                do {
-                    x = Math.floor(Math.random() * MAP_WIDTH);
-                    y = Math.floor(Math.random() * MAP_HEIGHT);
-                } while (map[y][x] !== TILES.SIDEWALK);
-                
+            
+            // Spawn NPCs
+            for (let i = 0; i < 40; i++) {
                 npcs.push({
-                    x: x * TILE_SIZE + TILE_SIZE / 2,
-                    y: y * TILE_SIZE + TILE_SIZE / 2,
+                    x: Math.random() * worldWidth,
+                    y: Math.random() * worldHeight,
                     width: 15,
                     height: 15,
-                    speed: 1,
+                    speed: 1 + Math.random() * 0.5,
                     angle: Math.random() * Math.PI * 2,
-                    color: `hsl(${Math.random() * 360}, 60%, 40%)`,
-                    changeDirTimer: Math.random() * 100
+                    color: `hsl(${Math.random() * 60 + 100}, 50%, 40%)`,
+                    changeTimer: 0,
+                    health: 100
                 });
             }
         }
         
-        // Police
-        let police = [];
+        // Spawn police
         function spawnPolice() {
-            police = [];
-            for (let i = 0; i < gameState.wantedLevel * 2; i++) {
-                let angle = (i / (gameState.wantedLevel * 2)) * Math.PI * 2;
-                police.push({
-                    x: player.x + Math.cos(angle) * 500,
-                    y: player.y + Math.sin(angle) * 500,
-                    width: 45,
-                    height: 28,
+            if (policeCars.length < wantedLevel * 2) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 500 + Math.random() * 200;
+                policeCars.push({
+                    x: player.x + Math.cos(angle) * dist,
+                    y: player.y + Math.sin(angle) * dist,
+                    width: 35,
+                    height: 25,
                     angle: 0,
                     speed: 0,
                     maxSpeed: 7,
-                    color: '#0066ff',
+                    color: '#000',
                     isPolice: true,
-                    velocity: { x: 0, y: 0 }
+                    sirenPhase: 0
                 });
             }
         }
         
-        // Money pickups
-        let moneyPickups = [];
-        function spawnMoney(x, y, amount) {
-            moneyPickups.push({
-                x: x,
-                y: y,
-                amount: amount,
-                size: 8,
-                lifetime: 500
-            });
-        }
-        
-        // Input handling
-        const keys = {};
-        document.addEventListener('keydown', (e) => {
-            keys[e.key.toLowerCase()] = true;
-            keys[e.key] = true;
+        // Update camera
+        function updateCamera() {
+            let targetX, targetY;
             
-            if (e.key.toLowerCase() === 'e') {
-                handleVehicleInteraction();
-            }
-        });
-        
-        document.addEventListener('keyup', (e) => {
-            keys[e.key.toLowerCase()] = false;
-            keys[e.key] = false;
-        });
-        
-        function handleVehicleInteraction() {
             if (player.inVehicle) {
-                // Exit vehicle
-                player.x = player.inVehicle.x + 30;
-                player.y = player.inVehicle.y;
-                player.inVehicle.speed = 0;
-                player.inVehicle = null;
+                targetX = player.inVehicle.x;
+                targetY = player.inVehicle.y;
             } else {
-                // Try to enter nearby vehicle
-                for (let vehicle of vehicles) {
-                    let dist = Math.hypot(player.x - vehicle.x, player.y - vehicle.y);
-                    if (dist < 50) {
-                        player.inVehicle = vehicle;
-                        return;
-                    }
-                }
+                targetX = player.x;
+                targetY = player.y;
             }
+            
+            camera.x += (targetX - canvas.width / 2 - camera.x) * 0.1;
+            camera.y += (targetY - canvas.height / 2 - camera.y) * 0.1;
+            
+            // Clamp camera
+            camera.x = Math.max(0, Math.min(worldWidth - canvas.width, camera.x));
+            camera.y = Math.max(0, Math.min(worldHeight - canvas.height, camera.y));
         }
         
-        // Update functions
+        // Check collision
+        function checkCollision(a, b) {
+            return a.x < b.x + b.width &&
+                   a.x + a.width > b.x &&
+                   a.y < b.y + b.height &&
+                   a.y + a.height > b.y;
+        }
+        
+        // Update player
         function updatePlayer() {
             if (player.inVehicle) {
                 updateVehicleControls(player.inVehicle);
-                player.x = player.inVehicle.x;
-                player.y = player.inVehicle.y;
-                player.angle = player.inVehicle.angle;
             } else {
                 // Walking controls
                 let dx = 0, dy = 0;
-                if (keys['w']) dy -= 1;
-                if (keys['s']) dy += 1;
-                if (keys['a']) dx -= 1;
-                if (keys['d']) dx += 1;
+                
+                if (keys['w'] || keys['W']) dy -= 1;
+                if (keys['s'] || keys['S']) dy += 1;
+                if (keys['a'] || keys['A']) dx -= 1;
+                if (keys['d'] || keys['D']) dx += 1;
                 
                 if (dx !== 0 || dy !== 0) {
-                    let len = Math.hypot(dx, dy);
+                    const len = Math.sqrt(dx * dx + dy * dy);
                     dx /= len;
                     dy /= len;
                     
-                    let newX = player.x + dx * player.speed;
-                    let newY = player.y + dy * player.speed;
-                    
-                    if (!checkCollision(newX, player.y, player.width, player.height)) {
-                        player.x = newX;
-                    }
-                    if (!checkCollision(player.x, newY, player.width, player.height)) {
-                        player.y = newY;
-                    }
-                    
                     player.angle = Math.atan2(dy, dx);
+                    
+                    const newX = player.x + dx * player.speed;
+                    const newY = player.y + dy * player.speed;
+                    
+                    // Check building collision
+                    let canMove = true;
+                    for (const building of buildings) {
+                        if (checkCollision({
+                            x: newX - player.width / 2,
+                            y: newY - player.height / 2,
+                            width: player.width,
+                            height: player.height
+                        }, building)) {
+                            canMove = false;
+                            break;
+                        }
+                    }
+                    
+                    if (canMove) {
+                        player.x = Math.max(10, Math.min(worldWidth - 10, newX));
+                        player.y = Math.max(10, Math.min(worldHeight - 10, newY));
+                    }
+                }
+                
+                // Check vehicle entry
+                if (keys['e'] || keys['E']) {
+                    for (const vehicle of vehicles) {
+                        if (checkCollision(player, vehicle)) {
+                            player.inVehicle = vehicle;
+                            vehicle.occupied = true;
+                            break;
+                        }
+                    }
                 }
             }
             
-            // Keep player in bounds
-            player.x = Math.max(10, Math.min(MAP_WIDTH * TILE_SIZE - 10, player.x));
-            player.y = Math.max(10, Math.min(MAP_HEIGHT * TILE_SIZE - 10, player.y));
+            // Exit vehicle
+            if ((keys['e'] || keys['E']) && player.inVehicle) {
+                player.x = player.inVehicle.x + 30;
+                player.y = player.inVehicle.y;
+                player.inVehicle.occupied = false;
+                player.inVehicle = null;
+                keys['e'] = false;
+                keys['E'] = false;
+            }
         }
         
+        // Update vehicle controls
         function updateVehicleControls(vehicle) {
-            // Driving controls with arrow keys
-            if (keys['ArrowUp']) {
-                vehicle.speed = Math.min(vehicle.speed + vehicle.acceleration, vehicle.maxSpeed);
-            } else if (keys['ArrowDown']) {
-                vehicle.speed = Math.max(vehicle.speed - vehicle.acceleration, -vehicle.maxSpeed / 2);
-            } else {
-                // Natural deceleration
-                vehicle.speed *= 0.98;
-            }
+            let acceleration = 0;
+            let turning = 0;
             
-            if (keys[' ']) {
-                vehicle.speed *= 0.9; // Brake
-            }
+            if (keys['ArrowUp']) acceleration = 0.2;
+            if (keys['ArrowDown']) acceleration = -0.15;
+            if (keys['ArrowLeft']) turning = -0.05;
+            if (keys['ArrowRight']) turning = 0.05;
+            if (keys[' ']) vehicle.speed *= 0.95; // Brake
+            
+            vehicle.speed += acceleration;
+            vehicle.speed = Math.max(-vehicle.maxSpeed / 2, Math.min(vehicle.maxSpeed, vehicle.speed));
             
             if (Math.abs(vehicle.speed) > 0.1) {
-                if (keys['ArrowLeft']) {
-                    vehicle.angle -= vehicle.handling * Math.sign(vehicle.speed);
-                }
-                if (keys['ArrowRight']) {
-                    vehicle.angle += vehicle.handling * Math.sign(vehicle.speed);
-                }
+                vehicle.angle += turning * Math.sign(vehicle.speed);
             }
             
-            // Update velocity
-            vehicle.velocity.x = Math.cos(vehicle.angle) * vehicle.speed;
-            vehicle.velocity.y = Math.sin(vehicle.angle) * vehicle.speed;
+            const newX = vehicle.x + Math.cos(vehicle.angle) * vehicle.speed;
+            const newY = vehicle.y + Math.sin(vehicle.angle) * vehicle.speed;
             
-            let newX = vehicle.x + vehicle.velocity.x;
-            let newY = vehicle.y + vehicle.velocity.y;
-            
-            if (!checkCollision(newX, newY, vehicle.width, vehicle.height)) {
-                vehicle.x = newX;
-                vehicle.y = newY;
-            } else {
-                vehicle.speed *= -0.5; // Bounce back
-            }
-            
-            // Check collision with NPCs
-            for (let npc of npcs) {
-                if (checkEntityCollision(vehicle, npc)) {
-                    if (Math.abs(vehicle.speed) > 2) {
-                        // Hit NPC
-                        gameState.wantedLevel = Math.min(5, gameState.wantedLevel + 1);
-                        gameState.score += 50;
-                        spawnMoney(npc.x, npc.y, 20);
-                        npc.x = -1000; // Remove NPC
-                    }
+            // Check building collision
+            let canMove = true;
+            for (const building of buildings) {
+                if (checkCollision({
+                    x: newX - vehicle.width / 2,
+                    y: newY - vehicle.height / 2,
+                    width: vehicle.width,
+                    height: vehicle.height
+                }, building)) {
+                    canMove = false;
+                    vehicle.speed *= -0.5;
+                    player.health -= Math.abs(vehicle.speed) * 2;
+                    break;
                 }
             }
             
-            // Keep vehicle in bounds
-            vehicle.x = Math.max(20, Math.min(MAP_WIDTH * TILE_SIZE - 20, vehicle.x));
-            vehicle.y = Math.max(20, Math.min(MAP_HEIGHT * TILE_SIZE - 20, vehicle.y));
+            if (canMove) {
+                vehicle.x = Math.max(20, Math.min(worldWidth - 20, newX));
+                vehicle.y = Math.max(20, Math.min(worldHeight - 20, newY));
+            }
+            
+            // Check NPC collision
+            for (let i = npcs.length - 1; i >= 0; i--) {
+                const npc = npcs[i];
+                if (checkCollision(vehicle, npc)) {
+                    npcs.splice(i, 1);
+                    player.health -= 10;
+                    wantedLevel = Math.min(5, wantedLevel + 1);
+                    spawnMoney(npc.x, npc.y, 50);
+                    score += 100;
+                }
+            }
         }
         
+        // Update NPCs
         function updateNPCs() {
-            for (let npc of npcs) {
-                npc.changeDirTimer--;
+            for (const npc of npcs) {
+                npc.changeTimer--;
                 
-                if (npc.changeDirTimer <= 0) {
+                if (npc.changeTimer <= 0) {
                     npc.angle = Math.random() * Math.PI * 2;
-                    npc.changeDirTimer = 100 + Math.random() * 200;
+                    npc.changeTimer = 60 + Math.random() * 120;
                 }
                 
-                let newX = npc.x + Math.cos(npc.angle) * npc.speed;
-                let newY = npc.y + Math.sin(npc.angle) * npc.speed;
+                const newX = npc.x + Math.cos(npc.angle) * npc.speed;
+                const newY = npc.y + Math.sin(npc.angle) * npc.speed;
                 
-                // Check if on sidewalk
-                let tileX = Math.floor(newX / TILE_SIZE);
-                let tileY = Math.floor(newY / TILE_SIZE);
+                // Check bounds and buildings
+                let canMove = true;
+                if (newX < 10 || newX > worldWidth - 10 || newY < 10 || newY > worldHeight - 10) {
+                    canMove = false;
+                }
                 
-                if (tileX >= 0 && tileX < MAP_WIDTH && tileY >= 0 && tileY < MAP_HEIGHT) {
-                    if (map[tileY][tileX] === TILES.SIDEWALK) {
-                        npc.x = newX;
-                        npc.y = newY;
-                    } else {
-                        npc.angle += Math.PI; // Turn around
+                for (const building of buildings) {
+                    if (checkCollision({ x: newX - npc.width / 2, y: newY - npc.height / 2, width: npc.width, height: npc.height }, building)) {
+                        canMove = false;
+                        break;
                     }
                 }
                 
-                // Keep in bounds
-                npc.x = Math.max(10, Math.min(MAP_WIDTH * TILE_SIZE - 10, npc.x));
-                npc.y = Math.max(10, Math.min(MAP_HEIGHT * TILE_SIZE - 10, npc.y));
+                if (canMove) {
+                    npc.x = newX;
+                    npc.y = newY;
+                } else {
+                    npc.angle += Math.PI;
+                    npc.changeTimer = 30;
+                }
             }
         }
         
+        // Update police
         function updatePolice() {
-            if (gameState.wantedLevel === 0) {
-                police = [];
-                return;
+            // Spawn police based on wanted level
+            if (wantedLevel > 0 && Math.random() < 0.02) {
+                spawnPolice();
             }
             
-            // Adjust police count
-            while (police.length < gameState.wantedLevel * 2) {
-                let angle = Math.random() * Math.PI * 2;
-                let dist = 400 + Math.random() * 200;
-                police.push({
-                    x: player.x + Math.cos(angle) * dist,
-                    y: player.y + Math.sin(angle) * dist,
-                    width: 45,
-                    height: 28,
-                    angle: 0,
-                    speed: 0,
-                    maxSpeed: 6 + gameState.wantedLevel * 0.3,
-                    color: '#0066ff',
-                    isPolice: true,
-                    velocity: { x: 0, y: 0 }
-                });
-            }
-            
-            for (let cop of police) {
+            for (let i = policeCars.length - 1; i >= 0; i--) {
+                const police = policeCars[i];
+                police.sirenPhase += 0.1;
+                
                 // Chase player
-                let targetX = player.x;
-                let targetY = player.y;
-                
-                let targetAngle = Math.atan2(targetY - cop.y, targetX - cop.x);
-                let angleDiff = targetAngle - cop.angle;
-                
-                // Normalize angle
-                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-                
-                cop.angle += angleDiff * 0.05;
-                
-                // Accelerate towards player
-                let dist = Math.hypot(targetX - cop.x, targetY - cop.y);
-                if (dist > 100) {
-                    cop.speed = Math.min(cop.speed + cop.acceleration, cop.maxSpeed);
+                let targetX, targetY;
+                if (player.inVehicle) {
+                    targetX = player.inVehicle.x;
+                    targetY = player.inVehicle.y;
                 } else {
-                    cop.speed *= 0.95;
+                    targetX = player.x;
+                    targetY = player.y;
                 }
                 
-                cop.velocity.x = Math.cos(cop.angle) * cop.speed;
-                cop.velocity.y = Math.sin(cop.angle) * cop.speed;
+                const dx = targetX - police.x;
+                const dy = targetY - police.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
                 
-                cop.x += cop.velocity.x;
-                cop.y += cop.velocity.y;
+                if (dist > 50) {
+                    const targetAngle = Math.atan2(dy, dx);
+                    let angleDiff = targetAngle - police.angle;
+                    
+                    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                    
+                    police.angle += Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), 0.05);
+                    police.speed = Math.min(police.maxSpeed, police.speed + 0.1);
+                } else {
+                    police.speed *= 0.9;
+                }
+                
+                police.x += Math.cos(police.angle) * police.speed;
+                police.y += Math.sin(police.angle) * police.speed;
                 
                 // Check collision with player
-                if (player.inVehicle && checkEntityCollision(cop, player.inVehicle)) {
+                if (player.inVehicle && checkCollision(police, player.inVehicle)) {
+                    player.health -= 1;
+                } else if (!player.inVehicle && checkCollision(police, player)) {
                     player.health -= 2;
-                    cop.speed *= -0.5;
-                } else if (!player.inVehicle && checkEntityCollision(cop, player)) {
-                    player.health -= 5;
+                }
+                
+                // Remove if too far
+                if (dist > 1500) {
+                    policeCars.splice(i, 1);
+                }
+            }
+            
+            // Decrease wanted level over time
+            if (wantedLevel > 0) {
+                wantedTimer++;
+                if (wantedTimer > 600) { // 10 seconds
+                    wantedLevel--;
+                    wantedTimer = 0;
+                    if (wantedLevel === 0) {
+                        policeCars = [];
+                    }
                 }
             }
         }
         
-        function updateMoney() {
-            for (let i = moneyPickups.length - 1; i >= 0; i--) {
-                let money = moneyPickups[i];
-                money.lifetime--;
-                
-                if (money.lifetime <= 0) {
-                    moneyPickups.splice(i, 1);
-                    continue;
-                }
+        // Spawn money
+        function spawnMoney(x, y, amount) {
+            moneyDrops.push({
+                x: x,
+                y: y,
+                amount: amount,
+                lifetime: 600
+            });
+        }
+        
+        // Update money drops
+        function updateMoneyDrops() {
+            for (let i = moneyDrops.length - 1; i >= 0; i--) {
+                const drop = moneyDrops[i];
+                drop.lifetime--;
                 
                 // Check pickup
-                let playerEntity = player.inVehicle || player;
-                let dist = Math.hypot(playerEntity.x - money.x, playerEntity.y - money.y);
+                let playerX = player.inVehicle ? player.inVehicle.x : player.x;
+                let playerY = player.inVehicle ? player.inVehicle.y : player.y;
+                
+                const dist = Math.sqrt((playerX - drop.x) ** 2 + (playerY - drop.y) ** 2);
                 if (dist < 30) {
-                    gameState.money += money.amount;
-                    gameState.score += money.amount;
-                    moneyPickups.splice(i, 1);
+                    money += drop.amount;
+                    moneyDrops.splice(i, 1);
+                } else if (drop.lifetime <= 0) {
+                    moneyDrops.splice(i, 1);
                 }
             }
         }
         
-        function updateWantedLevel() {
-            if (gameState.wantedLevel > 0) {
-                gameState.wantedTimer++;
-                
-                // Decrease wanted level over time (slowly)
-                if (gameState.wantedTimer > 1800) { // 30 seconds at 60fps
-                    gameState.wantedLevel--;
-                    gameState.wantedTimer = 0;
-                    if (gameState.wantedLevel === 0) {
-                        police = [];
-                    }
-                }
-            }
-        }
-        
-        // Collision detection
-        function checkCollision(x, y, width, height) {
-            let corners = [
-                { x: x - width/2, y: y - height/2 },
-                { x: x + width/2, y: y - height/2 },
-                { x: x - width/2, y: y + height/2 },
-                { x: x + width/2, y: y + height/2 }
-            ];
-            
-            for (let corner of corners) {
-                let tileX = Math.floor(corner.x / TILE_SIZE);
-                let tileY = Math.floor(corner.y / TILE_SIZE);
-                
-                if (tileX < 0 || tileX >= MAP_WIDTH || tileY < 0 || tileY >= MAP_HEIGHT) {
-                    return true;
-                }
-                
-                if (map[tileY][tileX] === TILES.BUILDING) {
-                    return true;
-                }
-            }
-            
-            return false;
-        }
-        
-        function checkEntityCollision(entity1, entity2) {
-            let dx = Math.abs(entity1.x - entity2.x);
-            let dy = Math.abs(entity1.y - entity2.y);
-            return dx < (entity1.width + entity2.width) / 2 && 
-                   dy < (entity1.height + entity2.height) / 2;
-        }
-        
-        // Rendering
-        function render() {
-            ctx.fillStyle = '#111';
+        // Draw game
+        function draw() {
+            // Clear
+            ctx.fillStyle = '#0a0a15';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Camera offset
-            let camX = player.x - canvas.width / 2;
-            let camY = player.y - canvas.height / 2;
-            
             ctx.save();
-            ctx.translate(-camX, -camY);
+            ctx.translate(-camera.x, -camera.y);
             
-            // Draw map
-            for (let y = 0; y < MAP_HEIGHT; y++) {
-                for (let x = 0; x < MAP_WIDTH; x++) {
-                    let tileX = x * TILE_SIZE;
-                    let tileY = y * TILE_SIZE;
-                    
-                    switch(map[y][x]) {
-                        case TILES.ROAD:
-                            ctx.fillStyle = '#1a1a1a';
-                            ctx.fillRect(tileX, tileY, TILE_SIZE, TILE_SIZE);
-                            // Road markings
-                            ctx.strokeStyle = '#333';
-                            ctx.setLineDash([10, 10]);
-                            ctx.lineWidth = 2;
-                            ctx.strokeRect(tileX + TILE_SIZE/2, tileY, 0, TILE_SIZE);
-                            ctx.strokeRect(tileX, tileY + TILE_SIZE/2, TILE_SIZE, 0);
-                            ctx.setLineDash([]);
-                            break;
-                            
-                        case TILES.SIDEWALK:
-                            ctx.fillStyle = '#2a2a2a';
-                            ctx.fillRect(tileX, tileY, TILE_SIZE, TILE_SIZE);
-                            // Sidewalk pattern
-                            ctx.strokeStyle = '#333';
-                            ctx.lineWidth = 1;
-                            ctx.strokeRect(tileX + 2, tileY + 2, TILE_SIZE - 4, TILE_SIZE - 4);
-                            break;
-                            
-                        case TILES.BUILDING:
-                            // Building with neon effect
-                            let hue = (x * y * 13) % 360;
-                            ctx.fillStyle = '#0a0a0a';
-                            ctx.fillRect(tileX, tileY, TILE_SIZE, TILE_SIZE);
-                            
-                            // Neon outline
-                            ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
-                            ctx.lineWidth = 2;
-                            ctx.shadowColor = `hsl(${hue}, 100%, 50%)`;
-                            ctx.shadowBlur = 10;
-                            ctx.strokeRect(tileX + 5, tileY + 5, TILE_SIZE - 10, TILE_SIZE - 10);
-                            ctx.shadowBlur = 0;
-                            break;
-                            
-                        case TILES.PARKING:
-                            ctx.fillStyle = '#1a1a1a';
-                            ctx.fillRect(tileX, tileY, TILE_SIZE, TILE_SIZE);
-                            ctx.strokeStyle = '#0ff';
-                            ctx.lineWidth = 1;
-                            ctx.setLineDash([5, 5]);
-                            ctx.strokeRect(tileX + 10, tileY + 10, TILE_SIZE - 20, TILE_SIZE - 20);
-                            ctx.setLineDash([]);
-                            break;
+            // Draw roads
+            ctx.fillStyle = '#1a1a2e';
+            for (const road of roads) {
+                ctx.fillRect(road.x, road.y, road.width, road.height);
+                
+                // Road markings
+                ctx.strokeStyle = '#333';
+                ctx.setLineDash([20, 20]);
+                ctx.lineWidth = 2;
+                
+                if (road.horizontal) {
+                    ctx.beginPath();
+                    ctx.moveTo(road.x, road.y + road.height / 2);
+                    ctx.lineTo(road.x + road.width, road.y + road.height / 2);
+                    ctx.stroke();
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(road.x + road.width / 2, road.y);
+                    ctx.lineTo(road.x + road.width / 2, road.y + road.height);
+                    ctx.stroke();
+                }
+                ctx.setLineDash([]);
+            }
+            
+            // Draw buildings
+            for (const building of buildings) {
+                // Building body
+                ctx.fillStyle = building.color;
+                ctx.fillRect(building.x, building.y, building.width, building.height);
+                
+                // Neon edges
+                ctx.strokeStyle = building.neonColor;
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = building.neonColor;
+                ctx.strokeRect(building.x, building.y, building.width, building.height);
+                ctx.shadowBlur = 0;
+                
+                // Windows
+                ctx.fillStyle = 'rgba(0, 255, 255, 0.3)';
+                const windowSize = 8;
+                for (let wx = building.x + 10; wx < building.x + building.width - 10; wx += 15) {
+                    for (let wy = building.y + 10; wy < building.y + building.height - 10; wy += 15) {
+                        if (Math.random() > 0.3) {
+                            ctx.fillRect(wx, wy, windowSize, windowSize);
+                        }
                     }
                 }
             }
             
-            // Draw money pickups
-            for (let money of moneyPickups) {
-                let alpha = money.lifetime / 500;
-                ctx.fillStyle = `rgba(0, 255, 0, ${alpha})`;
+            // Draw money drops
+            ctx.fillStyle = '#0f0';
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#0f0';
+            for (const drop of moneyDrops) {
                 ctx.beginPath();
-                ctx.arc(money.x, money.y, money.size, 0, Math.PI * 2);
+                ctx.arc(drop.x, drop.y, 8, 0, Math.PI * 2);
                 ctx.fill();
-                
                 ctx.fillStyle = '#fff';
                 ctx.font = '10px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('$', money.x, money.y + 3);
+                ctx.fillText('$', drop.x - 3, drop.y + 3);
+                ctx.fillStyle = '#0f0';
             }
-            
-            // Draw NPCs
-            for (let npc of npcs) {
-                if (npc.x < 0) continue; // Skip removed NPCs
-                
-                ctx.save();
-                ctx.translate(npc.x, npc.y);
-                ctx.rotate(npc.angle);
-                
-                // Body
-                ctx.fillStyle = npc.color;
-                ctx.fillRect(-npc.width/2, -npc.height/2, npc.width, npc.height);
-                
-                // Direction indicator
-                ctx.fillStyle = '#fff';
-                ctx.fillRect(npc.width/2 - 3, -2, 3, 4);
-                
-                ctx.restore();
-            }
+            ctx.shadowBlur = 0;
             
             // Draw vehicles
-            for (let vehicle of vehicles) {
-                if (vehicle === player.inVehicle) continue; // Skip if player is inside
-                
+            for (const vehicle of vehicles) {
                 ctx.save();
                 ctx.translate(vehicle.x, vehicle.y);
                 ctx.rotate(vehicle.angle);
                 
                 // Car body
                 ctx.fillStyle = vehicle.color;
-                ctx.fillRect(-vehicle.width/2, -vehicle.height/2, vehicle.width, vehicle.height);
+                ctx.fillRect(-vehicle.width / 2, -vehicle.height / 2, vehicle.width, vehicle.height);
                 
                 // Windshield
-                ctx.fillStyle = '#0af';
-                ctx.fillRect(vehicle.width/4, -vehicle.height/3, vehicle.width/5, vehicle.height/1.5);
+                ctx.fillStyle = 'rgba(100, 200, 255, 0.5)';
+                ctx.fillRect(vehicle.width / 4, -vehicle.height / 3, vehicle.width / 5, vehicle.height / 1.5);
                 
-                // Headlights
-                ctx.fillStyle = '#ff0';
-                ctx.fillRect(vehicle.width/2 - 2, -vehicle.height/2 + 2, 2, 5);
-                ctx.fillRect(vehicle.width/2 - 2, vehicle.height/2 - 7, 2, 5);
+                ctx.restore();
+            }
+            
+            // Draw NPCs
+            for (const npc of npcs) {
+                ctx.save();
+                ctx.translate(npc.x, npc.y);
+                ctx.rotate(npc.angle);
+                
+                ctx.fillStyle = npc.color;
+                ctx.beginPath();
+                ctx.arc(0, 0, npc.width / 2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Direction indicator
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(npc.width / 2 - 2, -2, 4, 4);
                 
                 ctx.restore();
             }
             
             // Draw police
-            for (let cop of police) {
+            for (const police of policeCars) {
                 ctx.save();
-                ctx.translate(cop.x, cop.y);
-                ctx.rotate(cop.angle);
+                ctx.translate(police.x, police.y);
+                ctx.rotate(police.angle);
                 
-                // Police car body
-                ctx.fillStyle = cop.color;
-                ctx.fillRect(-cop.width/2, -cop.height/2, cop.width, cop.height);
+                // Car body
+                ctx.fillStyle = '#000';
+                ctx.fillRect(-police.width / 2, -police.height / 2, police.width, police.height);
                 
                 // White stripe
                 ctx.fillStyle = '#fff';
-                ctx.fillRect(-cop.width/2, -2, cop.width, 4);
+                ctx.fillRect(-police.width / 2, -2, police.width, 4);
                 
-                // Lights
-                ctx.fillStyle = gameState.wantedTimer % 60 < 30 ? '#f00' : '#00f';
-                ctx.fillRect(-5, -cop.height/2 - 3, 10, 3);
+                // Siren
+                ctx.fillStyle = Math.sin(police.sirenPhase) > 0 ? '#f00' : '#00f';
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.fillRect(-5, -police.height / 2 - 3, 10, 3);
+                ctx.shadowBlur = 0;
                 
                 ctx.restore();
             }
@@ -762,42 +736,18 @@
                 ctx.translate(player.x, player.y);
                 ctx.rotate(player.angle);
                 
-                // Player body
+                // Body
                 ctx.fillStyle = '#0ff';
+                ctx.shadowBlur = 10;
                 ctx.shadowColor = '#0ff';
-                ctx.shadowBlur = 15;
-                ctx.fillRect(-player.width/2, -player.height/2, player.width, player.height);
+                ctx.beginPath();
+                ctx.arc(0, 0, player.width / 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
                 
                 // Direction indicator
                 ctx.fillStyle = '#fff';
-                ctx.fillRect(player.width/2 - 3, -2, 3, 4);
-                
-                ctx.restore();
-            }
-            
-            // Draw player's vehicle
-            if (player.inVehicle) {
-                ctx.save();
-                ctx.translate(player.inVehicle.x, player.inVehicle.y);
-                ctx.rotate(player.inVehicle.angle);
-                
-                // Car body
-                ctx.fillStyle = player.inVehicle.color;
-                ctx.shadowColor = player.inVehicle.color;
-                ctx.shadowBlur = 10;
-                ctx.fillRect(-player.inVehicle.width/2, -player.inVehicle.height/2, 
-                            player.inVehicle.width, player.inVehicle.height);
-                
-                // Windshield
-                ctx.fillStyle = '#0af';
-                ctx.fillRect(player.inVehicle.width/4, -player.inVehicle.height/3, 
-                           player.inVehicle.width/5, player.inVehicle.height/1.5);
-                
-                // Headlights
-                ctx.fillStyle = '#ff0';
-                ctx.shadowColor = '#ff0';
-                ctx.fillRect(player.inVehicle.width/2 - 2, -player.inVehicle.height/2 + 2, 2, 5);
-                ctx.fillRect(player.inVehicle.width/2 - 2, player.inVehicle.height/2 - 7, 2, 5);
+                ctx.fillRect(player.width / 2 - 3, -2, 6, 4);
                 
                 ctx.restore();
             }
@@ -805,109 +755,118 @@
             ctx.restore();
             
             // Draw minimap
-            renderMinimap();
+            drawMinimap();
             
-            // Update HUD
-            updateHUD();
+            // Update UI
+            updateUI();
         }
         
-        function renderMinimap() {
-            minimapCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        // Draw minimap
+        function drawMinimap() {
+            minimapCtx.fillStyle = 'rgba(0, 20, 40, 0.8)';
             minimapCtx.fillRect(0, 0, 150, 150);
             
-            let scale = 150 / (MAP_WIDTH * TILE_SIZE);
+            const scale = 150 / worldWidth;
             
-            // Draw roads
-            for (let y = 0; y < MAP_HEIGHT; y++) {
-                for (let x = 0; x < MAP_WIDTH; x++) {
-                    if (map[y][x] === TILES.ROAD) {
-                        minimapCtx.fillStyle = '#333';
-                        minimapCtx.fillRect(x * TILE_SIZE * scale, y * TILE_SIZE * scale, 
-                                          TILE_SIZE * scale, TILE_SIZE * scale);
-                    }
-                }
+            // Draw roads on minimap
+            minimapCtx.fillStyle = '#333';
+            for (const road of roads) {
+                minimapCtx.fillRect(road.x * scale, road.y * scale, road.width * scale, road.height * scale);
             }
             
-            // Draw entities
-            minimapCtx.fillStyle = '#0ff';
-            minimapCtx.beginPath();
-            minimapCtx.arc(player.x * scale, player.y * scale, 3, 0, Math.PI * 2);
-            minimapCtx.fill();
+            // Draw buildings on minimap
+            minimapCtx.fillStyle = '#555';
+            for (const building of buildings) {
+                minimapCtx.fillRect(building.x * scale, building.y * scale, building.width * scale, building.height * scale);
+            }
             
             // Draw police on minimap
             minimapCtx.fillStyle = '#f00';
-            for (let cop of police) {
-                minimapCtx.beginPath();
-                minimapCtx.arc(cop.x * scale, cop.y * scale, 2, 0, Math.PI * 2);
-                minimapCtx.fill();
+            for (const police of policeCars) {
+                minimapCtx.fillRect(police.x * scale - 1, police.y * scale - 1, 3, 3);
             }
-        }
-        
-        function updateHUD() {
-            document.getElementById('healthFill').style.width = player.health + '%';
-            document.getElementById('scoreValue').textContent = gameState.score;
-            document.getElementById('moneyValue').textContent = gameState.money;
             
-            // Update wanted stars
-            let starsHTML = '';
-            for (let i = 0; i < gameState.wantedLevel; i++) {
-                starsHTML += '★';
-            }
-            document.getElementById('stars').textContent = starsHTML;
+            // Draw player on minimap
+            let playerX = player.inVehicle ? player.inVehicle.x : player.x;
+            let playerY = player.inVehicle ? player.inVehicle.y : player.y;
+            
+            minimapCtx.fillStyle = '#0ff';
+            minimapCtx.beginPath();
+            minimapCtx.arc(playerX * scale, playerY * scale, 3, 0, Math.PI * 2);
+            minimapCtx.fill();
         }
         
+        // Update UI
+        function updateUI() {
+            document.getElementById('healthFill').style.width = (player.health / player.maxHealth * 100) + '%';
+            
+            let stars = '';
+            for (let i = 0; i < 5; i++) {
+                stars += i < wantedLevel ? '★' : '☆';
+            }
+            document.getElementById('wantedStars').textContent = stars;
+            
+            document.getElementById('score').textContent = 'Score: ' + score;
+            document.getElementById('money').textContent = '$' + money;
+        }
+        
+        // Check game over
         function checkGameOver() {
             if (player.health <= 0) {
-                gameState.running = false;
-                document.getElementById('finalScore').textContent = gameState.score;
-                document.getElementById('finalMoney').textContent = gameState.money;
+                gameOver = true;
                 document.getElementById('gameOver').style.display = 'block';
+                document.getElementById('finalScore').textContent = 'Score: ' + score;
+                document.getElementById('finalMoney').textContent = 'Money: $' + money;
             }
         }
         
-        function restart() {
-            player.x = 400;
-            player.y = 300;
+        // Restart game
+        function restartGame() {
+            gameOver = false;
             player.health = player.maxHealth;
+            player.x = 1000;
+            player.y = 1000;
             player.inVehicle = null;
-            player.angle = 0;
-            
-            gameState.score = 0;
-            gameState.money = 0;
-            gameState.wantedLevel = 0;
-            gameState.wantedTimer = 0;
-            gameState.running = true;
-            
-            generateCity();
-            spawnVehicles();
-            spawnNPCs();
-            police = [];
-            moneyPickups = [];
-            
+            score = 0;
+            money = 0;
+            wantedLevel = 0;
+            policeCars = [];
+            moneyDrops = [];
             document.getElementById('gameOver').style.display = 'none';
+            generateCity();
         }
         
         // Game loop
         function gameLoop() {
-            if (gameState.running) {
+            if (!gameOver) {
                 updatePlayer();
                 updateNPCs();
                 updatePolice();
-                updateMoney();
-                updateWantedLevel();
+                updateMoneyDrops();
+                updateCamera();
                 checkGameOver();
             }
             
-            render();
+            draw();
             requestAnimationFrame(gameLoop);
         }
         
-        // Initialize
-        document.getElementById('restartBtn').addEventListener('click', restart);
+        // Input handlers
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            
+            // Prevent scrolling
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+                e.preventDefault();
+            }
+        });
         
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+        
+        // Initialize and start game
         generateCity();
-        spawnVehicles();
-        spawnNPCs();
         gameLoop();
     </script>
 </body>
