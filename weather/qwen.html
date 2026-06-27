@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prague Weather Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-main: #ffffff;
+            --text-muted: #aaaaaa;
+            --accent: #4dabf7;
+            --accent-gradient: linear-gradient(135deg, #4dabf7, #339af0);
+            --danger: #ff6b6b;
+            --success: #51cf66;
+            --warning: #fcc419;
+            --border-radius: 16px;
+            --shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .dashboard {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 0 5px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .date-display {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Card Styles */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Top Section: Current + AQI */
+        .top-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        /* Current Weather */
+        .current-weather {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .current-main {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .temp-huge {
+            font-size: 5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .condition-text {
+            font-size: 1.5rem;
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
+
+        .weather-icon {
+            width: 100px;
+            height: 100px;
+        }
+
+        .current-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 30px;
+            border-top: 1px solid #333;
+            padding-top: 20px;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .detail-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-value {
+            font-weight: 500;
+            font-size: 1.1rem;
+        }
+
+        /* AQI Card */
+        .aqi-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .aqi-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 8px solid var(--success);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            background: rgba(81, 207, 102, 0.1);
+        }
+
+        .aqi-label {
+            color: var(--text-muted);
+        }
+
+        /* Chart Section */
+        .chart-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            position: relative;
+        }
+
+        /* Forecast Row */
+        .forecast-row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+        }
+
+        .forecast-card {
+            background-color: var(--card-bg);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .f-day {
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .f-icon {
+            width: 50px;
+            height: 50px;
+        }
+
+        .f-temp {
+            display: flex;
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+
+        .f-high { color: var(--text-main); }
+        .f-low { color: var(--text-muted); }
+
+        /* Icons */
+        svg {
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        
+        .sun-svg { stroke: #fcc419; fill: #fcc419; }
+        .cloud-svg { stroke: #868e96; fill: #868e96; }
+        .rain-svg { stroke: #4dabf7; fill: #4dabf7; }
+        .wind-svg { stroke: #fff; }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .top-section { grid-template-columns: 1fr; }
+            .forecast-row { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 600px) {
+            .current-main { flex-direction: column; align-items: flex-start; }
+            .weather-icon { width: 80px; height: 80px; }
+            .forecast-row { grid-template-columns: 1fr; }
+            .temp-huge { font-size: 4rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard">
+    <header>
+        <div>
+            <h1>Prague Weather</h1>
+            <div class="date-display" id="currentDate">Loading date...</div>
+        </div>
+        <button id="unitToggle" style="background:var(--card-bg); color:var(--text-main); border:1px solid #333; padding:8px 16px; border-radius:20px; cursor:pointer;">
+            °F
+        </button>
+    </header>
+
+    <!-- Top Section: Current + AQI -->
+    <div class="top-section">
+        <div class="card current-weather">
+            <div class="current-main">
+                <div>
+                    <div class="temp-huge" id="currTemp">12°</div>
+                    <div class="condition-text" id="currCond">Partly Cloudy</div>
+                </div>
+                <!-- Main Weather Icon -->
+                <svg class="weather-icon" viewBox="0 0 100 100">
+                    <circle cx="35" cy="35" r="15" class="sun-svg" stroke="none"/>
+                    <path d="M35 15 L35 10 M35 60 L35 65 M15 35 L10 35 M60 35 L65 35 M21 21 L17 17 M49 49 L53 53 M21 49 L17 53 M49 21 L53 17" stroke="#fcc419" stroke-width="3" stroke-linecap="round"/>
+                    <path d="M30 65 C20 65 15 55 20 48 C15 45 15 35 25 35 C30 28 40 28 45 35 C55 35 60 45 55 48 C60 55 55 65 45 65 Z" class="cloud-svg" stroke="none"/>
+                </svg>
+            </div>
+
+            <div class="current-details">
+                <div class="detail-item">
+                    <span class="detail-label">Humidity</span>
+                    <span class="detail-value" id="humidity">65%</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Wind</span>
+                    <span class="detail-value" id="wind">12 km/h</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Sunrise</span>
+                    <span class="detail-value" id="sunrise">06:12</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Sunset</span>
+                    <span class="detail-value" id="sunset">18:45</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Pressure</span>
+                    <span class="detail-value">1012 hPa</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Visibility</span>
+                    <span class="detail-value">10 km</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card aqi-card">
+            <div class="aqi-circle" id="aqiVal">42</div>
+            <h3>Air Quality</h3>
+            <span class="aqi-label" id="aqiText">Good</span>
+            <p style="font-size: 0.8rem; color: #777; margin-top: 10px;">
+                Air quality is satisfactory, and air pollution poses little or no risk.
+            </p>
+        </div>
+    </div>
+
+    <!-- Chart Section -->
+    <div class="card chart-section">
+        <h3 style="margin-bottom: 20px;">Temperature Forecast (Next 5 Days)</h3>
+        <div class="chart-container">
+            <svg id="tempChart" width="100%" height="100%" preserveAspectRatio="none"></svg>
+        </div>
+    </div>
+
+    <!-- 5 Day Forecast Row -->
+    <div class="forecast-row" id="forecastContainer">
+        <!-- JS will populate this -->
+    </div>
+</div>
+
+<script>
+    // --- Data Configuration ---
+    let useCelsius = true;
+    const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    
+    // Hardcoded Fake Data for Prague
+    const weatherData = {
+        current: {
+            tempC: 12,
+            condition: 'Partly Cloudy',
+            humidity: 65,
+            wind: 12,
+            sunrise: '06:12',
+            sunset: '18:45',
+            aqi: 42
+        },
+        forecast: [
+            { day: 'Tue', highC: 14, lowC: 8, cond: 'Cloudy' },
+            { day: 'Wed', highC: 16, lowC: 9, cond: 'Sunny' },
+            { day: 'Thu', highC: 13, lowC: 7, cond: 'Rain' },
+            { day: 'Fri', highC: 11, lowC: 5, cond: 'Rain' },
+            { day: 'Sat', highC: 15, lowC: 8, cond: 'Sunny' }
+        ]
+    };
+
+    // --- Helper Functions ---
+    function cToF(c) {
+        return Math.round((c * 9/5) + 32);
+    }
+
+    function getTempStr(c) {
+        return useCelsius ? `${c}°` : `${cToF(c)}°`;
+    }
+
+    function getIconSvg(type, sizeClass) {
+        // Returns SVG string based on condition
+        if (type === 'Sunny') {
+            return `<svg class="${sizeClass}" viewBox="0 0 100 100"><circle cx="50" cy="50" r="20" fill="#fcc419" stroke="none"/><g stroke="#fcc419" stroke-width="4" stroke-linecap="round"><path d="M50 15 L50 5 M50 95 L50 85 M15 50 L5 50 M95 50 L85 50 M28 28 L21 21 M79 79 L72 72 M28 72 L21 79 M79 21 L72 28"/></g></svg>`;
+        } else if (type === 'Rain') {
+            return `<svg class="${sizeClass}" viewBox="0 0 100 100"><path d="M20 60 C10 60 5 50 10 43 C5 40 5 30 15 30 C20 23 30 23 35 30 C45 30 50 40 45 43 C50 50 45 60 35 60 Z" fill="#868e96" stroke="none"/><path d="M25 65 L25 75 M35 65 L35 75 M45 65 L45 75" stroke="#4dabf7" stroke-width="3" stroke-linecap="round"/></svg>`;
+        } else { // Cloudy
+            return `<svg class="${sizeClass}" viewBox="0 0 100 100"><path d="M30 70 C20 70 15 60 20 53 C15 50 15 40 25 40 C30 33 40 33 45 40 C55 40 60 50 55 53 C60 60 55 70 45 70 Z" fill="#868e96" stroke="none"/></svg>`;
+        }
+    }
+
+    // --- Rendering Logic ---
+
+    function renderCurrent() {
+        document.getElementById('currentDate').innerText = new Date().toLocaleDateString('en-US', dateOptions);
+        
+        const tempEl = document.getElementById('currTemp');
+        tempEl.innerText = getTempStr(weatherData.current.tempC);
+        
+        // AQI Color logic
+        const aqiEl = document.getElementById('aqiVal');
+        const aqiTextEl = document.getElementById('aqiText');
+        aqiEl.innerText = weatherData.current.aqi;
+        
+        if(weatherData.current.aqi <= 50) {
+            aqiEl.style.borderColor = 'var(--success)';
+            aqiEl.style.background = 'rgba(81, 207, 102, 0.1)';
+            aqiTextEl.innerText = "Good";
+        } else if (weatherData.current.aqi <= 100) {
+            aqiEl.style.borderColor = 'var(--warning)';
+            aqiEl.style.background = 'rgba(252, 196, 25, 0.1)';
+            aqiTextEl.innerText = "Moderate";
+        } else {
+            aqiEl.style.borderColor = 'var(--danger)';
+            aqiEl.style.background = 'rgba(255, 107, 107, 0.1)';
+            aqiTextEl.innerText = "Unhealthy";
+        }
+    }
+
+    function renderForecast() {
+        const container = document.getElementById('forecastContainer');
+        container.innerHTML = '';
+
+        weatherData.forecast.forEach(day => {
+            const card = document.createElement('div');
+            card.className = 'forecast-card';
+            card.innerHTML = `
+                <div class="f-day">${day.day}</div>
+                ${getIconSvg(day.cond, 'f-icon')}
+                <div class="f-temp">
+                    <span class="f-high">${getTempStr(day.highC)}</span>
+                    <span class="f-low">${getTempStr(day.lowC)}</span>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function renderChart() {
+        const svg = document.getElementById('tempChart');
+        const width = svg.clientWidth;
+        const height = svg.clientHeight;
+        
+        // Clear existing
+        svg.innerHTML = '';
+
+        // Calculate scales
+        const allTemps = weatherData.forecast.flatMap(d => [d.highC, d.lowC]);
+        const maxTemp = Math.max(...allTemps) + 2;
+        const minTemp = Math.min(...allTemps) - 2;
+        const range = maxTemp - minTemp;
+
+        const getX = (index) => (index / (weatherData.forecast.length - 1)) * width;
+        const getY = (temp) => height - ((temp - minTemp) / range) * height;
+
+        // Create paths for Highs and Lows
+        let highPathD = "";
+        let lowPathD = "";
+        let pointsHtml = "";
+
+        weatherData.forecast.forEach((day, index) => {
+            const x = getX(index);
+            const yHigh = getY(day.highC);
+            const yLow = getY(day.lowC);
+
+            // Lines
+            const op = index === 0 ? "M" : "L";
+            highPathD += `${op} ${x} ${yHigh}`;
+            lowPathD += `${op} ${x} ${yLow}`;
+
+            // Labels (Days)
+            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            text.setAttribute("x", x);
+            text.setAttribute("y", height - 10);
+            text.setAttribute("text-anchor", "middle");
+            text.setAttribute("fill", "#aaa");
+            text.setAttribute("font-size", "12");
+            text.textContent = day.day;
+            svg.appendChild(text);
+
+            // High Points
+            const circleH = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circleH.setAttribute("cx", x);
+            circleH.setAttribute("cy", yHigh);
+            circleH.setAttribute("r", 4);
+            circleH.setAttribute("fill", "#fcc419");
+            svg.appendChild(circleH);
+
+            // Low Points
+            const circleL = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circleL.setAttribute("cx", x);
+            circleL.setAttribute("cy", yLow);
+            circleL.setAttribute("r", 4);
+            circleL.setAttribute("fill", "#4dabf7");
+            svg.appendChild(circleL);
+        });
+
+        // Add Lines to SVG
+        const highLine = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        highLine.setAttribute("d", highPathD);
+        highLine.setAttribute("stroke", "#fcc419");
+        highLine.setAttribute("stroke-width", 3);
+        highLine.setAttribute("fill", "none");
+        highLine.setAttribute("stroke-linecap", "round");
+        highLine.setAttribute("stroke-linejoin", "round");
+        svg.appendChild(highLine);
+
+        const lowLine = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        lowLine.setAttribute("d", lowPathD);
+        lowLine.setAttribute("stroke", "#4dabf7");
+        lowLine.setAttribute("stroke-width", 3);
+        lowLine.setAttribute("fill", "none");
+        lowLine.setAttribute("stroke-linecap", "round");
+        lowLine.setAttribute("stroke-linejoin", "round");
+        svg.appendChild(lowLine);
+    }
+
+    // --- Initialization ---
+
+    function updateDashboard() {
+        renderCurrent();
+        renderForecast();
+        // Small timeout to ensure container has width for chart
+        setTimeout(renderChart, 0); 
+    }
+
+    // Event Listeners
+    document.getElementById('unitToggle').addEventListener('click', () => {
+        useCelsius = !useCelsius;
+        document.getElementById('unitToggle').innerText = useCelsius ? '°F' : '°C';
+        updateDashboard();
+    });
+
+    window.addEventListener('resize', renderChart);
+
+    // Initial Run
+    updateDashboard();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pomodoro Timer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-tertiary: #0f0f23;
+            --text-primary: #eaeaea;
+            --text-secondary: #a0a0a0;
+            --work-color: #ff6b6b;
+            --short-break-color: #4ecdc4;
+            --long-break-color: #a78bfa;
+            --accent: #ff6b6b;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+        }
+
+        body.mode-work { --accent: var(--work-color); }
+        body.mode-short-break { --accent: var(--short-break-color); }
+        body.mode-long-break { --accent: var(--long-break-color); }
+
+        .container {
+            text-align: center;
+            padding: 2rem;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 300;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .mode-btn {
+            background: var(--bg-secondary);
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .mode-btn:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .mode-btn.active {
+            background: var(--accent);
+            color: var(--bg-primary);
+            font-weight: 600;
+        }
+
+        .timer-container {
+            position: relative;
+            width: 320px;
+            height: 320px;
+            margin: 0 auto 2rem;
+        }
+
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring-bg {
+            fill: none;
+            stroke: var(--bg-secondary);
+            stroke-width: 12;
+        }
+
+        .progress-ring-progress {
+            fill: none;
+            stroke: var(--accent);
+            stroke-width: 12;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1s linear, stroke 0.3s ease;
+        }
+
+        .timer-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .time {
+            font-size: 5rem;
+            font-weight: 200;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -2px;
+        }
+
+        .mode-label {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 0.5rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .control-btn {
+            background: var(--accent);
+            border: none;
+            color: var(--bg-primary);
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 600;
+            min-width: 120px;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-btn.secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .control-btn.secondary:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stat-value {
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .settings-toggle {
+            background: var(--bg-secondary);
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .settings-toggle:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .settings-panel {
+            display: none;
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-top: 1rem;
+            text-align: left;
+        }
+
+        .settings-panel.show {
+            display: block;
+        }
+
+        .settings-panel h3 {
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .setting-item label {
+            color: var(--text-secondary);
+        }
+
+        .setting-item input {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--bg-primary);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            width: 80px;
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        .setting-item input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .setting-item span {
+            color: var(--text-secondary);
+            margin-left: 0.5rem;
+        }
+
+        .auto-switch-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+            background: var(--bg-tertiary);
+            border-radius: 13px;
+            transition: background 0.2s ease;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            transition: transform 0.2s ease;
+        }
+
+        .auto-switch-toggle.active .toggle-switch {
+            background: var(--accent);
+        }
+
+        .auto-switch-toggle.active .toggle-switch::after {
+            transform: translateX(22px);
+            background: var(--bg-primary);
+        }
+
+        @media (max-width: 400px) {
+            .timer-container {
+                width: 260px;
+                height: 260px;
+            }
+            .time {
+                font-size: 4rem;
+            }
+        }
+    </style>
+</head>
+<body class="mode-work">
+    <div class="container">
+        <h1>🍅 Pomodoro Timer</h1>
+        
+        <div class="mode-selector">
+            <button class="mode-btn active" data-mode="work">Work</button>
+            <button class="mode-btn" data-mode="short-break">Short Break</button>
+            <button class="mode-btn" data-mode="long-break">Long Break</button>
+        </div>
+
+        <div class="timer-container">
+            <svg class="progress-ring" width="320" height="320" viewBox="0 0 320 320">
+                <circle class="progress-ring-bg" cx="160" cy="160" r="140"/>
+                <circle class="progress-ring-progress" cx="160" cy="160" r="140"/>
+            </svg>
+            <div class="timer-display">
+                <div class="mode-label" id="modeLabel">Focus</div>
+                <div class="time" id="time">25:00</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" id="startBtn">Start</button>
+            <button class="control-btn secondary" id="resetBtn">Reset</button>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <span>Session:</span>
+                <span class="stat-value" id="sessionCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span>Today:</span>
+                <span class="stat-value" id="todayCount">0</span>
+            </div>
+        </div>
+
+        <button class="settings-toggle" id="settingsToggle">⚙️ Settings</button>
+
+        <div class="settings-panel" id="settingsPanel">
+            <h3>Durations (minutes)</h3>
+            <div class="setting-item">
+                <label>Work:</label>
+                <input type="number" id="workDuration" value="25" min="1" max="90">
+            </div>
+            <div class="setting-item">
+                <label>Short Break:</label>
+                <input type="number" id="shortBreakDuration" value="5" min="1" max="30">
+            </div>
+            <div class="setting-item">
+                <label>Long Break:</label>
+                <input type="number" id="longBreakDuration" value="15" min="1" max="60">
+            </div>
+            <div class="setting-item">
+                <label class="auto-switch-toggle" id="autoSwitchToggle">
+                    <div class="toggle-switch"></div>
+                    <span>Auto-switch work/break</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const durations = {
+            work: 25,
+            'short-break': 5,
+            'long-break': 15
+        };
+
+        let currentMode = 'work';
+        let timeLeft = durations.work * 60;
+        let totalTime = durations.work * 60;
+        let isRunning = false;
+        let interval = null;
+        let sessionCount = 0;
+        let todayCount = 0;
+        let autoSwitch = false;
+        let lastDate = new Date().toDateString();
+
+        const progressRing = document.querySelector('.progress-ring-progress');
+        const radius = progressRing.r.baseVal.value;
+        const circumference = radius * 2 * Math.PI;
+
+        progressRing.style.strokeDasharray = `${circumference} ${circumference}`;
+        progressRing.style.strokeDashoffset = 0;
+
+        function setProgress(percent) {
+            const offset = circumference - (percent / 100) * circumference;
+            progressRing.style.strokeDashoffset = offset;
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function updateDisplay() {
+            document.getElementById('time').textContent = formatTime(timeLeft);
+            const percent = ((totalTime - timeLeft) / totalTime) * 100;
+            setProgress(100 - percent);
+            
+            const modeLabels = {
+                work: 'Focus',
+                'short-break': 'Short Break',
+                'long-break': 'Long Break'
+            };
+            document.getElementById('modeLabel').textContent = modeLabels[currentMode];
+        }
+
+        function playNotification() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            function playBeep(frequency, startTime, duration) {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = frequency;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.3, startTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+                
+                oscillator.start(startTime);
+                oscillator.stop(startTime + duration);
+            }
+
+            const now = audioContext.currentTime;
+            playBeep(800, now, 0.15);
+            playBeep(1000, now + 0.2, 0.15);
+            playBeep(800, now + 0.4, 0.2);
+        }
+
+        function checkDateReset() {
+            const today = new Date().toDateString();
+            if (today !== lastDate) {
+                todayCount = 0;
+                lastDate = today;
+                localStorage.setItem('pomodoroLastDate', lastDate);
+                localStorage.setItem('pomodoroTodayCount', todayCount);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('sessionCount').textContent = sessionCount;
+            document.getElementById('todayCount').textContent = todayCount;
+            localStorage.setItem('pomodoroSessionCount', sessionCount);
+            localStorage.setItem('pomodoroTodayCount', todayCount);
+        }
+
+        function loadStats() {
+            const savedSession = localStorage.getItem('pomodoroSessionCount');
+            const savedToday = localStorage.getItem('pomodoroTodayCount');
+            const savedDate = localStorage.getItem('pomodoroLastDate');
+            
+            if (savedSession) sessionCount = parseInt(savedSession);
+            if (savedToday) todayCount = parseInt(savedToday);
+            if (savedDate) lastDate = savedDate;
+            
+            checkDateReset();
+            updateStats();
+        }
+
+        function switchMode(mode) {
+            currentMode = mode;
+            totalTime = durations[mode] * 60;
+            timeLeft = totalTime;
+            
+            document.body.className = `mode-${mode}`;
+            
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+            
+            updateDisplay();
+        }
+
+        function startTimer() {
+            if (isRunning) {
+                pauseTimer();
+                return;
+            }
+            
+            isRunning = true;
+            document.getElementById('startBtn').textContent = 'Pause';
+            
+            interval = setInterval(() => {
+                timeLeft--;
+                updateDisplay();
+                
+                if (timeLeft <= 0) {
+                    clearInterval(interval);
+                    isRunning = false;
+                    document.getElementById('startBtn').textContent = 'Start';
+                    playNotification();
+                    
+                    if (currentMode === 'work') {
+                        sessionCount++;
+                        todayCount++;
+                        updateStats();
+                        
+                        if (autoSwitch) {
+                            const nextMode = sessionCount % 4 === 0 ? 'long-break' : 'short-break';
+                            switchMode(nextMode);
+                            setTimeout(startTimer, 500);
+                        }
+                    } else if (autoSwitch) {
+                        switchMode('work');
+                        setTimeout(startTimer, 500);
+                    }
+                }
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            isRunning = false;
+            clearInterval(interval);
+            document.getElementById('startBtn').textContent = 'Start';
+        }
+
+        function resetTimer() {
+            pauseTimer();
+            timeLeft = totalTime;
+            updateDisplay();
+        }
+
+        document.getElementById('startBtn').addEventListener('click', startTimer);
+        document.getElementById('resetBtn').addEventListener('click', resetTimer);
+
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                pauseTimer();
+                switchMode(btn.dataset.mode);
+            });
+        });
+
+        document.getElementById('settingsToggle').addEventListener('click', () => {
+            document.getElementById('settingsPanel').classList.toggle('show');
+        });
+
+        document.getElementById('workDuration').addEventListener('change', (e) => {
+            durations.work = Math.max(1, Math.min(90, parseInt(e.target.value) || 25));
+            e.target.value = durations.work;
+            if (currentMode === 'work' && !isRunning) {
+                totalTime = durations.work * 60;
+                timeLeft = totalTime;
+                updateDisplay();
+            }
+        });
+
+        document.getElementById('shortBreakDuration').addEventListener('change', (e) => {
+            durations['short-break'] = Math.max(1, Math.min(30, parseInt(e.target.value) || 5));
+            e.target.value = durations['short-break'];
+            if (currentMode === 'short-break' && !isRunning) {
+                totalTime = durations['short-break'] * 60;
+                timeLeft = totalTime;
+                updateDisplay();
+            }
+        });
+
+        document.getElementById('longBreakDuration').addEventListener('change', (e) => {
+            durations['long-break'] = Math.max(1, Math.min(60, parseInt(e.target.value) || 15));
+            e.target.value = durations['long-break'];
+            if (currentMode === 'long-break' && !isRunning) {
+                totalTime = durations['long-break'] * 60;
+                timeLeft = totalTime;
+                updateDisplay();
+            }
+        });
+
+        document.getElementById('autoSwitchToggle').addEventListener('click', function() {
+            autoSwitch = !autoSwitch;
+            this.classList.toggle('active', autoSwitch);
+            localStorage.setItem('pomodoroAutoSwitch', autoSwitch);
+        });
+
+        // Load saved settings
+        const savedAutoSwitch = localStorage.getItem('pomodoroAutoSwitch');
+        if (savedAutoSwitch === 'true') {
+            autoSwitch = true;
+            document.getElementById('autoSwitchToggle').classList.add('active');
+        }
+
+        loadStats();
+        updateDisplay();
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT') return;
+            
+            if (e.code === 'Space') {
+                e.preventDefault();
+                startTimer();
+            } else if (e.code === 'KeyR') {
+                resetTimer();
+            }
+        });
+
+        // Page visibility API to handle tab switching
+        let tabSwitchTime = null;
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                tabSwitchTime = Date.now();
+            } else if (tabSwitchTime && isRunning) {
+                const elapsed = Math.floor((Date.now() - tabSwitchTime) / 1000);
+                timeLeft = Math.max(0, timeLeft - elapsed);
+                if (timeLeft === 0) {
+                    clearInterval(interval);
+                    isRunning = false;
+                    document.getElementById('startBtn').textContent = 'Start';
+                    playNotification();
+                    
+                    if (currentMode === 'work') {
+                        sessionCount++;
+                        todayCount++;
+                        updateStats();
+                    }
+                }
+                updateDisplay();
+                tabSwitchTime = null;
+            }
+        });
+    </script>
+</body>
+</html>

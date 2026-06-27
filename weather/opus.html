@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Dashboard - Prague</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 300;
+        }
+
+        .location {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #64b5f6;
+        }
+
+        .toggle-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .current-weather {
+            text-align: center;
+        }
+
+        .weather-icon {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 15px;
+        }
+
+        .temperature {
+            font-size: 4.5rem;
+            font-weight: 200;
+            line-height: 1;
+        }
+
+        .temperature span {
+            font-size: 2rem;
+            vertical-align: top;
+            opacity: 0.7;
+        }
+
+        .condition {
+            font-size: 1.3rem;
+            color: #90caf9;
+            margin: 10px 0;
+        }
+
+        .feels-like {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        .weather-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .detail-item {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .detail-icon {
+            width: 30px;
+            height: 30px;
+            margin: 0 auto 8px;
+            opacity: 0.8;
+        }
+
+        .detail-label {
+            font-size: 0.8rem;
+            opacity: 0.6;
+            margin-bottom: 4px;
+        }
+
+        .detail-value {
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .sun-times {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sun-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sun-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .forecast {
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+
+        .forecast-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+
+        .forecast-day {
+            flex: 1;
+            min-width: 100px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 15px 10px;
+            text-align: center;
+        }
+
+        .forecast-day-name {
+            font-size: 0.85rem;
+            opacity: 0.7;
+            margin-bottom: 10px;
+        }
+
+        .forecast-icon {
+            width: 50px;
+            height: 50px;
+            margin: 0 auto 10px;
+        }
+
+        .forecast-temps {
+            font-size: 0.95rem;
+        }
+
+        .forecast-high {
+            font-weight: 500;
+        }
+
+        .forecast-low {
+            opacity: 0.6;
+        }
+
+        .chart-container {
+            height: 200px;
+            position: relative;
+        }
+
+        .temp-chart {
+            width: 100%;
+            height: 100%;
+        }
+
+        .chart-line {
+            fill: none;
+            stroke-width: 3;
+            stroke-linecap: round;
+        }
+
+        .chart-line-high {
+            stroke: #ff7043;
+        }
+
+        .chart-line-low {
+            stroke: #42a5f5;
+        }
+
+        .chart-dot {
+            r: 5;
+            stroke-width: 2;
+            stroke: #1a1a2e;
+        }
+
+        .chart-dot-high {
+            fill: #ff7043;
+        }
+
+        .chart-dot-low {
+            fill: #42a5f5;
+        }
+
+        .chart-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        .air-quality {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .aqi-circle {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .aqi-good {
+            background: linear-gradient(135deg, #4caf50, #66bb6a);
+        }
+
+        .aqi-moderate {
+            background: linear-gradient(135deg, #ff9800, #ffa726);
+        }
+
+        .aqi-poor {
+            background: linear-gradient(135deg, #f44336, #ef5350);
+        }
+
+        .aqi-info {
+            flex: 1;
+        }
+
+        .aqi-status {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .aqi-desc {
+            font-size: 0.85rem;
+            opacity: 0.7;
+        }
+
+        /* SVG Icons */
+        .sun-icon svg {
+            fill: #ffd54f;
+        }
+
+        .cloud-icon svg {
+            fill: #90caf9;
+        }
+
+        .rain-icon svg {
+            fill: #64b5f6;
+        }
+
+        @media (max-width: 480px) {
+            .temperature {
+                font-size: 3.5rem;
+            }
+            
+            .forecast-day {
+                min-width: 70px;
+                padding: 10px 5px;
+            }
+            
+            .forecast-icon {
+                width: 40px;
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="location">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="#64b5f6">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                </svg>
+                <h1>Prague, CZ</h1>
+            </div>
+            <button class="toggle-btn" id="unitToggle">°C / °F</button>
+        </header>
+
+        <div class="main-grid">
+            <div class="card current-weather">
+                <div class="weather-icon" id="currentIcon">
+                    <!-- Sun icon -->
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="20" fill="#ffd54f"/>
+                        <g fill="#ffd54f">
+                            <rect x="47" y="10" width="6" height="15" rx="3"/>
+                            <rect x="47" y="75" width="6" height="15" rx="3"/>
+                            <rect x="10" y="47" width="15" height="6" rx="3"/>
+                            <rect x="75" y="47" width="15" height="6" rx="3"/>
+                            <rect x="20" y="20" width="6" height="15" rx="3" transform="rotate(45 23 27.5)"/>
+                            <rect x="74" y="20" width="6" height="15" rx="3" transform="rotate(-45 77 27.5)"/>
+                            <rect x="20" y="65" width="6" height="15" rx="3" transform="rotate(-45 23 72.5)"/>
+                            <rect x="74" y="65" width="6" height="15" rx="3" transform="rotate(45 77 72.5)"/>
+                        </g>
+                    </svg>
+                </div>
+                <div class="temperature"><span id="currentTemp">22</span><span>°</span></div>
+                <div class="condition">Partly Cloudy</div>
+                <div class="feels-like">Feels like <span id="feelsLike">24</span>°</div>
+                
+                <div class="sun-times">
+                    <div class="sun-item">
+                        <svg class="sun-icon" viewBox="0 0 24 24">
+                            <path fill="#ffd54f" d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM4 10.5H1v2h3v-2zm9-9.95h-2V3.5h2V.55zm7.45 3.91l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zm-3.21 13.7l1.79 1.79 1.41-1.41-1.79-1.79-1.41 1.41zM20 10.5v2h3v-2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm-1 16.95h2V19.5h-2v2.95zm-7.45-3.91l1.41 1.41 1.79-1.8-1.41-1.41-1.79 1.8z"/>
+                        </svg>
+                        <span><span id="sunrise">5:42</span> AM</span>
+                    </div>
+                    <div class="sun-item">
+                        <svg class="sun-icon" viewBox="0 0 24 24">
+                            <path fill="#ff8a65" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                        </svg>
+                        <span><span id="sunset">8:35</span> PM</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Weather Details</h3>
+                <div class="weather-details">
+                    <div class="detail-item">
+                        <svg class="detail-icon" viewBox="0 0 24 24">
+                            <path fill="#64b5f6" d="M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8z"/>
+                        </svg>
+                        <div class="detail-label">Humidity</div>
+                        <div class="detail-value"><span id="humidity">65</span>%</div>
+                    </div>
+                    <div class="detail-item">
+                        <svg class="detail-icon" viewBox="0 0 24 24">
+                            <path fill="#90caf9" d="M12.74 2.32a1 1 0 0 0-1.48 0l-9 10a1 1 0 0 0 .74 1.68h2v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7h2a1 1 0 0 0 .74-1.68l-9-10z"/>
+                            <animateTransform attributeName="transform" type="translate" values="0,0; 3,0; 0,0; 0,0" dur="1s" repeatCount="indefinite"/>
+                        </svg>
+                        <div class="detail-label">Wind</div>
+                        <div class="detail-value"><span id="wind">12</span> km/h</div>
+                    </div>
+                    <div class="detail-item">
+                        <svg class="detail-icon" viewBox="0 0 24 24">
+                            <path fill="#81d4fa" d="M12 2.5s-4 4.5-6 8.5c0 3.31 2.69 6 6 6s6-2.69 6-6c-2-4-6-8.5-6-8.5zM12 16c-1.66 0-3-1.34-3-3 0-1.5 1.5-4 3-6 1.5 2 3 4.5 3 6 0 1.66-1.34 3-3 3z"/>
+                        </svg>
+                        <div class="detail-label">UV Index</div>
+                        <div class="detail-value"><span id="uv">5</span> Moderate</div>
+                    </div>
+                    <div class="detail-item">
+                        <svg class="detail-icon" viewBox="0 0 24 24">
+                            <path fill="#b0bec5" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                        </svg>
+                        <div class="detail-label">Pressure</div>
+                        <div class="detail-value"><span id="pressure">1015</span> hPa</div>
+                    </div>
+                </div>
+
+                <div class="air-quality" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <div class="aqi-circle aqi-good" id="aqiCircle">42</div>
+                    <div class="aqi-info">
+                        <div class="aqi-status" id="aqiStatus">Good</div>
+                        <div class="aqi-desc">Air quality is satisfactory</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card forecast">
+            <h3 class="card-title">5-Day Forecast</h3>
+            <div class="forecast-row" id="forecastRow">
+                <!-- Generated by JS -->
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 class="card-title">Temperature Trend</h3>
+            <div class="chart-container">
+                <svg class="temp-chart" id="tempChart" viewBox="0 0 500 180">
+                    <!-- Generated by JS -->
+                </svg>
+            </div>
+            <div class="chart-labels" id="chartLabels">
+                <!-- Generated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Weather data for Prague
+        const weatherData = {
+            current: {
+                tempC: 22,
+                feelsLikeC: 24,
+                humidity: 65,
+                windKmh: 12,
+                uv: 5,
+                pressure: 1015,
+                aqi: 42,
+                sunrise: '5:42',
+                sunset: '8:35',
+                condition: 'partlyCloudy'
+            },
+            forecast: [
+                { day: 'Today', highC: 24, lowC: 15, condition: 'sunny' },
+                { day: 'Tomorrow', highC: 22, lowC: 14, condition: 'cloudy' },
+                { day: 'Friday', highC: 19, lowC: 12, condition: 'rainy' },
+                { day: 'Saturday', highC: 21, lowC: 13, condition: 'partlyCloudy' },
+                { day: 'Sunday', highC: 25, lowC: 16, condition: 'sunny' }
+            ]
+        };
+
+        let isCelsius = true;
+
+        // Convert Celsius to Fahrenheit
+        function toFahrenheit(c) {
+            return Math.round((c * 9/5) + 32);
+        }
+
+        // Get temperature based on unit
+        function getTemp(celsius) {
+            return isCelsius ? celsius : toFahrenheit(celsius);
+        }
+
+        // Get unit symbol
+        function getUnit() {
+            return isCelsius ? '°C' : '°F';
+        }
+
+        // Get wind unit
+        function getWindUnit() {
+            return isCelsius ? 'km/h' : 'mph';
+        }
+
+        // Get wind value
+        function getWind(kmh) {
+            if (isCelsius) return kmh;
+            return Math.round(kmh * 0.621371);
+        }
+
+        // SVG icons for conditions
+        function getIcon(condition, size = 50) {
+            const icons = {
+                sunny: `<svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="18" fill="#ffd54f"/>
+                    <g fill="#ffd54f">
+                        <rect x="47" y="12" width="6" height="14" rx="3"/>
+                        <rect x="47" y="74" width="6" height="14" rx="3"/>
+                        <rect x="12" y="47" width="14" height="6" rx="3"/>
+                        <rect x="74" y="47" width="14" height="6" rx="3"/>
+                        <rect x="22" y="22" width="6" height="14" rx="3" transform="rotate(45 25 29)"/>
+                        <rect x="72" y="22" width="6" height="14" rx="3" transform="rotate(-45 75 29)"/>
+                        <rect x="22" y="64" width="6" height="14" rx="3" transform="rotate(-45 25 71)"/>
+                        <rect x="72" y="64" width="6" height="14" rx="3" transform="rotate(45 75 71)"/>
+                    </g>
+                </svg>`,
+                cloudy: `<svg viewBox="0 0 100 100">
+                    <ellipse cx="50" cy="55" rx="35" ry="22" fill="#90caf9"/>
+                    <ellipse cx="35" cy="50" rx="20" ry="18" fill="#90caf9"/>
+                    <ellipse cx="65" cy="48" rx="18" ry="15" fill="#90caf9"/>
+                    <ellipse cx="50" cy="42" rx="22" ry="18" fill="#b3e5fc"/>
+                </svg>`,
+                partlyCloudy: `<svg viewBox="0 0 100 100">
+                    <circle cx="35" cy="35" r="15" fill="#ffd54f"/>
+                    <g fill="#ffd54f">
+                        <rect x="32" y="10" width="5" height="10" rx="2.5"/>
+                        <rect x="32" y="50" width="5" height="10" rx="2.5"/>
+                        <rect x="12" y="32" width="10" height="5" rx="2.5"/>
+                        <rect x="48" y="32" width="10" height="5" rx="2.5"/>
+                    </g>
+                    <ellipse cx="60" cy="60" rx="28" ry="18" fill="#90caf9"/>
+                    <ellipse cx="45" cy="55" rx="18" ry="15" fill="#90caf9"/>
+                    <ellipse cx="72" cy="53" rx="15" ry="12" fill="#b3e5fc"/>
+                </svg>`,
+                rainy: `<svg viewBox="0 0 100 100">
+                    <ellipse cx="50" cy="40" rx="30" ry="20" fill="#78909c"/>
+                    <ellipse cx="35" cy="38" rx="18" ry="15" fill="#78909c"/>
+                    <ellipse cx="65" cy="35" rx="15" ry="12" fill="#90a4ae"/>
+                    <g fill="#64b5f6">
+                        <ellipse cx="35" cy="70" rx="3" ry="5">
+                            <animate attributeName="cy" values="65;80;65" dur="1s" repeatCount="indefinite"/>
+                            <animate attributeName="opacity" values="1;0.3;1" dur="1s" repeatCount="indefinite"/>
+                        </ellipse>
+                        <ellipse cx="50" cy="75" rx="3" ry="5">
+                            <animate attributeName="cy" values="70;85;70" dur="0.8s" repeatCount="indefinite"/>
+                            <animate attributeName="opacity" values="1;0.3;1" dur="0.8s" repeatCount="indefinite"/>
+                        </ellipse>
+                        <ellipse cx="65" cy="70" rx="3" ry="5">
+                            <animate attributeName="cy" values="65;80;65" dur="1.2s" repeatCount="indefinite"/>
+                            <animate attributeName="opacity" values="1;0.3;1" dur="1.2s" repeatCount="indefinite"/>
+                        </ellipse>
+                    </g>
+                </svg>`
+            };
+            return icons[condition] || icons.sunny;
+        }
+
+        // Update current weather display
+        function updateCurrentWeather() {
+            document.getElementById('currentTemp').textContent = getTemp(weatherData.current.tempC);
+            document.getElementById('feelsLike').textContent = getTemp(weatherData.current.feelsLikeC);
+            document.getElementById('humidity').textContent = weatherData.current.humidity;
+            document.getElementById('wind').textContent = getWind(weatherData.current.windKmh);
+            document.getElementById('wind').nextSibling.textContent = ' ' + getWindUnit();
+            document.getElementById('uv').textContent = weatherData.current.uv;
+            document.getElementById('pressure').textContent = weatherData.current.pressure;
+
+            // AQI color
+            const aqi = weatherData.current.aqi;
+            const aqiCircle = document.getElementById('aqiCircle');
+            const aqiStatus = document.getElementById('aqiStatus');
+            
+            aqiCircle.className = 'aqi-circle';
+            if (aqi <= 50) {
+                aqiCircle.classList.add('aqi-good');
+                aqiStatus.textContent = 'Good';
+            } else if (aqi <= 100) {
+                aqiCircle.classList.add('aqi-moderate');
+                aqiStatus.textContent = 'Moderate';
+            } else {
+                aqiCircle.classList.add('aqi-poor');
+                aqiStatus.textContent = 'Poor';
+            }
+        }
+
+        // Render forecast
+        function renderForecast() {
+            const container = document.getElementById('forecastRow');
+            container.innerHTML = weatherData.forecast.map(day => `
+                <div class="forecast-day">
+                    <div class="forecast-day-name">${day.day}</div>
+                    <div class="forecast-icon">${getIcon(day.condition)}</div>
+                    <div class="forecast-temps">
+                        <span class="forecast-high">${getTemp(day.highC)}°</span>
+                        <span class="forecast-low">/ ${getTemp(day.lowC)}°</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Render temperature chart
+        function renderChart() {
+            const svg = document.getElementById('tempChart');
+            const labelsContainer = document.getElementById('chartLabels');
+            const width = 500;
+            const height = 180;
+            const padding = 40;
+
+            const temps = weatherData.forecast;
+            const allHighs = temps.map(d => getTemp(d.highC));
+            const allLows = temps.map(d => getTemp(d.lowC));
+            
+            const maxTemp = Math.max(...allHighs) + 5;
+            const minTemp = Math.min(...allLows) - 5;
+            const range = maxTemp - minTemp;
+
+            function getY(temp) {
+                return height - padding - ((temp - minTemp) / range) * (height - 2 * padding);
+            }
+
+            function getX(index) {
+                return padding + (index / (temps.length - 1)) * (width - 2 * padding);
+            }
+
+            // Generate points for lines
+            const highPoints = temps.map((d, i) => `${getX(i)},${getY(getTemp(d.highC))}`).join(' ');
+            const lowPoints = temps.map((d, i) => `${getX(i)},${getY(getTemp(d.lowC))}`).join(' ');
+
+            svg.innerHTML = `
+                <!-- Grid lines -->
+                ${[0, 1, 2, 3, 4].map(i => `
+                    <line x1="${padding}" y1="${padding + i * (height - 2 * padding) / 4}" 
+                          x2="${width - padding}" y2="${padding + i * (height - 2 * padding) / 4}" 
+                          stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+                `).join('')}
+
+                <!-- High temp line -->
+                <polyline points="${highPoints}" class="chart-line chart-line-high"/>
+                
+                <!-- Low temp line -->
+                <polyline points="${lowPoints}" class="chart-line chart-line-low"/>
+
+                <!-- High temp dots and labels -->
+                ${temps.map((d, i) => `
+                    <circle cx="${getX(i)}" cy="${getY(getTemp(d.highC))}" class="chart-dot chart-dot-high"/>
+                    <text x="${getX(i)}" y="${getY(getTemp(d.highC)) - 12}" fill="#ff7043" 
+                          text-anchor="middle" font-size="12">${getTemp(d.highC)}°</text>
+                `).join('')}
+
+                <!-- Low temp dots and labels -->
+                ${temps.map((d, i) => `
+                    <circle cx="${getX(i)}" cy="${getY(getTemp(d.lowC))}" class="chart-dot chart-dot-low"/>
+                    <text x="${getX(i)}" y="${getY(getTemp(d.lowC)) + 20}" fill="#42a5f5" 
+                          text-anchor="middle" font-size="12">${getTemp(d.lowC)}°</text>
+                `).join('')}
+            `;
+
+            labelsContainer.innerHTML = temps.map(d => `<span>${d.day.substring(0, 3)}</span>`).join('');
+        }
+
+        // Toggle unit
+        document.getElementById('unitToggle').addEventListener('click', () => {
+            isCelsius = !isCelsius;
+            updateCurrentWeather();
+            renderForecast();
+            renderChart();
+        });
+
+        // Initial render
+        updateCurrentWeather();
+        renderForecast();
+        renderChart();
+    </script>
+</body>
+</html>

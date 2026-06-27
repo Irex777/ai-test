@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculator</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #14141c;
+    --surface-2: #1c1c28;
+    --display-bg: #08080d;
+    --accent: #ff6b35;
+    --accent-glow: rgba(255, 107, 53, 0.4);
+    --accent-2: #4ade80;
+    --text: #f5f5fa;
+    --text-dim: #6b6b80;
+    --border: #2a2a3a;
+    --danger: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse 600px 400px at 15% 10%, rgba(255, 107, 53, 0.08), transparent 60%),
+      radial-gradient(ellipse 500px 500px at 85% 90%, rgba(74, 222, 128, 0.05), transparent 60%),
+      radial-gradient(ellipse 400px 300px at 50% 50%, rgba(120, 80, 200, 0.04), transparent 70%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    color: var(--text);
+    padding: 20px;
+    overflow: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .calculator {
+    width: 100%;
+    max-width: 420px;
+    background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+    border-radius: 24px;
+    padding: 22px;
+    box-shadow:
+      0 30px 80px rgba(0, 0, 0, 0.6),
+      0 0 0 1px var(--border),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    position: relative;
+    z-index: 1;
+    animation: appear 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes appear {
+    from { opacity: 0; transform: translateY(20px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .display {
+    background: var(--display-bg);
+    border-radius: 16px;
+    padding: 20px 22px;
+    margin-bottom: 16px;
+    min-height: 130px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: flex-end;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+  }
+  .display::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -20%;
+    width: 60%;
+    height: 100%;
+    background: radial-gradient(ellipse, rgba(255, 107, 53, 0.06), transparent 70%);
+    pointer-events: none;
+  }
+  .memory-indicator {
+    position: absolute;
+    top: 14px;
+    left: 18px;
+    font-size: 10px;
+    color: var(--accent-2);
+    font-weight: 700;
+    letter-spacing: 2px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    padding: 3px 8px;
+    background: rgba(74, 222, 128, 0.1);
+    border-radius: 4px;
+    border: 1px solid rgba(74, 222, 128, 0.3);
+  }
+  .memory-indicator.active { opacity: 1; }
+  .history {
+    color: var(--text-dim);
+    font-size: 15px;
+    min-height: 22px;
+    font-weight: 400;
+    text-align: right;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+  }
+  .current {
+    color: var(--text);
+    font-size: 46px;
+    font-weight: 300;
+    text-align: right;
+    width: 100%;
+    line-height: 1.1;
+    margin-top: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: -1px;
+    transition: color 0.2s;
+  }
+  .current.error {
+    color: var(--danger);
+    font-size: 28px;
+    animation: shake 0.4s;
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+  }
+  .memory-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .buttons {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+  button {
+    height: 60px;
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, #232333 0%, #1a1a26 100%);
+    color: var(--text);
+    font-size: 19px;
+    font-weight: 500;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: transform 0.08s ease, background 0.15s ease, box-shadow 0.15s ease;
+    font-family: inherit;
+    position: relative;
+    overflow: hidden;
+  }
+  button::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(255,255,255,0.1), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  button:hover {
+    background: linear-gradient(180deg, #2c2c3c 0%, #22222e 100%);
+    transform: translateY(-1px);
+  }
+  button:hover::after { opacity: 1; }
+  button:active {
+    transform: translateY(0) scale(0.96);
+  }
+  button.mem {
+    background: linear-gradient(180deg, #1a1a26 0%, #14141e 100%);
+    color: var(--accent-2);
+    font-size: 13px;
+    font-weight: 700;
+    height: 42px;
+    letter-spacing: 1px;
+    border-color: rgba(74, 222, 128, 0.15);
+  }
+  button.mem:hover {
+    background: linear-gradient(180deg, #1f1f2e 0%, #181822 100%);
+    box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.3);
+  }
+  button.op {
+    color: var(--accent);
+    background: linear-gradient(180deg, #2a1f1a 0%, #1f1812 100%);
+    border-color: rgba(255, 107, 53, 0.2);
+    font-weight: 600;
+  }
+  button.op:hover {
+    background: linear-gradient(180deg, #3a2a20 0%, #2a1f18 100%);
+    box-shadow: 0 0 0 1px rgba(255, 107, 53, 0.4);
+  }
+  button.op.active {
+    background: linear-gradient(180deg, var(--accent) 0%, #e85525 100%);
+    color: white;
+    box-shadow: 0 0 20px var(--accent-glow);
+  }
+  button.equals {
+    background: linear-gradient(180deg, var(--accent) 0%, #d94f1f 100%);
+    color: white;
+    font-weight: 700;
+    box-shadow: 0 4px 16px var(--accent-glow);
+    border-color: transparent;
+  }
+  button.equals:hover {
+    background: linear-gradient(180deg, #ff7a45 0%, #e85a2a 100%);
+    box-shadow: 0 6px 24px var(--accent-glow);
+  }
+  button.fn {
+    color: var(--text-dim);
+    background: linear-gradient(180deg, #1a1a26 0%, #14141e 100%);
+    font-size: 16px;
+  }
+  button.fn:hover {
+    color: var(--text);
+    background: linear-gradient(180deg, #232333 0%, #1c1c28 100%);
+  }
+  button.danger:hover {
+    color: var(--danger);
+    box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.3);
+  }
+  .footer {
+    text-align: center;
+    margin-top: 14px;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+  @media (max-width: 400px) {
+    .calculator { padding: 16px; border-radius: 20px; }
+    button { height: 52px; font-size: 17px; border-radius: 12px; }
+    button.mem { height: 38px; font-size: 12px; }
+    .current { font-size: 38px; }
+    .display { padding: 16px 18px; min-height: 110px; }
+    .buttons { gap: 6px; }
+    .memory-row { gap: 6px; }
+  }
+</style>
+</head>
+<body>
+  <div class="calculator">
+    <div class="display">
+      <div class="memory-indicator" id="memInd">M</div>
+      <div class="history" id="history"></div>
+      <div class="current" id="current">0</div>
+    </div>
+    <div class="memory-row">
+      <button class="mem" data-action="mc">MC</button>
+      <button class="mem" data-action="mr">MR</button>
+      <button class="mem" data-action="mplus">M+</button>
+      <button class="mem" data-action="mminus">M−</button>
+    </div>
+    <div class="buttons">
+      <button class="fn danger" data-action="ce">CE</button>
+      <button class="fn danger" data-action="c">C</button>
+      <button class="fn" data-action="backspace">⌫</button>
+      <button class="fn" data-action="percent">%</button>
+      <button class="op" data-op="/">÷</button>
+
+      <button data-num="7">7</button>
+      <button data-num="8">8</button>
+      <button data-num="9">9</button>
+      <button class="fn" data-action="negate">±</button>
+      <button class="op" data-op="*">×</button>
+
+      <button data-num="4">4</button>
+      <button data-num="5">5</button>
+      <button data-num="6">6</button>
+      <button class="op" data-op="^">xʸ</button>
+      <button class="op" data-op="-">−</button>
+
+      <button data-num="1">1</button>
+      <button data-num="2">2</button>
+      <button data-num="3">3</button>
+      <button class="op" data-action="sqrt">√</button>
+      <button class="op" data-op="+">+</button>
+
+      <button data-num="0" style="grid-column: span 2;">0</button>
+      <button data-action="decimal">.</button>
+      <button class="op" data-action="reciprocal">1/x</button>
+      <button class="equals" data-action="equals">=</button>
+    </div>
+    <div class="footer">Keyboard ready · Enter = · Esc = C</div>
+  </div>
+
+<script>
+  const state = {
+    current: '0',
+    history: '',
+    operator: null,
+    waitingForOperand: false,
+    justEvaluated: false,
+    memory: 0,
+    hasError: false
+  };
+
+  const currentEl = document.getElementById('current');
+  const historyEl = document.getElementById('history');
+  const memInd = document.getElementById('memInd');
+
+  const opSymbols = { '+': '+', '-': '−', '*': '×', '/': '÷', '^': '^' };
+
+  function format(num) {
+    if (!isFinite(num) || isNaN(num)) return 'Error';
+    if (num === 0) return '0';
+    const absNum = Math.abs(num);
+    if (absNum < 1e-10 || absNum >= 1e15) return num.toExponential(8).replace(/\.?0+e/, 'e');
+    let str = (Math.round((num + Number.EPSILON) * 1e12) / 1e12).toString();
+    if (str.includes('.') && !str.includes('e') && str.length > 14) {
+      const [int, dec] = str.split('.');
+      str = int + '.' + dec.slice(0, Math.max(0, 14 - int.length));
+    }
+    return str;
+  }
+
+  function updateDisplay() {
+    currentEl.textContent = state.current;
+    historyEl.textContent = state.history;
+    currentEl.classList.toggle('error', state.hasError);
+    memInd.classList.toggle('active', state.memory !== 0);
+    document.querySelectorAll('button.op').forEach(btn => {
+      const op = btn.dataset.op;
+      btn.classList.toggle('active', op === state.operator && state.waitingForOperand);
+    });
+  }
+
+  function inputNumber(num) {
+    if (state.hasError) clearAll();
+    if (state.justEvaluated) { state.current = '0'; state.justEvaluated = false; }
+    if (state.waitingForOperand) { state.current = num; state.waitingForOperand = false; }
+    else {
+      if (state.current.replace('-', '').replace('.', '').length >= 15) return;
+      state.current = state.current === '0' ? num : state.current + num;
+    }
+  }
+
+  function inputDecimal() {
+    if (state.hasError) clearAll();
+    if (state.justEvaluated) { state.current = '0'; state.justEvaluated = false; }
+    if (state.waitingForOperand) { state.current = '0.'; state.waitingForOperand = false; return; }
+    if (!state.current.includes('.')) state.current += '.';
+  }
+
+  function compute(a, b, op) {
+    switch (op) {
+      case '+': return a + b;
+      case '-': return a - b;
+      case '*': return a * b;
+      case '/': if (b === 0) return null; return a / b;
+      case '^': return Math.pow(a, b);
+    }
+  }
+
+  function precedence(op) { return (op === '+' || op === '-') ? 1 : 2; }
+
+  function evaluateChain() {
+    if (!state.history) return parseFloat(state.current);
+    let expr = state.history + ' ' + state.current;
+    const tokens = expr.split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) return parseFloat(state.current);
+    if (tokens.length === 1) return parseFloat(tokens[0]);
+
+    let values = [parseFloat(tokens[0])];
+    let ops = [];
+    for (let i = 1; i < tokens.length; i += 2) {
+      const op = tokens[i];
+      const num = parseFloat(tokens[i + 1]);
+      while (ops.length && precedence(ops[ops.length - 1]) >= precedence(op)) {
+        const prevOp = ops.pop();
+        const b = values.pop();
+        const a = values.pop();
+        const r = compute(a, b, prevOp);
+        if (r === null || !isFinite(r)) return null;
+        values.push(r);
+      }
+      ops.push(op);
+      values.push(num);
+    }
+    while (ops.length) {
+      const op = ops.pop();
+      const b = values.pop();
+      const a = values.pop();
+      const r = compute(a, b, op);
+      if (r === null || !isFinite(r)) return null;
+      values.push(r);
+    }
+    return values[0];
+  }
+
+  function inputOperator(op) {
+    if (state.hasError) return;
+    const current = parseFloat(state.current);
+    if (state.waitingForOperand && state.history) {
+      state.history = state.history.replace(/[\+\-\*\/\^]\s*$/, '') + opSymbols[op] + ' ';
+      state.operator = op;
+      updateDisplay();
+      return;
+    }
+    if (state.justEvaluated) {
+      state.history = format(current) + ' ' + opSymbols[op] + ' ';
+      state.justEvaluated = false;
+    } else if (state.history) {
+      const result = evaluateChain();
+      if (result === null) { showError(); return; }
+      state.history = format(result) + ' ' + opSymbols[op] + ' ';
+    } else {
+      state.history = format(current) + ' ' + opSymbols[op] + ' ';
+    }
+    state.operator = op;
+    state.waitingForOperand = true;
+  }
+
+  function evaluate() {
+    if (state.hasError) return;
+    if (!state.history) return;
+    const result = evaluateChain();
+    if (result === null) { showError(); return; }
+    const fullExpr = state.history + state.current + ' =';
+    state.current = format(result);
+    state.history = fullExpr;
+    state.justEvaluated = true;
+    state.waitingForOperand = false;
+    state.operator = null;
+  }
+
+  function showError() {
+    state.hasError = true;
+    state.current = 'Error';
+    state.history = '';
+    state.waitingForOperand = false;
+    state.operator = null;
+    updateDisplay();
+  }
+
+  function clearAll() {
+    state.current = '0';
+    state.history = '';
+    state.operator = null;
+    state.waitingForOperand = false;
+    state.justEvaluated = false;
+    state.hasError = false;
+  }
+
+  function clearEntry() {
+    if (state.hasError) { clearAll(); return; }
+    state.current = '0';
+    state.justEvaluated = false;
+    state.waitingForOperand = false;
+  }
+
+  function backspace() {
+    if (state.hasError) { clearAll(); return; }
+    if (state.justEvaluated || state.waitingForOperand) return;
+    if (state.current.length <= 1 || (state.current.length === 2 && state.current.startsWith('-'))) {
+      state.current = '0';
+    } else {
+      state.current = state.current.slice(0, -1);
+      if (state.current === '-') state.current = '0';
+    }
+  }
+
+  function percent() {
+    if (state.hasError) return;
+    let result;
+    if (state.history) {
+      const base = parseFloat(state.history);
+      result = base * parseFloat(state.current) / 100;
+    } else {
+      result = parseFloat(state.current) / 100;
+    }
+    state.current = format(result);
+    state.justEvaluated = false;
+  }
+
+  function negate() {
+    if (state.hasError) return;
+    if (state.current === '0') return;
+    state.current = state.current.startsWith('-')
+      ? state.current.slice(1)
+      : '-' + state.current;
+  }
+
+  function sqrt() {
+    if (state.hasError) return;
+    const val = parseFloat(state.current);
+    if (val < 0) { showError(); return; }
+    state.current = format(Math.sqrt(val));
+    state.justEvaluated = false;
+  }
+
+  function reciprocal() {
+    if (state.hasError) return;
+    const val = parseFloat(state.current);
+    if (val === 0) { showError(); return; }
+    state.current = format(1 / val);
+    state.justEvaluated = false;
+  }
+
+  function memoryRecall() {
+    if (state.hasError) return;
+    state.current = format(state.memory);
+    state.waitingForOperand = false;
+    state.justEvaluated = false;
+  }
+
+  function memoryAdd(sign) {
+    if (state.hasError) return;
+    state.memory += sign * parseFloat(state.current);
+    state.justEvaluated = false;
+  }
+
+  function memoryClear() { state.memory = 0; }
+
+  document.querySelector('.calculator').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    if (btn.dataset.num !== undefined) inputNumber(btn.dataset.num);
+    else if (btn.dataset.op) inputOperator(btn.dataset.op);
+    else if (btn.dataset.action) {
+      switch (btn.dataset.action) {
+        case 'equals': evaluate(); break;
+        case 'c': clearAll(); break;
+        case 'ce': clearEntry(); break;
+        case 'backspace': backspace(); break;
+        case 'decimal': inputDecimal(); break;
+        case 'percent': percent(); break;
+        case 'negate': negate(); break;
+        case 'sqrt': sqrt(); break;
+        case 'reciprocal': reciprocal(); break;
+        case 'mc': memoryClear(); break;
+        case 'mr': memoryRecall(); break;
+        case 'mplus': memoryAdd(1); break;
+        case 'mminus': memoryAdd(-1); break;
+      }
+    }
+    updateDisplay();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    const k = e.key;
+    if (k >= '0' && k <= '9') { inputNumber(k); e.preventDefault(); }
+    else if (k === '.') { inputDecimal(); e.preventDefault(); }
+    else if (k === '+' || k === '-' || k === '*' || k === '/') { inputOperator(k); e.preventDefault(); }
+    else if (k === '^') { inputOperator('^'); e.preventDefault(); }
+    else if (k === 'Enter' || k === '=') { evaluate(); e.preventDefault(); }
+    else if (k === 'Escape') { clearAll(); e.preventDefault(); }
+    else if (k === 'Backspace') { backspace(); e.preventDefault(); }
+    else if (k === '%') { percent(); e.preventDefault(); }
+    else if (k === '_') { negate(); e.preventDefault(); }
+    updateDisplay();
+  });
+
+  updateDisplay();
+</script>
+</body>
+</html>

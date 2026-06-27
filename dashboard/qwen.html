@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #3b82f6;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --border: #334155;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        /* Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            grid-template-rows: auto 1fr 1fr;
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        /* Sidebar / Filters */
+        .sidebar {
+            grid-row: 1 / -1;
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        select, button {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        button:hover {
+            border-color: var(--primary);
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+
+        button.primary-btn {
+            background-color: var(--primary);
+            border: none;
+            color: white;
+            font-weight: 600;
+        }
+
+        button.primary-btn:hover {
+            background-color: #2563eb;
+        }
+
+        .status-indicator {
+            margin-top: auto;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pulse {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent);
+            border-radius: 50%;
+            animation: pulse-animation 2s infinite;
+        }
+
+        @keyframes pulse-animation {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+        }
+
+        /* KPI Cards */
+        .kpi-container {
+            grid-column: 2;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            border-color: var(--primary);
+        }
+
+        .kpi-title {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .trend {
+            font-size: 0.85rem;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .trend.positive { color: var(--accent); }
+        .trend.negative { color: var(--danger); }
+
+        /* Chart Section */
+        .chart-section {
+            grid-column: 2;
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            min-height: 350px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-header {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .chart-container {
+            flex-grow: 1;
+            position: relative;
+            width: 100%;
+        }
+
+        /* Activity Feed */
+        .activity-section {
+            grid-column: 2;
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .activity-list {
+            list-style: none;
+            margin-top: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .activity-item:last-child { border-bottom: none; }
+
+        .activity-time {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .tag {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .tag-order { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .tag-user { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+        .tag-alert { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                grid-row: auto;
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: center;
+                justify-content: space-between;
+            }
+            .filter-group { flex-direction: row; align-items: center; }
+            .status-indicator { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-grid">
+        <!-- Sidebar / Controls -->
+        <aside class="sidebar">
+            <div class="brand">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>
+                AnalyticsPro
+            </div>
+            
+            <div class="filter-group">
+                <label>Date Range</label>
+                <select id="dateRange">
+                    <option value="7d">Last 7 Days</option>
+                    <option value="30d" selected>Last 30 Days</option>
+                    <option value="90d">Last Quarter</option>
+                    <option value="1y">Last Year</option>
+                </select>
+            </div>
+
+            <button id="exportBtn" class="primary-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:5px; vertical-align: middle;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export Data
+            </button>
+
+            <div class="status-indicator">
+                <div class="pulse"></div>
+                <span id="refreshTimer">Next refresh: 5s</span>
+            </div>
+        </aside>
+
+        <!-- Header -->
+        <header class="header">
+            <h1>Dashboard Overview</h1>
+            <div style="color: var(--text-muted); font-size: 0.9rem;" id="currentDate"></div>
+        </header>
+
+        <!-- KPI Cards -->
+        <div class="kpi-container">
+            <div class="card">
+                <div class="kpi-title">Total Revenue</div>
+                <div class="kpi-value" id="kpi-revenue">$0</div>
+                <div class="trend positive">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></polyline><polyline points="17 6 23 6 23 12"/></svg>
+                    <span>+12.5% vs last period</span>
+                </div>
+            </div>
+            <div class="card">
+                <div class="kpi-title">Active Users</div>
+                <div class="kpi-value" id="kpi-users">0</div>
+                <div class="trend positive">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></polyline><polyline points="17 6 23 6 23 12"/></svg>
+                    <span>+5.2% vs last period</span>
+                </div>
+            </div>
+            <div class="card">
+                <div class="kpi-title">Total Orders</div>
+                <div class="kpi-value" id="kpi-orders">0</div>
+                <div class="trend negative">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/></polyline><polyline points="17 18 23 18 23 12"/></svg>
+                    <span>-2.1% vs last period</span>
+                </div>
+            </div>
+            <div class="card">
+                <div class="kpi-title">Growth Rate</div>
+                <div class="kpi-value" id="kpi-growth">0%</div>
+                <div class="trend positive">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></polyline><polyline points="17 6 23 6 23 12"/></svg>
+                    <span>Steady increase</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart Section -->
+        <div class="chart-section">
+            <div class="chart-header">
+                <h3>Revenue Trend</h3>
+                <div style="display:flex; gap:10px; font-size:0.8rem; color:var(--text-muted);">
+                    <span style="display:flex; align-items:center; gap:5px;"><span style="width:10px; height:10px; background:var(--primary); display:inline-block;"></span> Current</span>
+                    <span style="display:flex; align-items:center; gap:5px;"><span style="width:10px; height:10px; background:var(--text-muted); display:inline-block;"></span> Previous</span>
+                </div>
+            </div>
+            <div class="chart-container" id="revenueChart"></div>
+        </div>
+
+        <!-- Activity Feed -->
+        <div class="activity-section">
+            <h3>Recent Activity</h3>
+            <ul class="activity-list" id="activityList">
+                <!-- Items injected via JS -->
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // --- Data State ---
+        const state = {
+            revenue: 847000,
+            users: 12400,
+            orders: 3200,
+            growth: 24,
+            chartData: [65, 59, 80, 81, 56, 55, 40, 75, 90, 100, 85, 110], // Arbitrary data points
+            refreshInterval: 5000,
+            timer: 5
+        };
+
+        const activities = [
+            { type: 'order', msg: 'New order #9923 placed', time: '2m ago' },
+            { type: 'user', msg: 'New user registration', time: '5m ago' },
+            { type: 'alert', msg: 'Server load spike detected', time: '12m ago' },
+            { type: 'order', msg: 'Order #9921 shipped', time: '15m ago' },
+            { type: 'user', msg: 'User subscription upgraded', time: '22m ago' },
+            { type: 'order', msg: 'Refund processed for #9910', time: '30m ago' },
+            { type: 'alert', msg: 'Payment gateway latency', time: '45m ago' },
+            { type: 'order', msg: 'New order #9905 placed', time: '1h ago' },
+            { type: 'user', msg: 'Daily report generated', time: '2h ago' },
+            { type: 'order', msg: 'Bulk import completed', time: '3h ago' },
+        ];
+
+        // --- DOM Elements ---
+        const els = {
+            revenue: document.getElementById('kpi-revenue'),
+            users: document.getElementById('kpi-users'),
+            orders: document.getElementById('kpi-orders'),
+            growth: document.getElementById('kpi-growth'),
+            chart: document.getElementById('revenueChart'),
+            activity: document.getElementById('activityList'),
+            timer: document.getElementById('refreshTimer'),
+            date: document.getElementById('currentDate'),
+            exportBtn: document.getElementById('exportBtn'),
+            dateRange: document.getElementById('dateRange')
+        };
+
+        // --- Initialization ---
+        function init() {
+            // Set current date
+            const now = new Date();
+            els.date.textContent = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+            animateKPIs();
+            renderActivity();
+            drawChart();
+            
+            // Start Auto Refresh
+            startAutoRefresh();
+
+            // Event Listeners
+            els.dateRange.addEventListener('change', handleDataChange);
+            els.exportBtn.addEventListener('click', handleExport);
+        }
+
+        // --- KPI Animation Logic ---
+        function animateKPIs() {
+            animateValue(els.revenue, 0, state.revenue, 2000, '$', 'K', true);
+            animateValue(els.users, 0, state.users, 2000, '', 'K', true);
+            animateValue(els.orders, 0, state.orders, 2000, '', 'K', true);
+            animateValue(els.growth, 0, state.growth, 2000, '', '%', false);
+        }
+
+        function animateValue(obj, start, end, duration, prefix = '', suffix = '', isLarge = false) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const value = Math.floor(progress * (end - start) + start);
+                
+                let displayValue = value;
+                if (isLarge && value >= 1000) {
+                    displayValue = (value / 1000).toFixed(1);
+                }
+
+                obj.innerHTML = `${prefix}${displayValue}${suffix}`;
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        // --- SVG Chart Logic ---
+        function drawChart() {
+            const width = els.chart.clientWidth;
+            const height = els.chart.clientHeight;
+            const padding = 20;
+            
+            // Normalize data for SVG
+            const maxVal = Math.max(...state.chartData) * 1.2; // Add headroom
+            const points = state.chartData.map((val, i) => {
+                const x = (i / (state.chartData.length - 1)) * (width - padding * 2) + padding;
+                const y = height - ((val / maxVal) * (height - padding * 2)) - padding;
+                return `${x},${y}`;
+            }).join(' ');
+
+            // Create Area path (closed)
+            const areaPoints = `${padding},${height} ${points} ${width - padding},${height}`;
+
+            const svgContent = `
+                <svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+                    <defs>
+                        <linearGradient id="gradient" x1="0" x2="0" y1="0" y2="1">
+                            <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.3"/>
+                            <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
+                        </linearGradient>
+                    </defs>
+                    <!-- Grid Lines -->
+                    <line x1="${padding}" y1="${height/4}" x2="${width-padding}" y2="${height/4}" stroke="#334155" stroke-width="1" stroke-dasharray="4"/>
+                    <line x1="${padding}" y1="${height/2}" x2="${width-padding}" y2="${height/2}" stroke="#334155" stroke-width="1" stroke-dasharray="4"/>
+                    <line x1="${padding}" y1="${height*0.75}" x2="${width-padding}" y2="${height*0.75}" stroke="#334155" stroke-width="1" stroke-dasharray="4"/>
+
+                    <!-- Area Fill -->
+                    <polygon points="${areaPoints}" fill="url(#gradient)" />
+                    
+                    <!-- Line -->
+                    <polyline points="${points}" fill="none" stroke="#3b82f6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                    
+                    <!-- Data Points (Hover Targets) -->
+                    ${state.chartData.map((val, i) => {
+                        const x = (i / (state.chartData.length - 1)) * (width - padding * 2) + padding;
+                        const y = height - ((val / maxVal) * (height - padding * 2)) - padding;
+                        return `<circle cx="${x}" cy="${y}" r="4" fill="#1e293b" stroke="#3b82f6" stroke-width="2" class="chart-point" />`;
+                    }).join('')}
+                </svg>
+            `;
+
+            els.chart.innerHTML = svgContent;
+        }
+
+        // --- Activity Feed Logic ---
+        function renderActivity() {
+            els.activity.innerHTML = activities.map(item => {
+                const tagClass = item.type === 'order' ? 'tag-order' : item.type === 'user' ? 'tag-user' : 'tag-alert';
+                return `
+                    <li class="activity-item">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span class="tag ${tagClass}">${item.type}</span>
+                            <span>${item.msg}</span>
+                        </div>
+                        <span class="activity-time">${item.time}</span>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        // --- Simulation & Refresh Logic ---
+        function startAutoRefresh() {
+            const interval = setInterval(() => {
+                state.timer--;
+                els.timer.textContent = `Next refresh: ${state.timer}s`;
+                
+                if (state.timer <= 0) {
+                    simulateUpdate();
+                    state.timer = 5;
+                }
+            }, 1000);
+        }
+
+        function simulateUpdate() {
+            // Randomize KPIs slightly
+            const change = (current, percent) => current * (1 + (Math.random() * percent * 2 - percent));
+            
+            state.revenue = Math.floor(change(state.revenue, 0.05));
+            state.users = Math.floor(change(state.users, 0.02));
+            state.orders = Math.floor(change(state.orders, 0.03));
+            state.growth = (Math.random() * 30 + 10).toFixed(1);
+
+            // Update Chart Data (Shift array and add new point)
+            state.chartData.shift();
+            state.chartData.push(Math.floor(Math.random() * 100) + 50);
+
+            // Add new activity
+            const newAct = {
+                type: Math.random() > 0.5 ? 'order' : 'user',
+                msg: 'System update detected',
+                time: 'Just now'
+            };
+            activities.unshift(newAct);
+            if(activities.length > 10) activities.pop();
+
+            // Re-render
+            animateKPIs(); // Re-animate for visual feedback
+            drawChart();
+            renderActivity();
+        }
+
+        function handleDataChange(e) {
+            // Simulate fetching new data for range
+            const range = e.target.value;
+            els.chart.style.opacity = '0.5';
+            setTimeout(() => {
+                // Randomize data based on range
+                state.chartData = Array.from({length: 12}, () => Math.floor(Math.random() * 100) + 20);
+                state.revenue = Math.floor(Math.random() * 1000000);
+                els.chart.style.opacity = '1';
+                drawChart();
+                animateKPIs();
+            }, 300);
+        }
+
+        function handleExport() {
+            const btn = els.exportBtn;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Exporting...';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                // Create dummy CSV
+                const csvContent = "data:text/csv;charset=utf-8,Date,Revenue,Users\n" + 
+                    state.chartData.map((d, i) => `Day ${i+1},${d * 100},${Math.floor(d * 12)}`).join("\n");
+                
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "analytics_data.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                btn.innerHTML = 'Exported!';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }, 2000);
+            }, 1000);
+        }
+
+        // Handle Resize for SVG
+        window.addEventListener('resize', drawChart);
+
+        // Start
+        init();
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .system-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .system-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(0, 212, 255, 0.1);
+            border-radius: 20px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #00ff88;
+            box-shadow: 0 0 10px #00ff88;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.1); }
+        }
+
+        .status-text {
+            font-size: 0.9rem;
+            color: #00ff88;
+            font-weight: 600;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .view-toggle {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #e0e0e0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .view-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .view-toggle.active {
+            background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+            border-color: transparent;
+        }
+
+        .dashboard {
+            display: grid;
+            gap: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .dashboard.grid-view {
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        }
+
+        .dashboard.list-view {
+            grid-template-columns: 1fr;
+        }
+
+        .widget {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .widget:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0, 212, 255, 0.2);
+            border-color: rgba(0, 212, 255, 0.3);
+        }
+
+        .widget.expanded {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90vw;
+            max-width: 800px;
+            max-height: 90vh;
+            z-index: 1000;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .widget-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .widget-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .widget-icon {
+            font-size: 1.5rem;
+        }
+
+        .widget-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #00d4ff;
+        }
+
+        .widget-content {
+            height: 200px;
+            position: relative;
+        }
+
+        .widget.expanded .widget-content {
+            height: 400px;
+        }
+
+        .widget-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .stat-value.min { color: #ff6b6b; }
+        .stat-value.max { color: #4ecdc4; }
+        .stat-value.avg { color: #ffe66d; }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #e0e0e0;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .widget.expanded .close-btn {
+            display: flex;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 100, 100, 0.3);
+            transform: rotate(90deg);
+        }
+
+        /* Gauge Styles */
+        .gauge-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+        }
+
+        .gauge-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.1);
+            stroke-width: 20;
+        }
+
+        .gauge-fill {
+            fill: none;
+            stroke-width: 20;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.5s ease;
+        }
+
+        .gauge-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .gauge-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #00d4ff;
+        }
+
+        .gauge-unit {
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        /* Circular Progress */
+        .circular-progress {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+        }
+
+        .circular-progress svg {
+            transform: rotate(-90deg);
+        }
+
+        .circular-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.1);
+            stroke-width: 15;
+        }
+
+        .circular-fill {
+            fill: none;
+            stroke-width: 15;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.5s ease;
+        }
+
+        .circular-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        /* Charts */
+        .chart-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Bar Chart */
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            height: 100%;
+            padding: 20px 0;
+        }
+
+        .bar-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 40px;
+        }
+
+        .bar {
+            width: 100%;
+            background: linear-gradient(180deg, #00d4ff, #7b2cbf);
+            border-radius: 5px 5px 0 0;
+            transition: height 0.5s ease;
+            min-height: 5px;
+        }
+
+        .bar-label {
+            margin-top: 10px;
+            font-size: 0.75rem;
+            color: #888;
+        }
+
+        /* Connections Display */
+        .connections-display {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+
+        .connections-value {
+            font-size: 4rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .connections-label {
+            font-size: 1rem;
+            color: #888;
+            margin-top: 10px;
+        }
+
+        /* Uptime Display */
+        .uptime-display {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+        }
+
+        .uptime-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #00d4ff;
+            font-family: 'Courier New', monospace;
+        }
+
+        .uptime-label {
+            font-size: 1rem;
+            color: #888;
+            margin-top: 10px;
+        }
+
+        /* Threshold Colors */
+        .threshold-green { color: #00ff88; }
+        .threshold-yellow { color: #ffe66d; }
+        .threshold-red { color: #ff6b6b; }
+
+        .stroke-green { stroke: #00ff88; }
+        .stroke-yellow { stroke: #ffe66d; }
+        .stroke-red { stroke: #ff6b6b; }
+
+        .fill-green { background: linear-gradient(180deg, #00ff88, #00cc6a); }
+        .fill-yellow { background: linear-gradient(180deg, #ffe66d, #ffc107); }
+        .fill-red { background: linear-gradient(180deg, #ff6b6b, #ee5a5a); }
+
+        /* Overlay */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+        }
+
+        .overlay.active {
+            display: block;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .system-name {
+                font-size: 1.4rem;
+            }
+
+            .dashboard.grid-view {
+                grid-template-columns: 1fr;
+            }
+
+            .widget.expanded {
+                width: 95vw;
+                max-height: 85vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay" id="overlay"></div>
+    
+    <div class="header">
+        <div class="system-info">
+            <div class="system-name">🖥️ Server Monitor Pro</div>
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span class="status-text">ONLINE</span>
+            </div>
+        </div>
+        <div class="controls">
+            <button class="view-toggle active" data-view="grid">Grid View</button>
+            <button class="view-toggle" data-view="list">List View</button>
+        </div>
+    </div>
+
+    <div class="dashboard grid-view" id="dashboard">
+        <!-- CPU Widget -->
+        <div class="widget" data-widget="cpu">
+            <button class="close-btn">×</button>
+            <div class="widget-header">
+                <div class="widget-title">
+                    <span class="widget-icon">⚡</span>
+                    CPU Usage
+                </div>
+                <div class="widget-value" id="cpu-value">0%</div>
+            </div>
+            <div class="widget-content">
+                <div class="gauge-container">
+                    <svg width="200" height="200" viewBox="0 0 200 200">
+                        <circle class="gauge-bg" cx="100" cy="100" r="80"></circle>
+                        <circle class="gauge-fill" id="cpu-gauge" cx="100" cy="100" r="80" 
+                            stroke-dasharray="502" stroke-dashoffset="502"></circle>
+                    </svg>
+                    <div class="gauge-text">
+                        <div class="gauge-value" id="cpu-gauge-value">0%</div>
+                        <div class="gauge-unit">Usage</div>
+                    </div>
+                </div>
+            </div>
+            <div class="widget-stats">
+                <div class="stat">
+                    <div class="stat-label">Min</div>
+                    <div class="stat-value min" id="cpu-min">0%</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Max</div>
+                    <div class="stat-value max" id="cpu-max">0%</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Avg</div>
+                    <div class="stat-value avg" id="cpu-avg">0%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Memory Widget -->
+        <div class="widget" data-widget="memory">
+            <button class="close-btn">×</button>
+            <div class="widget-header">
+                <div class="widget-title">
+                    <span class="widget-icon">💾</span>
+                    Memory Usage
+                </div>
+                <div class="widget-value" id="memory-value">0 GB</div>
+            </div>
+            <div class="widget-content">
+                <div class="circular-progress">
+                    <svg width="200" height="200" viewBox="0 0 200 200">
+                        <circle class="circular-bg" cx="100" cy="100" r="80"></circle>
+                        <circle class="circular-fill" id="memory-circle" cx="100" cy="100" r="80" 
+                            stroke-dasharray="502" stroke-dashoffset="502"></circle>
+                    </svg>
+                    <div class="circular-text">
+                        <div class="gauge-value" id="memory-percent">0%</div>
+                        <div class="gauge-unit" id="memory-details">0 / 16 GB</div>
+                    </div>
+                </div>
+            </div>
+            <div class="widget-stats">
+                <div class="stat">
+                    <div class="stat-label">Min</div>
+                    <div class="stat-value min" id="memory-min">0 GB</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Max</div>
+                    <div class="stat-value max" id="memory-max">0 GB</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Avg</div>
+                    <div class="stat-value avg" id="memory-avg">0 GB</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Network Widget -->
+        <div class="widget" data-widget="network">
+            <button class="close-btn">×</button>
+            <div class="widget-header">
+                <div class="widget-title">
+                    <span class="widget-icon">🌐</span>
+                    Network Throughput
+                </div>
+                <div class="widget-value" id="network-value">0 Mbps</div>
+            </div>
+            <div class="widget-content">
+                <div class="chart-container">
+                    <canvas id="network-chart"></canvas>
+                </div>
+            </div>
+            <div class="widget-stats">
+                <div class="stat">
+                    <div class="stat-label">Min</div>
+                    <div class="stat-value min" id="network-min">0 Mbps</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Max</div>
+                    <div class="stat-value max" id="network-max">0 Mbps</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Avg</div>
+                    <div class="stat-value avg" id="network-avg">0 Mbps</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Disk I/O Widget -->
+        <div class="widget" data-widget="disk">
+            <button class="close-btn">×</button>
+            <div class="widget-header">
+                <div class="widget-title">
+                    <span class="widget-icon">💿</span>
+                    Disk I/O
+                </div>
+                <div class="widget-value" id="disk-value">0 MB/s</div>
+            </div>
+            <div class="widget-content">
+                <div class="bar-chart" id="disk-chart">
+                    <div class="bar-group">
+                        <div class="bar" id="disk-read-bar" style="height: 20%;"></div>
+                        <div class="bar-label">Read</div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar" id="disk-write-bar" style="height: 30%;"></div>
+                        <div class="bar-label">Write</div>
+                    </div>
+                    <div class="bar-group">
+                        <div class="bar" id="disk-total-bar" style="height: 50%;"></div>
+                        <div class="bar-label">Total</div>
+                    </div>
+                </div>
+            </div>
+            <div class="widget-stats">
+                <div class="stat">
+                    <div class="stat-label">Min</div>
+                    <div class="stat-value min" id="disk-min">0 MB/s</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Max</div>
+                    <div class="stat-value max" id="disk-max">0 MB/s</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Avg</div>
+                    <div class="stat-value avg" id="disk-avg">0 MB/s</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Connections Widget -->
+        <div class="widget" data-widget="connections">
+            <button class="close-btn">×</button>
+            <div class="widget-header">
+                <div class="widget-title">
+                    <span class="widget-icon">🔗</span>
+                    Active Connections
+                </div>
+            </div>
+            <div class="widget-content">
+                <div class="connections-display">
+                    <div class="connections-value" id="connections-value">0</div>
+                    <div class="connections-label">Active Connections</div>
+                </div>
+            </div>
+            <div class="widget-stats">
+                <div class="stat">
+                    <div class="stat-label">Min</div>
+                    <div class="stat-value min" id="connections-min">0</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Max</div>
+                    <div class="stat-value max" id="connections-max">0</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Avg</div>
+                    <div class="stat-value avg" id="connections-avg">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Uptime Widget -->
+        <div class="widget" data-widget="uptime">
+            <button class="close-btn">×</button>
+            <div class="widget-header">
+                <div class="widget-title">
+                    <span class="widget-icon">⏱️</span>
+                    System Uptime
+                </div>
+            </div>
+            <div class="widget-content">
+                <div class="uptime-display">
+                    <div class="uptime-value" id="uptime-value">0d 0h 0m</div>
+                    <div class="uptime-label">Time Since Last Reboot</div>
+                </div>
+            </div>
+            <div class="widget-stats">
+                <div class="stat">
+                    <div class="stat-label">Boot Time</div>
+                    <div class="stat-value" id="boot-time">--:--</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Status</div>
+                    <div class="stat-value threshold-green">Stable</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Updates</div>
+                    <div class="stat-value">0 pending</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data storage for statistics
+        const widgetData = {
+            cpu: { values: [], min: Infinity, max: -Infinity, sum: 0 },
+            memory: { values: [], min: Infinity, max: -Infinity, sum: 0 },
+            network: { values: [], min: Infinity, max: -Infinity, sum: 0 },
+            disk: { values: [], min: Infinity, max: -Infinity, sum: 0 },
+            connections: { values: [], min: Infinity, max: -Infinity, sum: 0 },
+            uptime: { startTime: Date.now() - Math.random() * 86400000 * 30 } // Random uptime up to 30 days
+        };
+
+        const networkHistory = [];
+        const MAX_HISTORY = 20;
+
+        // Threshold helper
+        function getThresholdClass(value, low = 30, high = 70) {
+            if (value < low) return 'green';
+            if (value < high) return 'yellow';
+            return 'red';
+        }
+
+        // Update CPU Widget
+        function updateCPU() {
+            const usage = Math.random() * 100;
+            widgetData.cpu.values.push(usage);
+            widgetData.cpu.min = Math.min(widgetData.cpu.min, usage);
+            widgetData.cpu.max = Math.max(widgetData.cpu.max, usage);
+            widgetData.cpu.sum += usage;
+
+            const threshold = getThresholdClass(usage);
+            const colorClass = `threshold-${threshold}`;
+            const strokeClass = `stroke-${threshold}`;
+
+            document.getElementById('cpu-value').textContent = `${usage.toFixed(1)}%`;
+            document.getElementById('cpu-value').className = `widget-value ${colorClass}`;
+            document.getElementById('cpu-gauge-value').textContent = `${usage.toFixed(0)}%`;
+            document.getElementById('cpu-gauge-value').className = `gauge-value ${colorClass}`;
+
+            const gauge = document.getElementById('cpu-gauge');
+            const circumference = 502;
+            const offset = circumference - (usage / 100) * circumference;
+            gauge.style.strokeDashoffset = offset;
+            gauge.setAttribute('class', `gauge-fill ${strokeClass}`);
+
+            // Update stats
+            const avg = widgetData.cpu.sum / widgetData.cpu.values.length;
+            document.getElementById('cpu-min').textContent = `${widgetData.cpu.min.toFixed(1)}%`;
+            document.getElementById('cpu-max').textContent = `${widgetData.cpu.max.toFixed(1)}%`;
+            document.getElementById('cpu-avg').textContent = `${avg.toFixed(1)}%`;
+        }
+
+        // Update Memory Widget
+        function updateMemory() {
+            const totalMemory = 16;
+            const usedMemory = Math.random() * totalMemory;
+            const percentage = (usedMemory / totalMemory) * 100;
+
+            widgetData.memory.values.push(usedMemory);
+            widgetData.memory.min = Math.min(widgetData.memory.min, usedMemory);
+            widgetData.memory.max = Math.max(widgetData.memory.max, usedMemory);
+            widgetData.memory.sum += usedMemory;
+
+            const threshold = getThresholdClass(percentage);
+            const colorClass = `threshold-${threshold}`;
+            const strokeClass = `stroke-${threshold}`;
+
+            document.getElementById('memory-value').textContent = `${usedMemory.toFixed(1)} GB`;
+            document.getElementById('memory-percent').textContent = `${percentage.toFixed(0)}%`;
+            document.getElementById('memory-percent').className = `gauge-value ${colorClass}`;
+            document.getElementById('memory-details').textContent = `${usedMemory.toFixed(1)} / ${totalMemory} GB`;
+
+            const circle = document.getElementById('memory-circle');
+            const circumference = 502;
+            const offset = circumference - (percentage / 100) * circumference;
+            circle.style.strokeDashoffset = offset;
+            circle.setAttribute('class', `circular-fill ${strokeClass}`);
+
+            const avg = widgetData.memory.sum / widgetData.memory.values.length;
+            document.getElementById('memory-min').textContent = `${widgetData.memory.min.toFixed(1)} GB`;
+            document.getElementById('memory-max').textContent = `${widgetData.memory.max.toFixed(1)} GB`;
+            document.getElementById('memory-avg').textContent = `${avg.toFixed(1)} GB`;
+        }
+
+        // Update Network Widget
+        function updateNetwork() {
+            const throughput = Math.random() * 1000;
+            networkHistory.push(throughput);
+            if (networkHistory.length > MAX_HISTORY) networkHistory.shift();
+
+            widgetData.network.values.push(throughput);
+            widgetData.network.min = Math.min(widgetData.network.min, throughput);
+            widgetData.network.max = Math.max(widgetData.network.max, throughput);
+            widgetData.network.sum += throughput;
+
+            const threshold = getThresholdClass(throughput, 200, 700);
+            const colorClass = `threshold-${threshold}`;
+
+            document.getElementById('network-value').textContent = `${throughput.toFixed(1)} Mbps`;
+            document.getElementById('network-value').className = `widget-value ${colorClass}`;
+
+            const avg = widgetData.network.sum / widgetData.network.values.length;
+            document.getElementById('network-min').textContent = `${widgetData.network.min.toFixed(1)} Mbps`;
+            document.getElementById('network-max').textContent = `${widgetData.network.max.toFixed(1)} Mbps`;
+            document.getElementById('network-avg').textContent = `${avg.toFixed(1)} Mbps`;
+
+            drawNetworkChart();
+        }
+
+        // Draw Network Chart
+        function drawNetworkChart() {
+            const canvas = document.getElementById('network-chart');
+            const ctx = canvas.getContext('2d');
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (networkHistory.length < 2) return;
+
+            const maxVal = Math.max(...networkHistory, 100);
+            const minVal = 0;
+            const range = maxVal - minVal;
+
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+            gradient.addColorStop(0, '#00d4ff');
+            gradient.addColorStop(1, '#7b2cbf');
+
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            ctx.beginPath();
+            networkHistory.forEach((val, i) => {
+                const x = (i / (MAX_HISTORY - 1)) * canvas.width;
+                const y = canvas.height - ((val - minVal) / range) * canvas.height;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+
+            // Fill area under curve
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.lineTo(0, canvas.height);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(0, 212, 255, 0.1)';
+            ctx.fill();
+        }
+
+        // Update Disk Widget
+        function updateDisk() {
+            const readSpeed = Math.random() * 100;
+            const writeSpeed = Math.random() * 100;
+            const totalSpeed = readSpeed + writeSpeed;
+
+            widgetData.disk.values.push(totalSpeed);
+            widgetData.disk.min = Math.min(widgetData.disk.min, totalSpeed);
+            widgetData.disk.max = Math.max(widgetData.disk.max, totalSpeed);
+            widgetData.disk.sum += totalSpeed;
+
+            const threshold = getThresholdClass(totalSpeed, 50, 150);
+            const colorClass = `threshold-${threshold}`;
+
+            document.getElementById('disk-value').textContent = `${totalSpeed.toFixed(1)} MB/s`;
+            document.getElementById('disk-value').className = `widget-value ${colorClass}`;
+
+            const maxSpeed = 200;
+            document.getElementById('disk-read-bar').style.height = `${(readSpeed / maxSpeed) * 100}%`;
+            document.getElementById('disk-write-bar').style.height = `${(writeSpeed / maxSpeed) * 100}%`;
+            document.getElementById('disk-total-bar').style.height = `${(totalSpeed / maxSpeed) * 100}%`;
+
+            const avg = widgetData.disk.sum / widgetData.disk.values.length;
+            document.getElementById('disk-min').textContent = `${widgetData.disk.min.toFixed(1)} MB/s`;
+            document.getElementById('disk-max').textContent = `${widgetData.disk.max.toFixed(1)} MB/s`;
+            document.getElementById('disk-avg').textContent = `${avg.toFixed(1)} MB/s`;
+        }
+
+        // Update Connections Widget
+        function updateConnections() {
+            const connections = Math.floor(Math.random() * 500) + 50;
+
+            widgetData.connections.values.push(connections);
+            widgetData.connections.min = Math.min(widgetData.connections.min, connections);
+            widgetData.connections.max = Math.max(widgetData.connections.max, connections);
+            widgetData.connections.sum += connections;
+
+            const threshold = getThresholdClass(connections, 200, 400);
+            const colorClass = `threshold-${threshold}`;
+
+            document.getElementById('connections-value').textContent = connections;
+            document.getElementById('connections-value').className = `connections-value ${colorClass}`;
+
+            const avg = widgetData.connections.sum / widgetData.connections.values.length;
+            document.getElementById('connections-min').textContent = widgetData.connections.min;
+            document.getElementById('connections-max').textContent = widgetData.connections.max;
+            document.getElementById('connections-avg').textContent = Math.round(avg);
+        }
+
+        // Update Uptime Widget
+        function updateUptime() {
+            const now = Date.now();
+            const uptime = now - widgetData.uptime.startTime;
+            const days = Math.floor(uptime / 86400000);
+            const hours = Math.floor((uptime % 86400000) / 3600000);
+            const minutes = Math.floor((uptime % 3600000) / 60000);
+
+            document.getElementById('uptime-value').textContent = `${days}d ${hours}h ${minutes}m`;
+
+            const bootDate = new Date(widgetData.uptime.startTime);
+            document.getElementById('boot-time').textContent = bootDate.toLocaleTimeString();
+        }
+
+        // View Toggle
+        document.querySelectorAll('.view-toggle').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.view-toggle').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                const dashboard = document.getElementById('dashboard');
+                dashboard.className = `dashboard ${this.dataset.view}-view`;
+            });
+        });
+
+        // Widget Expansion
+        document.querySelectorAll('.widget').forEach(widget => {
+            widget.addEventListener('click', function(e) {
+                if (e.target.classList.contains('close-btn')) return;
+                
+                document.querySelectorAll('.widget').forEach(w => w.classList.remove('expanded'));
+                this.classList.add('expanded');
+                document.getElementById('overlay').classList.add('active');
+                
+                // Redraw chart if network widget
+                if (this.dataset.widget === 'network') {
+                    setTimeout(drawNetworkChart, 100);
+                }
+            });
+        });
+
+        // Close expanded widget
+        document.querySelectorAll('.close-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                document.querySelectorAll('.widget').forEach(w => w.classList.remove('expanded'));
+                document.getElementById('overlay').classList.remove('active');
+            });
+        });
+
+        document.getElementById('overlay').addEventListener('click', function() {
+            document.querySelectorAll('.widget').forEach(w => w.classList.remove('expanded'));
+            this.classList.remove('active');
+        });
+
+        // Initialize boot time
+        const bootDate = new Date(widgetData.uptime.startTime);
+        document.getElementById('boot-time').textContent = bootDate.toLocaleTimeString();
+
+        // Update all widgets
+        function updateAll() {
+            updateCPU();
+            updateMemory();
+            updateNetwork();
+            updateDisk();
+            updateConnections();
+            updateUptime();
+        }
+
+        // Initial update and interval
+        updateAll();
+        setInterval(updateAll, 2000);
+
+        // Handle resize for charts
+        window.addEventListener('resize', drawNetworkChart);
+    </script>
+</body>
+</html>

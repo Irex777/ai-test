@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEON CITY</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#050510;overflow:hidden;font-family:'Courier New',monospace}
+canvas{display:block;cursor:crosshair}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const C=document.getElementById('c'),X=C.getContext('2d');
+function resize(){C.width=innerWidth;C.height=innerHeight}
+resize();addEventListener('resize',resize);
+
+/* ═══ 常量 ═══ */
+const T=28,MW=140,MH=140,BS=8,RW=4,P=BS+RW;
+const T_ROAD=0,T_WALK=1,T_BLD=2;
+const CAR_COLS=['#ff0044','#00ccff','#ffcc00','#00ff88','#ff6600','#cc44ff','#e0e0e0','#44ffcc','#ff8800','#66ff33'];
+const NEON=['#00ffcc','#ff0066','#ffaa00','#ff00cc','#00aaff','#00ff88','#ff4488','#44ffaa'];
+const BLD_COLS=['#0e0e1a','#0d1520','#120e1c','#0b1515','#150e1c','#10141e'];
+
+/* ═══ 输入 ═══ */
+const K={};
+addEventListener('keydown',e=>{K[e.key.toLowerCase()]=true;if('wasde '.includes(e.key.toLowerCase()))e.preventDefault()});
+addEventListener('keyup',e=>{K[e.key.toLowerCase()]=false});
+
+/* ═══ 地图 ═══ */
+const map=[],bData={};
+function genMap(){
+  for(let y=0;y<MH;y++){map[y]=[];for(let x=0;x<MW;x++){
+    const mx=x%P,my=y%P;
+    if(mx<RW||my<RW){map[y][x]=(mx===0||mx===RW-1||my===0||my===RW-1)?T_WALK:T_ROAD}
+    else map[y][x]=T_BLD;
+  }}
+  for(let by=0;by<Math.floor(MH/P);by++)for(let bx=0;bx<Math.floor(MW/P);bx++){
+    bData[bx+','+by]={
+      col:BLD_COLS[Math.floor(Math.random()*BLD_COLS.length)],
+      neon:Math.random()>.45,
+      nCol:NEON[Math.floor(Math.random()*NEON.length)],
+      nSide:Math.floor(Math.random()*4)
+    }}
+}
+function tile(tx,ty){if(tx<0||tx>=MW||ty<0||ty>=MH)return T_BLD;return map[ty][tx]}
+function tileW(wx,wy){return tile(Math.floor(wx/T),Math.floor(wy/T))}
+function passable(wx,wy,r){
+  const pts=[[wx-r,wy-r],[wx+r,wy-r],[wx-r,wy+r],[wx+r,wy+r]];
+  for(const[px,py]of pts)if(tileW(px,py)===T_BLD)return false;return true;
+}
+
+/* ═══ 小地图预渲染 ═══ */
+const mmOff=document.createElement('canvas');mmOff.width=MW;mmOff.height=MH;
+const mmX=mmOff.getContext('2d');
+function preRenderMM(){
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){
+    const t=map[y][x];mmX.fillStyle=t===T_BLD?'#14142a':t===T_ROAD?'#22224a':'#1a1a3a';
+    mmX.fillRect(x,y,1,1);
+  }
+}
+
+/* ═══ 实体 ═══ */
+const player={x:1.5*T,y:1.5*T,r:6,angle:0,hp:100,maxHp:100,money:0,score:0,inCar:null,wanted:0,wCool:0,invT:0,shootCD:0};
+let cars=[],npcs=[],police=[],pickups=[],particles=[],bullets=[];
+let shake={i:0},gameState='play',gt=0,lastDmg=0,instT=8;
+const cam={x:player.x,y:player.y};
+
+/* 生成车辆 */
+function spawnCars(){
+  cars=[];
+  for(let i=0;i<55;i++){let tr=0;
+    while(tr++<300){const tx=Math.floor(Math.random()*MW),ty=Math.floor(Math.random()*MH);
+      if(tile(tx,ty)!==T_ROAD)continue;
+      const mx=tx%P,my=ty%P;if(mx<RW&&my<RW)continue;
+      let a=0,ox=0,oy=0;
+      if(mx>=1&&mx<=2&&my>=RW){a=Math.PI/2;ox=(mx===1)?-5:5}
+      else if(my>=1&&my<=2&&mx>=RW){a=0;oy=(my===1)?-5:5}
+      else continue;
+      cars.push({x:tx*T+T/2+ox,y:ty*T+T/2+oy,a,spd:0,maxSpd:220+Math.random()*80,
+        w:12,h:24,col:CAR_COLS[Math.floor(Math.random()*CAR_COLS.length)],hp:100,dead:false,pol:false});
+      break;
+    }
+  }
+}
+
+/* 生成NPC */
+function spawnNPCs(){
+  npcs=[];
+  for(let i=0;i<65;i++){let tr=0;
+    while(tr++<300){const tx=Math.floor(Math.random()*MW),ty=Math.floor(Math.random()*MH);
+      if(tile(tx,ty)!==T_WALK)continue;
+      npcs.push({x:tx*T+T/2,y:ty*T+T/2,r:5,a:Math.random()*Math.PI*2,
+        spd:25+Math.random()*30,dTimer:0,
+        col:`hsl(${Math.floor(Math.random()*360)},55%,60%)`,alive:true});
+      break;
+    }
+  }
+}
+
+/* 生成警察 */
+function spawnPolice(){
+  const want=player.wanted*2;
+  while(police.length<want){const a=Math.random()*Math.PI*2,d=550+Math.random()*250;
+    const px=player.x+Math.cos(a)*d,py=player.y+Math.sin(a)*d;
+    if(tileW(px,py)===T_BLD)continue;
+    police.push({x:px,y:py,a:Math.atan2(player.y-py,player.x-px),spd:0,
+      maxSpd:190+player.wanted*25,w:12,h:24,col:'#1a3388',hp:140,dead:false,pol:true,siren:0});
+  }
+}
+
+/* ═══ 特效 ═══ */
+function addPickup(x,y,v){pickups.push({x,y,v,life:12,bob:Math.random()*6})}
+function addParticles(x,y,c,n){for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2,s=40+Math.random()*140;
+  particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,col:c,life:.3+Math.random()*.5,r:1+Math.random()*2})}}
+function addWanted(n){player.wanted=Math.min(5,player.wanted+n);player.wCool=0}
+function addShake(v){shake.i=Math.min(12,shake.i+v)}
+
+/* ═══ 更新逻辑 ═══ */
+function update(dt){
+  if(gameState!=='play')return;
+  gt+=dt;if(instT>0)instT-=dt;
+
+  /* 通缉冷却 */
+  if(player.wanted>0){player.wCool+=dt;if(player.wCool>12){player.wanted--;player.wCool=0}}
+  if(player.invT>0)player.invT-=dt;
+
+  /* 生命恢复 */
+  if(gt-lastDmg>6&&player.hp<player.maxHp)player.hp=Math.min(player.maxHp,player.hp+3*dt);
+
+  /* 射击 */
+  if(K[' ']&&!player.inCar&&player.shootCD<=0){
+    bullets.push({x:player.x+Math.cos(player.a||player.angle)*10,y:player.y+Math.sin(player.a||player.angle)*10,
+      a:player.angle,spd:500,life:1.2});player.shootCD=.25}
+  if(player.shootCD>0)player.shootCD-=dt;
+
+  /* 上下车 */
+  if(K['e']){K['e']=false;player.inCar?exitCar():enterCar()}
+
+  /* 玩家移动 */
+  player.inCar?updateDrive(dt):updateWalk(dt);
+
+  updateNPCs(dt);updatePolice(dt);updateBullets(dt);updatePickups(dt);updateParticles(dt);
+  respawn(dt);
+
+  if(player.wanted>0)spawnPolice();
+  if(player.hp<=0){gameState='over';player.hp=0}
+
+  /* 摄像机 */
+  const tgt=player.inCar||player;
+  cam.x+=(tgt.x-cam.x)*5*dt;cam.y+=(tgt.y-cam.y)*5*dt;
+  shake.i*=Math.pow(.05,dt);if(shake.i<.1)shake.i=0;
+}
+
+function updateWalk(dt){
+  let dx=0,dy=0;
+  if(K['w'])dy=-1;if(K['s'])dy=1;if(K['a'])dx=-1;if(K['d'])dx=1;
+  if(dx||dy){const l=Math.sqrt(dx*dx+dy*dy);dx/=l;dy/=l;
+    const s=135,nx=player.x+dx*s*dt,ny=player.y+dy*s*dt;
+    if(passable(nx,ny,player.r)){player.x=nx;player.y=ny}
+    else if(passable(nx,player.y,player.r))player.x=nx;
+    else if(passable(player.x,ny,player.r))player.y=ny;
+    player.angle=Math.atan2(dy,dx);
+  }
+  /* 步行碰NPC */
+  for(const n of npcs){if(!n.alive)continue;const dx=player.x-n.x,dy=player.y-n.y,d=Math.sqrt(dx*dx+dy*dy);
+    if(d<player.r+n.r){const push=1;const nx2=n.x-dx/d*push,ny2=n.y-dy/d*push;
+      if(tileW(nx2,ny2)!==T_BLD){n.x=nx2;n.y=ny2}}}
+}
+
+function updateDrive(dt){
+  const c=player.inCar;
+  if(K['arrowup'])c.spd+=420*dt;else if(K['arrowdown'])c.spd-=280*dt;
+  else{if(Math.abs(c.spd)>5)c.spd*=(1-2.5*dt);else c.spd=0}
+  c.spd=Math.max(-c.maxSpd*.35,Math.min(c.maxSpd,c.spd));
+
+  if(Math.abs(c.spd)>8){const tr=2.8*(Math.min(1,Math.abs(c.spd)/60));
+    if(K['arrowleft'])c.a-=tr*dt*Math.sign(c.spd);
+    if(K['arrowright'])c.a+=tr*dt*Math.sign(c.spd)}
+
+  const nx=c.x+Math.cos(c.a)*c.spd*dt,ny=c.y+Math.sin(c.a)*c.spd*dt;
+  if(carPassable(c,nx,ny)){c.x=nx;c.y=ny}
+  else{const dmg=Math.abs(c.spd)*.04;c.hp-=dmg;
+    if(dmg>2&&player.invT<=0){player.hp-=Math.min(8,dmg);player.invT=.2;lastDmg=gt}
+    addShake(Math.abs(c.spd)*.015);c.spd*=-.3}
+
+  /* 碰NPC */
+  for(const n of npcs){if(!n.alive)continue;const dx=c.x-n.x,dy=c.y-n.y,d=Math.sqrt(dx*dx+dy*dy);
+    if(d<14){n.alive=false;addWanted(1);player.score+=10;
+      addPickup(n.x,n.y,8+Math.floor(Math.random()*18));addParticles(n.x,n.y,n.col,8);c.spd*=.85}}
+
+  /* 碰其它车 */
+  const allCars=cars.concat(police);
+  for(const o of allCars){if(o.dead||o===c)continue;const dx=c.x-o.x,dy=c.y-o.y,d=Math.sqrt(dx*dx+dy*dy);
+    if(d<16){const imp=Math.abs(c.spd);o.hp-=imp*.3;c.spd*=.5;addShake(imp*.01);
+      if(o.hp<=0){o.dead=true;addPickup(o.x,o.y,20+Math.floor(Math.random()*40));
+        addParticles(o.x,o.y,o.col,14);player.score+=o.pol?100:50;if(o.pol)addWanted(2);else addWanted(1)}}}
+
+  if(c.hp<=0){exitCar();player.hp-=20;addParticles(c.x,c.y,'#ff4400',18);c.dead=true;addShake(8)}
+  player.x=c.x;player.y=c.y;player.angle=c.a;
+}
+
+function carPassable(car,nx,ny){
+  const cs=Math.cos(car.a),sn=Math.sin(car.a),hw=car.h/2,hh=car.w/2;
+  const corners=[[nx+cs*hw-sn*hh,ny+sn*hw+cs*hh],[nx+cs*hw+sn*hh,ny+sn*hw-cs*hh],
+    [nx-cs*hw-sn*hh,ny-sn*hw+cs*hh],[nx-cs*hw+sn*hh,ny-sn*hw-cs*hh]];
+  for(const[cx,cy]of corners)if(tileW(cx,cy)===T_BLD)return false;return true;
+}
+
+function updateNPCs(dt){
+  for(const n of npcs){if(!n.alive)continue;
+    n.dTimer-=dt;if(n.dTimer<=0){
+      const dirs=[0,Math.PI/2,Math.PI,-Math.PI/2];
+      const valid=dirs.filter(d=>{const tx=n.x+Math.cos(d)*T,ty=n.y+Math.sin(d)*T;const t=tileW(tx,ty);return t===T_WALK||t===T_ROAD});
+      if(valid.length)n.a=valid[Math.floor(Math.random()*valid.length)];
+      n.dTimer=1.5+Math.random()*3}
+    const nx=n.x+Math.cos(n.a)*n.spd*dt,ny=n.y+Math.sin(n.a)*n.spd*dt;
+    const t=tileW(nx,ny);if(t===T_WALK||t===T_ROAD){n.x=nx;n.y=ny}else n.dTimer=0;
+    n.x=Math.max(T,Math.min(MW*T-T,n.x));n.y=Math.max(T,Math.min(MH*T-T,n.y));
+  }
+}
+
+function updatePolice(dt){
+  for(const p of police){if(p.dead)continue;
+    const dx=player.x-p.x,dy=player.y-p.y,ta=Math.atan2(dy,dx);
+    let ad=ta-p.a;while(ad>Math.PI)ad-=Math.PI*2;while(ad<-Math.PI)ad+=Math.PI*2;
+    p.a+=ad*3*dt;const dist=Math.sqrt(dx*dx+dy*dy);
+    const ts=Math.min(p.maxSpd,dist*.7+40);p.spd+=(ts-p.spd)*2*dt;
+    const nx=p.x+Math.cos(p.a)*p.spd*dt,ny=p.y+Math.sin(p.a)*p.spd*dt;
+    if(carPassable(p,nx,ny)){p.x=nx;p.y=ny}else{p.spd*=-.2;p.a+=(Math.random()>.5?1:-1)*Math.PI/3}
+    p.siren+=dt*8;
+
+    /* 警车撞步行玩家 */
+    if(!player.inCar){const pd=Math.sqrt((player.x-p.x)**2+(player.y-p.y)**2);
+      if(pd<14&&player.invT<=0){player.hp-=12;player.invT=.5;lastDmg=gt;addShake(4);addParticles(player.x,player.y,'#ff0044',5)}}
+  }
+  police=police.filter(p=>!p.dead&&Math.sqrt((player.x-p.x)**2+(player.y-p.y)**2)<1400);
+}
+
+function updateBullets(dt){
+  for(let i=bullets.length-1;i>=0;i--){const b=bullets[i];
+    b.x+=Math.cos(b.a)*b.spd*dt;b.y+=Math.sin(b.a)*b.spd*dt;b.life-=dt;
+    if(b.life<=0||tileW(b.x,b.y)===T_BLD){addParticles(b.x,b.y,'#ffaa00',3);bullets.splice(i,1);continue}
+    let hit=false;
+    for(const n of npcs){if(!n.alive)continue;if(Math.sqrt((b.x-n.x)**2+(b.y-n.y)**2)<n.r+3){
+      n.alive=false;addWanted(1);player.score+=10;addPickup(n.x,n.y,5+Math.floor(Math.random()*12));
+      addParticles(n.x,n.y,n.col,8);hit=true;break}}
+    if(!hit)for(const c of[...cars,...police]){if(c.dead)continue;if(Math.sqrt((b.x-c.x)**2+(b.y-c.y)**2)<12){
+      c.hp-=25;if(c.hp<=0){c.dead=true;addPickup(c.x,c.y,20+Math.floor(Math.random()*40));
+        addParticles(c.x,c.y,c.col,12);player.score+=c.pol?100:50;if(c.pol)addWanted(2);else addWanted(1)}
+      hit=true;break}}
+    if(hit)bullets.splice(i,1);
+  }
+}
+
+function updatePickups(dt){for(let i=pickups.length-1;i>=0;i--){const p=pickups[i];p.life-=dt;p.bob+=dt*4;
+  if(p.life<=0){pickups.splice(i,1);continue}
+  if(Math.sqrt((player.x-p.x)**2+(player.y-p.y)**2)<18){player.money+=p.v;player.score+=p.v;pickups.splice(i,1)}}}
+
+function updateParticles(dt){for(let i=particles.length-1;i>=0;i--){const p=particles[i];
+  p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;p.vx*=.94;p.vy*=.94;if(p.life<=0)particles.splice(i,1)}}
+
+function respawn(dt){
+  /* 重生NPC */
+  const alive=npcs.filter(n=>n.alive).length;
+  if(alive<50&&Math.random()<dt*.5){let tr=0;
+    while(tr++<100){const tx=Math.floor(Math.random()*MW),ty=Math.floor(Math.random()*MH);
+      if(tile(tx,ty)!==T_WALK)continue;
+      const px=tx*T+T/2,py=ty*T+T/2;if(Math.sqrt((player.x-px)**2+(player.y-py)**2)<400)continue;
+      npcs.push({x:px,y:py,r:5,a:Math.random()*Math.PI*2,spd:25+Math.random()*30,dTimer:0,
+        col:`hsl(${Math.floor(Math.random()*360)},55%,60%)`,alive:true});break}}
+  /* 重生车辆 */
+  const aliveCars=cars.filter(c=>!c.dead).length;
+  if(aliveCars<35){for(const c of cars){if(!c.dead)continue;
+    if(Math.sqrt((player.x-c.x)**2+(player.y-c.y)**2)>800){c.dead=false;c.hp=100;break}}}
+}
+
+/* ═══ 上下车 ═══ */
+function enterCar(){
+  let best=null,bd=45;
+  for(const c of[...cars,...police]){if(c.dead)continue;const d=Math.sqrt((player.x-c.x)**2+(player.y-c.y)**2);
+    if(d<bd){bd=d;best=c}}
+  if(best){player.inCar=best;player.x=best.x;player.y=best.y;player.angle=best.a}
+}
+function exitCar(){
+  const c=player.inCar;if(!c)return;
+  const dist=22;const angles=[c.a+Math.PI/2,c.a-Math.PI/2,c.a+Math.PI,c.a];
+  for(const a of angles){const ex=c.x+Math.cos(a)*dist,ey=c.y+Math.sin(a)*dist;
+    if(tileW(ex,ey)!==T_BLD){player.x=ex;player.y=ey;break}}
+  c.spd=0;player.inCar=null;
+}
+
+/* ═══ 渲染 ═══ */
+function render(){
+  X.fillStyle='#050510';X.fillRect(0,0,C.width,C.height);
+  X.save();
+  const sx2=shake.i?(Math.random()-.5)*shake.i*2:0,sy2=shake.i?(Math.random()-.5)*shake.i*2:0;
+  X.translate(C.width/2-cam.x+sx2,C.height/2-cam.y+sy2);
+
+  renderMap();renderPickups();renderCars();renderNPCs();renderPolice();renderPlayer();renderBullets();renderParticles();
+  X.restore();
+  renderHUD();renderMinimap();
+  if(instT>0)renderInstructions();
+  if(gameState==='over')renderGameOver();
+}
+
+function renderMap(){
+  const sx=Math.floor((cam.x-C.width/2)/T)-1,sy=Math.floor((cam.y-C.height/2)/T)-1;
+  const ex=Math.ceil((cam.x+C.width/2)/T)+1,ey=Math.ceil((cam.y+C.height/2)/T)+1;
+  for(let ty=Math.max(0,sy);ty<Math.min(MH,ey);ty++)for(let tx=Math.max(0,sx);tx<Math.min(MW,ex);tx++){
+    const t=map[ty][tx],x=tx*T,y=ty*T,mx=tx%P,my=ty%P;
+    if(t===T_ROAD){
+      X.fillStyle='#111124';X.fillRect(x,y,T,T);
+      /* 道路标线 */
+      if(mx===2&&my>=RW){X.fillStyle='#1e1e44';X.fillRect(x+T/2-1,y,2,T)}
+      if(my===2&&mx>=RW){X.fillStyle='#1e1e44';X.fillRect(x,y+T/2-1,T,2)}
+      if((mx===1||mx===2)&&my>=RW&&Math.floor(ty/2)%3===0){X.fillStyle='#28284a';X.fillRect(x+T/2-1,y,2,T/2)}
+      if((my===1||my===2)&&mx>=RW&&Math.floor(tx/2)%3===0){X.fillStyle='#28284a';X.fillRect(x,y+T/2-1,T/2,2)}
+    }else if(t===T_WALK){
+      X.fillStyle='#18182e';X.fillRect(x,y,T,T);
+      X.fillStyle='#20203a';
+      if(mx===0&&my>=RW)X.fillRect(x+T-1,y,1,T);
+      if(mx===RW-1&&my>=RW)X.fillRect(x,y,1,T);
+      if(my===0&&mx>=RW)X.fillRect(x,y+T-1,T,1);
+      if(my===RW-1&&mx>=RW)X.fillRect(x,y,T,1);
+      /* 路灯 */
+      if((tx+ty)%5===0){X.fillStyle='#ffdd88';X.globalAlpha=.25;X.beginPath();X.arc(x+T/2,y+T/2,6,0,Math.PI*2);X.fill();
+        X.globalAlpha=1;X.fillStyle='#ffdd88';X.beginPath();X.arc(x+T/2,y+T/2,1.5,0,Math.PI*2);X.fill()}
+    }else{
+      const bx=Math.floor(tx/P),by=Math.floor(ty/P),bd=bData[bx+','+by];if(!bd)continue;
+      X.fillStyle=bd.col;X.fillRect(x,y,T,T);
+      const lmx=mx-RW,lmy=my-RW;
+      if(lmx>=0&&lmy>=0&&lmx<BS-1&&lmy<BS-1){
+        if((lmx+lmy)%2===0){const lit=Math.sin(gt*.4+tx*3.7+ty*2.3)>.05;
+          if(lit){X.fillStyle='rgba(255,255,200,0.08)';X.fillRect(x+3,y+3,T-6,T-6)}}}
+      /* 霓虹招牌 */
+      if(bd.neon){
+        if(bd.nSide===0&&lmy===0&&lmx>0&&lmx<BS-1){X.globalAlpha=.5+Math.sin(gt*3+tx)*.3;X.fillStyle=bd.nCol;X.fillRect(x+2,y,T-4,3);X.globalAlpha=1}
+        if(bd.nSide===2&&lmy===BS-2&&lmx>0&&lmx<BS-1){X.globalAlpha=.5+Math.sin(gt*3+tx)*.3;X.fillStyle=bd.nCol;X.fillRect(x+2,y+T-3,T-4,3);X.globalAlpha=1}
+        if(bd.nSide===3&&lmx===0&&lmy>0&&lmy<BS-1){X.globalAlpha=.5+Math.sin(gt*3+ty)*.3;X.fillStyle=bd.nCol;X.fillRect(x,y+2,3,T-4);X.globalAlpha=1}
+        if(bd.nSide===1&&lmx===BS-2&&lmy>0&&lmy<BS-1){X.globalAlpha=.5+Math.sin(gt*3+ty)*.3;X.fillStyle=bd.nCol;X.fillRect(x+T-3,y+2,3,T-4);X.globalAlpha=1}
+      }
+    }
+  }
+}
+
+function drawCar(c,highlight){
+  X.save();X.translate(c.x,c.y);X.rotate(c.a);
+  const hw=c.h/2,hh=c.w/2;
+  /* 车身 */
+  X.fillStyle=c.dead?'#222':c.col;
+  X.fillRect(-hw,-hh,c.h,c.w);
+  if(!c.dead){
+    /* 车窗 */
+    X.fillStyle='rgba(0,180,200,0.25)';X.fillRect(hw-6,-hh+2,4,c.w-4);
+    /* 尾灯 */
+    X.fillStyle='#660022';X.fillRect(-hw,-hh+1,2,3);X.fillRect(-hw,hh-4,2,3);
+    /* 前灯 */
+    X.fillStyle='#ffffcc';X.fillRect(hw-1,-hh+1,2,2);X.fillRect(hw-1,hh-3,2,2);
+  }else{
+    X.fillStyle='#444';X.fillRect(-hw+2,-hh+2,c.h-4,c.w-4);
+  }
+  /* 警灯 */
+  if(c.pol&&!c.dead){const f=Math.sin(c.siren)>0;
+    X.fillStyle=f?'#ff0000':'#0066ff';X.fillRect(-3,-hh-2,6,3);
+    X.fillStyle=f?'#0066ff':'#ff0000';X.fillRect(-3,hh-1,6,3)}
+  /* 高亮（可上车） */
+  if(highlight){X.strokeStyle='#00ffcc';X.lineWidth=1.5;X.strokeRect(-hw-2,-hh-2,c.h+4,c.w+4)}
+  X.restore();
+}
+
+function renderCars(){
+  let nearCar=null,nd=45;
+  if(!player.inCar)for(const c of[...cars,...police]){if(c.dead)continue;const d=Math.sqrt((player.x-c.x)**2+(player.y-c.y)**2);if(d<nd){nd=d;nearCar=c}}
+  for(const c of cars){if(c===player.inCar)continue;drawCar(c,c===nearCar)}
+}
+
+function renderNPCs(){for(const n of npcs){if(!n.alive)continue;
+  X.fillStyle=n.col;X.beginPath();X.arc(n.x,n.y,n.r,0,Math.PI*2);X.fill();
+  X.fillStyle='#000';X.beginPath();X.arc(n.x+Math.cos(n.a)*2,n.y+Math.sin(n.a)*2,1.5,0,Math.PI*2);X.fill

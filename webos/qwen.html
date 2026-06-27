@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>WebOS</title>
+<style>
+:root {
+  --bg: #121212;
+  --panel: #1e1e1e;
+  --accent: #4fc3f7;
+  --text: #e0e0e0;
+  --border: #333;
+  --title: #2c2c2c;
+  --win: #181818;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; }
+
+/* BOOT */
+#boot-screen {
+  position: fixed; inset: 0; background: #000; z-index: 10000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  transition: opacity 0.8s;
+}
+.spinner {
+  width: 50px; height: 50px; border: 4px solid #333; border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* DESKTOP */
+#desktop {
+  position: absolute; inset: 0; padding-bottom: 48px;
+  background: linear-gradient(135deg, #121212 0%, #0a0a0a 100%);
+}
+#icon-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, 90px);
+  gap: 10px; padding: 20px;
+}
+.desktop-icon {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 10px 5px; border-radius: 4px; cursor: pointer;
+  transition: background 0.2s;
+}
+.desktop-icon:hover { background: rgba(255,255,255,0.08); }
+.desktop-icon .ico { font-size: 32px; margin-bottom: 6px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+.desktop-icon span { font-size: 12px; text-align: center; text-shadow: 0 1px 3px #000; }
+
+/* CONTEXT MENU */
+#ctx-menu {
+  position: fixed; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 0; min-width: 160px; display: none; z-index: 9999;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+.ctx-item { padding: 8px 16px; cursor: pointer; font-size: 13px; }
+.ctx-item:hover { background: var(--accent); color: #000; }
+
+/* TASKBAR */
+#taskbar {
+  position: fixed; bottom: 0; left: 0; right: 0; height: 48px;
+  background: var(--panel); border-top: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 8px; z-index: 1000;
+}
+#start-btn {
+  padding: 6px 14px; background: var(--accent); color: #000; border: none;
+  border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px;
+}
+#start-btn:hover { opacity: 0.9; }
+#running-apps {
+  display: flex; gap: 4px; margin-left: 10px; flex: 1; overflow-x: auto;
+}
+.task-btn {
+  padding: 4px 10px; background: #333; color: var(--text); border: none;
+  border-radius: 3px; cursor: pointer; font-size: 12px; max-width: 120px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.task-btn.active { background: var(--accent); color: #000; }
+#tray { margin-left: auto; font-size: 12px; padding: 0 10px; }
+
+/* START MENU */
+#start-menu {
+  position: fixed; bottom: 48px; left: 8px; width: 240px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+  padding: 6px; display: none; z-index: 1001;
+  box-shadow: 0 0 20px rgba(0,0,0,0.6);
+}
+.sm-item {
+  padding: 10px 12px; cursor: pointer; border-radius: 4px; display: flex;
+  align-items: center; gap: 10px; font-size: 13px;
+}
+.sm-item:hover { background: rgba(255,255,255,0.1); }
+.sm-item.shut { color: #f44336; border-top: 1px solid var(--border); margin-top: 6px; padding-top: 12px; }
+
+/* WINDOWS */
+.window {
+  position: absolute; background: var(--win); border: 1px solid var(--border);
+  border-radius: 6px; min-width: 220px; min-height: 160px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.title-bar {
+  height: 32px; background: var(--title); display: flex; align-items: center;
+  padding: 0 8px; cursor: default;
+}
+.title-text { flex: 1; font-size: 12px; margin-left: 6px; pointer-events: none; }
+.win-btns { display: flex; gap: 6px; }
+.win-btn {
+  width: 14px; height: 14px; border-radius: 50%; border: none; cursor: pointer;
+}
+.btn-close { background: #f44336; }
+.btn-max { background: #ff9800; }
+.btn-min { background: #8bc34a; }
+.win-content { flex: 1; overflow: auto; position: relative; }
+
+/* RESIZE HANDLE */
+.resize-handle {
+  position: absolute; bottom: 0; right: 0; width: 16px; height: 16px;
+  cursor: nwse-resize;
+}
+
+/* APP SPECIFIC */
+.notepad-area {
+  width: 100%; height: 100%; background: #111; color: #eee; border: none;
+  padding: 8px; resize: none; font-family: monospace; font-size: 14px; outline: none;
+}
+.calc-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 8px; height: 100%;
+}
+.calc-btn {
+  background: #333; color: #fff; border: none; border-radius: 4px;
+  font-size: 16px; cursor: pointer;
+}
+.calc-btn:hover { background: #444; }
+.calc-btn.op { background: var(--accent); color: #000; }
+.calc-disp {
+  grid-column: span 4; background: #000; color: var(--accent);
+  text-align: right; padding: 10px; font-size: 20px; border-radius: 4px;
+  margin-bottom: 4px; font-family: monospace;
+}
+.term-out {
+  background: #000; color: #0f0; padding: 8px; font-family: monospace;
+  font-size: 13px; height: calc(100% - 35px); overflow-y: auto; white-space: pre-wrap;
+}
+.term-input-line {
+  display: flex; background: #000; padding: 4px 8px;
+}
+.term-input-line span { color: #0f0; margin-right: 6px; font-family: monospace; }
+.term-input {
+  flex: 1; background: transparent; border: none; color: #0f0;
+  font-family: monospace; outline: none;
+}
+.browser-frame { width: 100%; height: 100%; border: none; background: #fff; }
+.settings-panel { padding: 16px; }
+.settings-panel h3 { margin-bottom: 10px; color: var(--accent); }
+.settings-panel p { margin-bottom: 12px; font-size: 13px; }
+.pics-grid { display: grid; grid-template-columns: repeat(auto-fill, 80px); gap: 8px; padding: 10px; }
+.pics-grid div {
+  width: 80px; height: 80px; background: linear-gradient(45deg, #333, #555);
+  border-radius: 4px; display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+}
+</style>
+</head>
+<body>
+
+<!-- BOOT SCREEN -->
+<div id="boot-screen">
+  <div class="spinner"></div>
+  <div style="color:#aaa; font-size:14px;">WebOS is loading...</div>
+</div>
+
+<!-- DESKTOP -->
+<div id="desktop">
+  <div id="icon-grid">
+    <div class="desktop-icon" data-app="computer"><div class="ico">💻</div><span>My Computer</span></div>
+    <div class="desktop-icon" data-app="recycle"><div class="ico">🗑️</div><span>Recycle Bin</span></div>
+    <div class="desktop-icon" data-app="notepad"><div class="ico">📝</div><span>Notepad</span></div>
+    <div class="desktop-icon" data-app="calc"><div class="ico">🧮</div><span>Calculator</span></div>
+    <div class="desktop-icon" data-app="browser"><div class="ico">🌐</div><span>Browser</span></div>
+    <div class="desktop-icon" data-app="terminal"><div class="ico">💻</div><span>Terminal</span></div>
+    <div class="desktop-icon" data-app="settings"><div class="ico">⚙️</div><span>Settings</span></div>
+    <div class="desktop-icon" data-app="pictures"><div class="ico">🖼️</div><span>Pictures</span></div>
+  </div>
+</div>
+
+<!-- CONTEXT MENU -->
+<div id="ctx-menu">
+  <div class="ctx-item" id="ctx-refresh">Refresh Desktop</div>
+  <div class="ctx-item" id="ctx-settings">Settings</div>
+  <div class="ctx-item" id="ctx-terminal">Open Terminal</div>
+</div>
+
+<!-- TASKBAR -->
+<div id="taskbar">
+  <button id="start-btn">Start</button>
+  <div id="running-apps"></div>
+  <div id="tray"></div>
+</div>
+
+<!-- START MENU -->
+<div id="start-menu">
+  <div class="sm-item" data-app="notepad">📝 Notepad</div>
+  <div class="sm-item" data-app="calc">🧮 Calculator</div>
+  <div class="sm-item" data-app="browser">🌐 Browser</div>
+  <div class="sm-item" data-app="terminal">💻 Terminal</div>
+  <div class="sm-item" data-app="settings">⚙️ Settings</div>
+  <div class="sm-item" data-app="pictures">🖼️ Pictures</div>
+  <div class="sm-item shut" id="shut-btn">⏻ Shut Down</div>
+</div>
+
+<script>
+(function(){
+  // Boot
+  setTimeout(() => {
+    document.getElementById('boot-screen').style.opacity = '0';
+    setTimeout(() => document.getElementById('boot-screen').remove(), 800);
+  }, 1500);
+
+  // Clock
+  function updateClock() {
+    const d = new Date();
+    document.getElementById('tray').textContent = d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  }
+  updateClock(); setInterval(updateClock, 1000);
+
+  // Z-order
+  let z = 100;
+  function focusWin(w) { z++; w.style.zIndex = z; }
+
+  // Window factory
+  function createWindow(title, w, h, contentHTML, appId) {
+    const win = document.createElement('div');
+    win.className = 'window';
+    win.style.width = w + 'px'; win.style.height = h + 'px';
+    win.style.left = (80 + Math.random()*200) + 'px';
+    win.style.top = (40 + Math.random()*100) + 'px';
+    win.dataset.appId = appId;
+    win.innerHTML = `
+      <div class="title-bar">
+        <span class="title-text">${title}</span>
+        <div class="win-btns">
+          <button class="win-btn btn-min"></button>
+          <button class="win-btn btn-max"></button>
+          <button class="win-btn btn-close"></button>
+        </div>
+      </div>
+      <div class="win-content">${contentHTML}</div>
+      <div class="resize-handle"></div>
+    `;
+    document.getElementById('desktop').appendChild(win);
+    focusWin(win);
+
+    // Buttons
+    win.querySelector('.btn-close').onclick = () => { win.remove(); removeTask(appId); };
+    win.querySelector('.btn-min').onclick = () => { win.style.display='none'; };
+    win.querySelector('.btn-max').onclick = () => {
+      if(win.style.width === '100%') { win.style.width=w+'px'; win.style.height=h+'px'; win.style.left='100px'; win.style.top='50px'; }
+      else { win.style.width='100%'; win.style.height='100%'; win.style.left='0'; win.style.top='0'; }
+    };
+
+    // Drag
+    const tb = win.querySelector('.title-bar');
+    let dragging = false, ox, oy;
+    tb.onmousedown = e => {
+      if(e.target.classList.contains('win-btn')) return;
+      dragging = true; ox = e.clientX - win.offsetLeft; oy = e.clientY - win.offsetTop;
+      focusWin(win);
+    };
+    document.addEventListener('mousemove', e => { if(dragging) { win.style.left = (e.clientX-ox)+'px'; win.style.top = (e.clientY-oy)+'px'; } });
+    document.addEventListener('mouseup', () => dragging = false);
+
+    // Resize
+    const rh = win.querySelector('.resize-handle');
+    let resizing = false, rx, ry, rw, rht;
+    rh.onmousedown = e => {
+      resizing = true; rx = e.clientX; ry = e.clientY; rw = win.offsetWidth; rht = win.offsetHeight;
+      e.stopPropagation();
+    };
+    document.addEventListener('mousemove', e => { if(resizing) { win.style.width = Math.max(220, rw + e.clientX - rx) + 'px'; win.style.height = Math.max(160, rht + e.clientY - ry) + 'px'; } });
+    document.addEventListener('mouseup', () => resizing = false);
+
+    win.onclick = () => focusWin(win);
+    addTask(title, win);
+    return win;
+  }
+
+  // Taskbar
+  const tasks = {};
+  function addTask(name, win) {
+    if(tasks[name]) { tasks[name].style.display=''; focusWin(tasks[name]); return; }
+    tasks[name] = win;
+    const btn = document.createElement('button');
+    btn.className = 'task-btn active'; btn.textContent = name;
+    btn.onclick = () => {
+      if(win.style.display === 'none') { win.style.display=''; focusWin(win); }
+      else { win.style.display='none'; }
+    };
+    document.getElementById('running-apps').appendChild(btn);
+  }
+  function removeTask(name) {
+    const btns = document.querySelectorAll('.task-btn');
+    btns.forEach(b => { if(b.textContent === name) b.remove(); });
+    delete tasks[name];
+  }
+
+  // Apps
+  function openNotepad() {
+    const saved = localStorage.getItem('webos_notepad') || '';
+    const html = `<div style="height:100%;display:flex;flex-direction:column;">
+      <div style="padding:4px;background:#222;font-size:12px;">
+        <span style="margin-right:10px;cursor:pointer;" id="np-new">New</span>
+        <span style="margin-right:10px;cursor:pointer;" id="np-open">Open</span>
+        <span style="cursor:pointer;" id="np-save">Save</span>
+      </div>
+      <textarea class="notepad-area" id="np-area">${saved}</textarea>
+    </div>`;
+    const win = createWindow('Notepad', 400, 300, html, 'notepad');
+    win.querySelector('#np-new').onclick = () => { win.querySelector('#np-area').value = ''; };
+    win.querySelector('#np-save').onclick = () => { localStorage.setItem('webos_notepad', win.querySelector('#np-area').value); alert('Saved!'); };
+    win.querySelector('#np-open').onclick = () => { win.querySelector('#np-area').value = localStorage.getItem('webos_notepad') || ''; };
+  }
+
+  function openCalc() {
+    const html = `<div class="calc-grid">
+      <div class="calc-disp" id="calc-d">0</div>
+      <button class="calc-btn" data-v="C">C</button>
+      <button class="calc-btn" data-v="/">/</button>
+      <button class="calc-btn" data-v="*">*</button>
+      <button class="calc-btn" data-v="-">-</button>
+      <button class="calc-btn" data-v="7">7</button>
+      <button class="calc-btn" data-v="8">8</button>
+      <button class="calc-btn" data-v="9">9</button>
+      <button class="calc-btn" data-v="+">+</button>
+      <button class="calc-btn" data-v="4">4</button>
+      <button class="calc-btn" data-v="5">5</button>
+      <button class="calc-btn" data-v="6">6</button>
+      <button class="calc-btn op" data-v="=" style="grid-row:span 2;">=</button>
+      <button class="calc-btn" data-v="1">1</button>
+      <button class="calc-btn" data-v="2">2</button>
+      <button class="calc-btn" data-v="3">3</button>
+      <button class="calc-btn" data-v="0" style="grid-column:span 2;">0</button>
+      <button class="calc-btn" data-v=".">.</button>
+    </div>`;
+    const win = createWindow('Calculator', 260, 320, html, 'calc');
+    let expr = '';
+    win.querySelectorAll('.calc-btn').forEach(b => {
+      b.onclick = () => {
+        const v = b.dataset.v;
+        if(v === 'C') { expr = ''; win.querySelector('#calc-d').textContent = '0'; }
+        else if(v === '=') { try { win.querySelector('#calc-d').textContent = eval(expr); expr = win.querySelector('#calc-d').textContent; } catch(e) { win.querySelector('#calc-d').textContent = 'Error'; expr=''; } }
+        else { expr += v; win.querySelector('#calc-d').textContent = expr; }
+      };
+    });
+  }
+
+  function openTerminal() {
+    const html = `<div class="term-out" id="t-out">WebOS Terminal v1.0\nType 'help' for commands.\n</div>
+    <div class="term-input-line"><span>></span><input class="term-input" id="t-in" autofocus></div>`;
+    const win = createWindow('Terminal', 500, 350, html, 'terminal');
+    const out = win.querySelector('#t-out');
+    const inp = win.querySelector('#t-in');
+    inp.onkeydown = e => {
+      if(e.key === 'Enter') {
+        const cmd = inp.value.trim();
+        out.textContent += `> ${cmd}\n`;
+        if(!cmd) {}
+        else if(cmd === 'help') out.textContent += "Commands: help, date, echo [text], clear, ls\n";
+        else if(cmd === 'date') out.textContent += new Date().toString() + '\n';
+        else if(cmd === 'clear') out.textContent = '';
+        else if(cmd === 'ls') out.textContent += "My Computer  Recycle Bin  Notepad  Calculator  Browser  Terminal  Settings  Pictures\n";
+        else if(cmd.startsWith('echo ')) out.textContent += cmd.slice(5) + '\n';
+        else out.textContent += `Command not found: ${cmd}\n`;
+        inp.value = '';
+        out.scrollTop = out.scrollHeight;
+      }
+    };
+    win.onclick = () => inp.focus();
+  }
+
+  function openBrowser() {
+    const html = `<iframe src="https://www.wikipedia.org" class="browser-frame"></iframe>`;
+    createWindow('Browser', 600, 400, html, 'browser');
+  }
+
+  function openSettings() {
+    const html = `<div class="settings-panel">
+      <h3>WebOS Settings</h3>
+      <p>Version: 1.0.0</p>
+      <p>Theme: Dark</p>
+      <p>Storage: localStorage</p>
+      <button onclick="alert('Settings saved!')" style="padding:6px 12px;background:var(--accent);border:none;border-radius:4px;cursor:pointer;">Apply</button>
+    </div>`;
+    createWindow('Settings', 300, 200, html, 'settings');
+  }
+
+  function openPictures() {
+    const html = `<div class="pics-grid">
+      <div>🏔️</div><div>🌊</div><div>🌲</div><div>🌸</div><div>🦊</div><div>🦋</div><div>🌅</div><div>🏙️</div>
+    </div>`;
+    createWindow('Pictures', 320, 240, html, 'pictures');
+  }
+
+  function openComputer() { alert('My Computer: C: (Web Storage) - 100% Free'); }
+  function openRecycle() { alert('Recycle Bin is empty.'); }
+
+  // Icon clicks
+  document.querySelectorAll('.desktop-icon').forEach(ic => {
+    ic.onclick = () => {
+      const app = ic.dataset.app;
+      if(app === 'notepad') openNotepad();
+      else if(app === 'calc') openCalc();
+      else if(app === 'terminal') openTerminal();
+      else if(app === 'browser') openBrowser();
+      else if(app === 'settings') openSettings();
+      else if(app === 'pictures') openPictures();
+      else if(app === 'computer') openComputer();
+      else if(app === 'recycle') openRecycle();
+    };
+  });
+
+  // Start menu items
+  document.querySelectorAll('.sm-item[data-app]').forEach(it => {
+    it.onclick = () => {
+      const app = it.dataset.app;
+      if(app === 'notepad') openNotepad();
+      else if(app === 'calc') openCalc();
+      else if(app === 'terminal') openTerminal();
+      else if(app === 'browser') openBrowser();
+      else if(app === 'settings') openSettings();
+      else if(app === 'pictures') openPictures();
+      document.getElementById('start-menu').style.display = 'none';
+    };
+  });
+
+  // Start button
+  document.getElementById('start-btn').onclick = () => {
+    document.getElementById('start-menu').style.display = document.getElementById('start-menu').style.display === 'block' ? 'none' : 'block';
+  };
+
+  // Shutdown
+  document.getElementById('shut-btn').onclick = () => {
+    document.body.innerHTML = '<div style="height:100vh;display:flex;align-items:center;justify-content:center;color:#555;font-size:20px;">It\'s now safe to close your tab.</div>';
+  };
+
+  // Context menu
+  const ctx = document.getElementById('ctx-menu');
+  document.getElementById('desktop').oncontextmenu = e => {
+    e.preventDefault();
+    ctx.style.display = 'block';
+    ctx.style.left = e.clientX + 'px';
+    ctx.style.top = e.clientY + 'px';
+  };
+  document.addEventListener('click', () => ctx.style.display = 'none');
+  document.getElementById('ctx-refresh').onclick = () => location.reload();
+  document.getElementById('ctx-settings').onclick = () => { openSettings(); ctx.style.display='none'; };
+  document.getElementById('ctx-terminal').onclick = () => { openTerminal(); ctx.style.display='none'; };
+
+})();
+</script>
+</body>
+</html>

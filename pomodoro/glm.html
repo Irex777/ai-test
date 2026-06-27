@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pomodoro Timer</title>
+<style>
+  /* ── 注册自定义属性以支持颜色平滑过渡（渐进增强） ── */
+  @property --accent {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: #FF6347;
+  }
+  @property --accent-glow {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: rgba(255,99,71,0.25);
+  }
+
+  :root {
+    --bg: #0B0B10;
+    --surface: #131318;
+    --card: #1A1A22;
+    --border: #27273A;
+    --text: #ECE8E1;
+    --text-dim: #8E8A96;
+    --radius: 12px;
+    --ring-circumference: 753.98;
+    --accent: #FF6347;
+    --accent-soft: rgba(255,99,71,0.12);
+    --accent-glow: rgba(255,99,71,0.25);
+    --transition-color: 0.55s ease;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── 背景氛围层 ── */
+  .bg-orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(110px);
+    pointer-events: none;
+    z-index: 0;
+    transition: background var(--transition-color);
+  }
+  .orb-1 {
+    width: 520px; height: 520px;
+    top: -180px; left: -120px;
+    background: var(--accent-glow);
+    opacity: .28;
+    animation: orbA 26s ease-in-out infinite;
+  }
+  .orb-2 {
+    width: 420px; height: 420px;
+    bottom: -120px; right: -100px;
+    background: var(--accent-glow);
+    opacity: .18;
+    animation: orbB 32s ease-in-out infinite;
+  }
+  .orb-3 {
+    width: 260px; height: 260px;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    background: var(--accent-glow);
+    opacity: .07;
+    animation: orbC 10s ease-in-out infinite;
+  }
+  @keyframes orbA {
+    0%,100%{transform:translate(0,0) scale(1)}
+    33%{transform:translate(50px,35px) scale(1.12)}
+    66%{transform:translate(-25px,-20px) scale(.94)}
+  }
+  @keyframes orbB {
+    0%,100%{transform:translate(0,0) scale(1)}
+    33%{transform:translate(-35px,-45px) scale(1.08)}
+    66%{transform:translate(30px,18px) scale(.92)}
+  }
+  @keyframes orbC {
+    0%,100%{opacity:.07;transform:translate(-50%,-50%) scale(1)}
+    50%{opacity:.14;transform:translate(-50%,-50%) scale(1.25)}
+  }
+
+  /* 微妙噪点纹理 */
+  body::after {
+    content:'';
+    position:fixed;inset:0;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+    pointer-events:none;z-index:0;opacity:.6;
+  }
+
+  /* ── 主容器 ── */
+  .app {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 30px;
+    padding: 20px; width: 100%; max-width: 440px;
+  }
+
+  /* ── 顶栏 ── */
+  .header {
+    display: flex; align-items: center;
+    justify-content: space-between; width: 100%;
+  }
+  .logo {
+    font-size: 15px; font-weight: 700;
+    letter-spacing: 5px; text-transform: uppercase;
+    color: var(--text-dim);
+    user-select: none;
+  }
+  .logo span { color: var(--accent); transition: color var(--transition-color); }
+
+  .icon-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    width: 40px; height: 40px;
+    border-radius: 10px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .25s ease;
+  }
+  .icon-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .icon-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .icon-btn svg { width:18px;height:18px; }
+
+  /* ── 模式选择标签 ── */
+  .tabs {
+    display: flex; gap: 4px;
+    background: var(--surface); padding: 4px;
+    border-radius: 11px;
+    border: 1px solid var(--border);
+  }
+  .tab {
+    padding: 9px 18px;
+    border: none; background: transparent;
+    color: var(--text-dim); font-size: 13px;
+    font-weight: 600; font-family: inherit;
+    border-radius: 8px; cursor: pointer;
+    transition: all .3s ease;
+    white-space: nowrap;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 2px 14px var(--accent-glow);
+    transition: background .35s ease, box-shadow .35s ease, color .2s ease;
+  }
+  .tab:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* ── 计时器圆环 ── */
+  .timer-wrap {
+    position: relative;
+    width: 280px; height: 280px;
+  }
+
+  .ring-glow-bg {
+    position: absolute;
+    inset: -24px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--accent-glow), transparent 68%);
+    opacity: 0;
+    transition: opacity .5s ease, background var(--transition-color);
+    pointer-events: none;
+  }
+  .ring-glow-bg.on {
+    opacity: 1;
+    animation: glowPulse 3.5s ease-in-out infinite;
+  }
+  @keyframes glowPulse {
+    0%,100%{opacity:.35;transform:scale(1)}
+    50%{opacity:.65;transform:scale(1.04)}
+  }
+
+  .ring-svg {
+    width: 100%; height: 100%;
+    transform: rotate(-90deg);
+  }
+  .ring-track {
+    fill: none;
+    stroke: var(--border);
+    stroke-width: 5;
+  }
+  .ring-progress {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 5.5;
+    stroke-linecap: round;
+    stroke-dasharray: var(--ring-circumference);
+    stroke-dashoffset: 0;
+    transition: stroke var(--transition-color);
+    filter: drop-shadow(0 0 8px var(--accent-glow));
+  }
+
+  /* 中心文字叠加层 */
+  .timer-center {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 2px;
+  }
+  .time-display {
+    font-family: 'SF Mono','Cascadia Code','Fira Code','JetBrains Mono',Consolas,monospace;
+    font-size: 58px; font-weight: 700;
+    letter-spacing: 2px; line-height: 1;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .mode-name {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 4px; text-transform: uppercase;
+    color: var(--accent);
+    margin-top: 6px;
+    transition: color var(--transition-color);
+  }
+
+  /* ── 控制按钮 ── */
+  .controls {
+    display: flex; gap: 12px; align-items: center;
+  }
+  .btn {
+    border: none; cursor: pointer;
+    font-family: inherit; font-weight: 600;
+    border-radius: var(--radius);
+    transition: all .22s ease;
+    display: flex; align-items: center;
+    justify-content: center; gap: 8px;
+  }
+  .btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .btn svg { width:18px;height:18px;flex-shrink:0; }
+
+  .btn-main {
+    padding: 14px 44px;
+    font-size: 15px;
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 4px 22px var(--accent-glow);
+    transition: background .35s ease, box-shadow .35s ease, transform .15s ease, filter .15s ease;
+  }
+  .btn-main:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 30px var(--accent-glow);
+    filter: brightness(1.1);
+  }
+  .btn-main:active { transform: translateY(0); }
+
+  .btn-ghost {
+    width: 48px; height: 48px; padding: 0;
+    font-size: 14px;
+    background: var(--surface);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  /* ── 会话指示器 ── */
+  .sessions {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 10px;
+  }
+  .dots { display: flex; gap: 10px; }
+  .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: all .4s ease;
+  }
+  .dot.done {
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent-glow);
+    transition: background var(--transition-color), box-shadow var(--transition-color);
+  }
+  .dot.now {
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent-glow);
+    animation: dotPulse 2.2s ease-in-out infinite;
+  }
+  @keyframes dotPulse {
+    0%,100%{box-shadow:0 0 8px var(--accent-glow)}
+    50%{box-shadow:0 0 18px var(--accent-glow)}
+  }
+  .session-label {
+    font-size: 13px; font-weight: 500;
+    color: var(--text-dim);
+  }
+
+  /* ── 快捷键提示 ── */
+  .shortcuts {
+    font-size: 11px; color: var(--text-dim);
+    opacity: .5; letter-spacing: .3px;
+    text-align: center; line-height: 1.7;
+  }
+  .shortcuts kbd {
+    display: inline-block;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: inherit;
+    font-size: 10px;
+  }
+
+  /* ── 设置弹窗 ── */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity .3s ease;
+  }
+  .overlay.open { opacity:1; pointer-events:all; }
+
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 30px; width: 90%; max-width: 370px;
+    transform: translateY(18px) scale(.96);
+    transition: transform .35s cubic-bezier(.16,1,.3,1);
+  }
+  .overlay.open .modal {
+    transform: translateY(0) scale(1);
+  }
+  .modal h2 {
+    font-size: 17px; font-weight: 700;
+    margin-bottom: 22px; color: var(--text);
+  }
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-size: 12px; font-weight: 600;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    letter-spacing: .3px;
+  }
+  .field input {
+    width: 100%; padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px; font-family: inherit;
+    outline: none;
+    transition: border-color .2s ease;
+  }
+  .field input:focus { border-color: var(--accent); }
+
+  .modal-btns {
+    display: flex; gap: 8px; margin-top: 22px;
+  }
+  .modal-btns .btn { flex:1; padding:11px; font-size:14px; }
+  .btn-cancel {
+    background: var(--surface);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+  .btn-cancel:hover {
+    border-color: var(--text-dim);
+    color: var(--text);
+  }
+  .btn-save {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 2px 12px var(--accent-glow);
+  }
+  .btn-save:hover { filter: brightness(1.12); }
+
+  /* ── 提示条 ── */
+  .toast {
+    position: fixed; bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(70px);
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 26px;
+    border-radius: 10px;
+    font-size: 14px; font-weight: 500;
+    z-index: 200;
+    opacity: 0;
+    transition: all .4s cubic-bezier(.16,1,.3,1);
+    pointer-events: none;
+    white-space: nowrap;
+    box-shadow: 0 8px 32px rgba(0,0,0,.4);
+  }
+  .toast.show {
+    opacity:1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ── 完成闪光效果 ── */
+  .timer-wrap.flash .ring-svg {
+    animation: ringFlash .6s ease;
+  }
+  @keyframes ringFlash {
+    0%{filter:brightness(1)}
+    30%{filter:brightness(2.5)}
+    100%{filter:brightness(1)}
+  }
+
+  /* ── 减少动画偏好 ── */
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{
+      animation-duration:.01ms!important;
+      transition-duration:.01ms!important;
+    }
+  }
+
+  /* ── 响应式 ── */
+  @media(max-width:420px){
+    .timer-wrap { width:240px;height:240px; }
+    .time-display { font-size:46px; }
+    .tab { padding:7px 13px;font-size:12px; }
+    .btn-main { padding:12px 32px;font-size:14px; }
+    .shortcuts { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 背景光斑 -->
+<div class="bg-orb orb-1"></div>
+<div class="bg-orb orb-2"></div>
+<div class="bg-orb orb-3"></div>
+
+<div class="app">
+
+  <!-- 顶栏 -->
+  <header class="header">
+    <div class="logo">Pomo<span>doro</span></div>
+    <button class="icon-btn" id="settingsBtn" aria-label="Open settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- 模式切换 -->
+  <nav class="tabs" role="tablist" aria-label="Timer mode">
+    <button class="tab active" data-mode="work" role="tab" aria-selected="true">Work</button>
+    <button class="tab" data-mode="shortBreak" role="tab" aria-selected="false">Short Break</button>
+    <button class="tab" data-mode="longBreak" role="tab" aria-selected="false">Long Break</button>
+  </nav>
+
+  <!-- 计时器圆环 -->
+  <section class="timer-wrap" id="timerWrap" aria-label="Timer display">
+    <div class="ring-glow-bg" id="glowBg"></div>
+    <svg class="ring-svg" viewBox="0 0 280 280" aria-hidden="true">
+      <circle class="ring-track" cx="140" cy="140" r="120"/>
+      <circle class="ring-progress" id="ringProgress" cx="140" cy="140" r="120"/>
+    </svg>
+    <div class="timer-center">
+      <span class="time-display" id="timeDisplay" aria-live="polite">25:00</span>
+      <span class="mode-name" id="modeName">Focus Time</span>
+    </div>
+  </section>
+
+  <!-- 控制按钮 -->
+  <div class="controls">
+    <button class="btn btn-ghost" id="resetBtn" aria-label="Reset timer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="1 4 1 10 7 10"/>
+        <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
+      </svg>
+    </button>
+    <button class="btn btn-main" id="startBtn">
+      <svg id="playPauseIcon" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21"/></svg>
+      <span id="startLabel">Start</span>
+    </button>
+    <button class="btn btn-ghost" id="skipBtn" aria-label="Skip to next phase">
+      <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="0">
+        <polygon points="5 4 15 12 5 20"/>
+        <rect x="17" y="4" width="3" height="16" rx="1"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- 会话进度 -->
+  <div class="sessions">
+    <div class="dots" id="dots" aria-label="Session progress"></div>
+    <span class="session-label" id="sessionLabel">Session 1 of 4</span>
+  </div>
+
+  <!-- 快捷键提示 -->
+  <div class="shortcuts">
+    <kbd>Space</kbd> Start / Pause &nbsp;&middot;&nbsp;
+    <kbd>R</kbd> Reset &nbsp;&middot;&nbsp;
+    <kbd>S</kbd> Skip
+  </div>
+
+</div>
+
+<!-- 设置弹窗 -->
+<div class="overlay" id="overlay">
+  <div class="modal" role="dialog" aria-label="Timer settings">
+    <h2>Timer Settings</h2>
+    <div class="field">
+      <label for="cfgWork">Focus duration (minutes)</label>
+      <input type="number" id="cfgWork" value="25" min="1" max="120">
+    </div>
+    <div class="field">
+      <label for="cfgShort">Short break (minutes)</label>
+      <input type="number" id="cfgShort" value="5" min="1" max="60">
+    </div>
+    <div class="field">
+      <label for="cfgLong">Long break (minutes)</label>
+      <input type="number" id="cfgLong" value="15" min="1" max="60">
+    </div>
+    <div class="field">
+      <label for="cfgRounds">Sessions before long break</label>
+      <input type="number" id="cfgRounds" value="4" min="2" max="10">
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-cancel" id="cancelBtn">Cancel</button>
+      <button class="btn btn-save" id="saveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- 提示条 -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  /* ════════════════ 常量 ════════════════ */
+  var RADIUS = 120;
+  var CIRCUMFERENCE = 2 * Math.PI * RADIUS; // ≈753.98
+
+  /* 每种模式对应的配色 */
+  var PALETTE = {
+    work:       { accent:'#FF6347', glow:'rgba(255,99,71,0.25)',  soft:'rgba(255,99,71,0.12)',  label:'Focus Time'  },
+    shortBreak: { accent:'#2DD4A8', glow:'rgba(45,212,168,0.25)', soft:'rgba(45,212,168,0.12)', label:'Short Break' },
+    longBreak:  { accent:'#FFB347', glow:'rgba(255,179,71,0.25)', soft:'rgba(255,179,71,0.12)', label:'Long Break'  }
+  };
+
+  /* ════════════════ 状态 ════════════════ */
+  var state = {
+    mode: 'work',
+    running: false,
+    totalSec: 25 * 60,
+    endTs: null,
+    pausedRemain: null,
+    rafId: null,
+    completed: 0,          // 已完成工作轮次数
+    rounds: 4,             // 几轮后长休息
+    dur: { work:25, shortBreak:5, longBreak:15 }
+  };
+
+  /* ════════════════ DOM 引用 ════════════════ */
+  var $ring     = document.getElementById('ringProgress');
+  var $time     = document.getElementById('timeDisplay');
+  var $modeName = document.getElementById('modeName');
+  var $glow     = document.getElementById('glowBg');
+  var $startBtn = document.getElementById('startBtn');
+  var $label    = document.getElementById('startLabel');
+  var $icon     = document.getElementById('playPauseIcon');
+  var $resetBtn = document.getElementById('resetBtn');
+  var $skipBtn  = document.getElementById('skipBtn');
+  var $dots     = document.getElementById('dots');
+  var $sessLbl  = document.getElementById('sessionLabel');
+  var $settingsBtn = document.getElementById('settingsBtn');
+  var $overlay  = document.getElementById('overlay');
+  var $saveBtn  = document.getElementById('saveBtn');
+  var $cancelBtn= document.getElementById('cancelBtn');
+  var $toast    = document.getElementById('toast');
+  var $wrap     = document.getElementById('timerWrap');
+  var $tabs     = document.querySelectorAll('.tab');
+
+  /* ════════════════ 工具函数 ════════════════ */
+  function fmt(sec) {
+    var m = Math.floor(sec / 60);
+    var s = Math.floor(sec % 60);
+    return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  function modeDuration(mode) {
+    return state.dur[mode] * 60;
+  }
+
+  /* ════════════════ 颜色主题切换 ════════════════ */
+  function applyTheme() {
+    var p = PALETTE[state.mode];
+    var root = document.documentElement;
+    root.style.setProperty('--accent', p.accent);
+    root.style.setProperty('--accent-glow', p.glow);
+    root.style.setProperty('--accent-soft', p.soft);
+    $modeName.textContent = p.label;
+  }
+
+  /* ════════════════ 显示更新 ════════════════ */
+  function render(remaining) {
+    /* 圆环进度 */
+    var progress = remaining / state.totalSec;
+    var offset = CIRCUMFERENCE * (1 - progress);
+    $ring.style.strokeDashoffset = offset;
+
+    /* 数字 */
+    $time.textContent = fmt(remaining);
+
+    /* 浏览器标签页标题 */
+    document.title = fmt(remaining) + ' \u2014 ' + PALETTE[state.mode].label;
+  }
+
+  function renderDots() {
+    $dots.innerHTML = '';
+    for (var i = 0; i < state.rounds; i++) {
+      var d = document.createElement('div');
+      d.className = 'dot';
+      if (i < state.completed) d.classList.add('done');
+      else if (state.mode === 'work' && i === state.completed) d.classList.add('now');
+      $dots.appendChild(d);
+    }
+    $sessLbl.textContent = 'Session ' + (state.completed + 1) + ' of ' + state.rounds;
+  }
+
+  function renderTabs() {
+    $tabs.forEach(function(t) {
+      var active = t.dataset.mode === state.mode;
+      t.classList.toggle('active', active);
+      t.setAttribute('aria-selected', active);
+    });
+  }
+
+  function renderButton() {
+    if (state.running) {
+      $label.textContent = 'Pause';
+      $icon.innerHTML = '<rect x="5" y="3" width="4" height="18" rx="1"/><rect x="15" y="3" width="4" height="18" rx="1"/>';
+      $glow.classList.add('on');
+    } else {
+      $label.textContent = state.pausedRemain !== null ? 'Resume' : 'Start';
+      $icon.innerHTML = '<polygon points="6 3 20 12 6 21"/>';
+      $glow.classList.remove('on');
+    }
+  }
+
+  /* ════════════════ 计时器逻辑 ════════════════ */
+  function start() {
+    if (state.running) return;
+    state.running = true;
+    var rem = state.pausedRemain !== null ? state.pausedRemain : state.totalSec;
+    state.endTs = Date.now() + rem * 1000;
+    state.pausedRemain = null;
+    renderButton();
+    tick();
+  }
+
+  function pause() {
+    if (!state.running) return;
+    state.running = false;
+    var rem = Math.max(0, (state.endTs - Date.now()) / 1000);
+    state.pausedRemain = rem;
+    state.endTs = null;
+    cancelRaf();
+    renderButton();
+  }
+
+  function reset() {
+    state.running = false;
+    state.pausedRemain = null;
+    state.endTs = null;
+    cancelRaf();
+    state.totalSec = modeDuration(state.mode);
+    renderButton();
+    render(state.totalSec);
+  }
+
+  function cancelRaf() {
+    if (state.rafId) {
+      cancelAnimationFrame(state.rafId);
+      state.rafId = null;
+    }
+  }
+
+  function tick() {
+    if (!state.running) return;
+    var rem = Math.max(0, (state.endTs - Date.now()) / 1000);
+    render(rem);
+    if (rem <= 0) { onComplete(); return; }
+    state.rafId = requestAnimationFrame(tick);
+  }
+
+  function onComplete() {
+    state.running = false;
+    state.pausedRemain = null;
+    state.endTs = null;
+    cancelRaf();
+
+    /* 闪光特效 */
+    $wrap.classList.add('flash');
+    setTimeout(function() { $wrap.classList.remove('flash'); }, 700);
+
+    /* 音频提示 */
+    playBeep();
+
+    /* 显示提示 */
+    var msg = state.mode === 'work'
+      ? 'Great focus session! Time for a break.'
+      : 'Break is over. Ready to focus!';
+    showToast(msg);
+
+    /* 自动切换模式 */
+    if (state.mode === 'work') {
+      state.completed++;
+      if (state.completed >= state.rounds) {
+        switchMode('longBreak');
+        state.completed = 0;
+      } else {
+        switchMode('shortBreak');
+      }
+    } else {
+      switchMode('work');
+    }
+  }
+
+  function switchMode(mode) {
+    state.mode = mode;
+    state.totalSec = modeDuration(mode);
+    state.pausedRemain = null;
+    state.running = false;
+    cancelRaf();
+    applyTheme();
+    renderTabs();
+    renderDots();
+    renderButton();
+    render(state.totalSec);
+  }
+
+  /* ════════════════ Web Audio API 提示音 ════════════════ */
+  function playBeep() {
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      /* 播放 4 声提示：3 短 1 长 */
+      var notes = [
+        { delay:0,    freq:880, dur:0.12 },
+        { delay:0.18, freq:880, dur:0.12 },
+        { delay:0.36, freq:880, dur:0.12 },
+        { delay:0.60, freq:660, dur:0.28 }
+      ];
+      notes.forEach(function(n) {
+        var osc  = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.value = n.freq;
+        var t = ctx.currentTime + n.delay;
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.28, t + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + n.dur);
+        osc.start(t);
+        osc.stop(t + n.dur + 0.01);
+      });
+    } catch (_) { /* 浏览器不支持时静默降级 */ }
+  }
+
+  /* ════════════════ 提示条 ════════════════ */
+  var toastTimer = null;
+  function showToast(msg) {
+    $toast.textContent = msg;
+    $toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() {
+      $toast.classList.remove('show');
+    }, 3500);
+  }
+
+  /* ════════════════ 设置面板 ════════════════ */
+  function openSettings() {
+    document.getElementById('cfgWork').value   = state.dur.work;
+    document.getElementById('cfgShort').value  = state.dur.shortBreak;
+    document.getElementById('cfgLong').value   = state.dur.longBreak;
+    document.getElementById('cfgRounds').value = state.rounds;
+    $overlay.classList.add('open');
+  }
+  function closeSettings() {
+    $overlay.classList.remove('open');
+  }
+  function saveSettings() {
+    var w = Math.max(1, Math.min(120, parseInt(document.getElementById('cfgWork').value)  || 25));
+    var s = Math.max(1, Math.min(60,  parseInt(document.getElementById('cfgShort').value) || 5));
+    var l = Math.max(1, Math.min(60,  parseInt(document.getElementById('cfgLong').value)  || 15));
+    var r = Math.max(2, Math.min(10,  parseInt(document.getElementById('cfgRounds').value)|| 4));
+    state.dur.work       = w;
+    state.dur.shortBreak = s;
+    state.dur.longBreak  = l;
+    state.rounds         = r;
+    reset();
+    renderDots();
+    closeSettings();
+    showToast('Settings saved');
+  }
+
+  /* ════════════════ 事件绑定 ════════════════ */
+
+  /* 开始 / 暂停 */
+  $startBtn.addEventListener('click', function() {
+    if (state.running) pause(); else start();
+  });
+
+  /* 重置 */
+  $resetBtn.addEventListener('click', reset);
+
+  /* 跳过 */
+  $skipBtn.addEventListener('click', function() {
+    if (state.mode === 'work') {
+      state.completed++;
+      if (state.completed >= state.rounds) {
+        state.completed = 0;
+        switchMode('longBreak');
+      } else {
+        switchMode('shortBreak');
+      }
+    } else {
+      switchMode('work');
+    }
+    showToast('Skipped to next phase');
+  });
+
+  /* 模式标签手动切换 */
+  $tabs.forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      switchMode(tab.dataset.mode);
+    });
+  });
+
+  /* 设置 */
+  $settingsBtn.addEventListener('click', openSettings);
+  $saveBtn.addEventListener('click', saveSettings);
+  $cancelBtn.addEventListener('click', closeSettings);
+  $overlay.addEventListener('click', function(e) {
+    if (e.target === $overlay) closeSettings();
+  });
+
+  /* 键盘快捷键 */
+  document.addEventListener('keydown', function(e) {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.code === 'Space')  { e.preventDefault(); if (state.running) pause(); else start(); }
+    else if (e.code === 'KeyR') reset();
+    else if (e.code === 'KeyS') $skipBtn.click();
+    else if (e.code === 'Escape') closeSettings();
+  });
+
+  /* ════════════════ 初始化 ════════════════ */
+  $ring.style.strokeDasharray = CIRCUMFERENCE;
+  applyTheme();
+  renderTabs();
+  renderDots();
+  renderButton();
+  render(state.totalSec);
+
+})();
+</script>
+</body>
+</html>

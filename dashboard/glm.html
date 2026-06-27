@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus Analytics Dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0b0e14;
+    --bg-elevated: #111620;
+    --card: #161c28;
+    --card-hover: #1c2436;
+    --border: #1e2738;
+    --fg: #e8ecf4;
+    --fg-muted: #6b7a94;
+    --fg-dim: #3d4f6a;
+    --accent: #00d4aa;
+    --accent-dim: rgba(0, 212, 170, 0.12);
+    --accent-glow: rgba(0, 212, 170, 0.25);
+    --red: #ff5c72;
+    --red-dim: rgba(255, 92, 114, 0.12);
+    --amber: #ffb547;
+    --amber-dim: rgba(255, 181, 71, 0.12);
+    --blue: #4da6ff;
+    --blue-dim: rgba(77, 166, 255, 0.12);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.3);
+    --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  html { font-size: 15px; }
+
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    min-height: 100vh;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* Ambient background blobs */
+  body::before, body::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::before {
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(0,212,170,0.08), transparent 70%);
+    top: -100px; left: -100px;
+    animation: blobDrift1 20s ease-in-out infinite;
+  }
+  body::after {
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(77,166,255,0.06), transparent 70%);
+    bottom: -80px; right: -80px;
+    animation: blobDrift2 25s ease-in-out infinite;
+  }
+  @keyframes blobDrift1 {
+    0%, 100% { transform: translate(0, 0); }
+    33% { transform: translate(80px, 60px); }
+    66% { transform: translate(-40px, 100px); }
+  }
+  @keyframes blobDrift2 {
+    0%, 100% { transform: translate(0, 0); }
+    33% { transform: translate(-60px, -80px); }
+    66% { transform: translate(50px, -40px); }
+  }
+
+  .dashboard {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  /* Top bar */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .logo-mark {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, var(--accent), #00a885);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--bg);
+    box-shadow: 0 0 20px var(--accent-glow);
+    animation: logoPulse 3s ease-in-out infinite;
+  }
+  @keyframes logoPulse {
+    0%, 100% { box-shadow: 0 0 20px var(--accent-glow); }
+    50% { box-shadow: 0 0 30px rgba(0,212,170,0.35); }
+  }
+  .topbar h1 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .topbar h1 span { color: var(--fg-muted); font-weight: 400; }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  /* Refresh indicator */
+  .refresh-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--fg-muted);
+    background: var(--bg-elevated);
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+  }
+  .refresh-dot {
+    width: 7px; height: 7px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: refreshBlink 2s ease-in-out infinite;
+  }
+  @keyframes refreshBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* Inputs and buttons */
+  input[type="date"], select, .btn {
+    font-family: inherit;
+    font-size: 0.82rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 14px;
+    background: var(--bg-elevated);
+    color: var(--fg);
+    outline: none;
+    transition: var(--transition);
+    cursor: pointer;
+  }
+  input[type="date"]:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.7);
+    cursor: pointer;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .btn:hover {
+    background: var(--card);
+    border-color: var(--fg-dim);
+    transform: translateY(-1px);
+  }
+  .btn:active { transform: translateY(0); }
+  .btn-accent {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+  }
+  .btn-accent:hover {
+    background: #00e6b8;
+    border-color: #00e6b8;
+    box-shadow: 0 4px 16px var(--accent-glow);
+  }
+  .btn svg { width: 15px; height: 15px; }
+
+  /* KPI grid */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    position: relative;
+    overflow: hidden;
+    transition: var(--transition);
+    cursor: default;
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: var(--radius) var(--radius) 0 0;
+    transition: var(--transition);
+  }
+  .kpi-card:nth-child(1)::before { background: var(--accent); }
+  .kpi-card:nth-child(2)::before { background: var(--blue); }
+  .kpi-card:nth-child(3)::before { background: var(--amber); }
+  .kpi-card:nth-child(4)::before { background: var(--red); }
+
+  .kpi-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--fg-dim);
+    background: var(--card-hover);
+    box-shadow: var(--shadow);
+  }
+  .kpi-card:nth-child(1):hover { border-color: var(--accent); box-shadow: 0 8px 32px var(--accent-dim); }
+  .kpi-card:nth-child(2):hover { border-color: var(--blue); box-shadow: 0 8px 32px var(--blue-dim); }
+  .kpi-card:nth-child(3):hover { border-color: var(--amber); box-shadow: 0 8px 32px var(--amber-dim); }
+  .kpi-card:nth-child(4):hover { border-color: var(--red); box-shadow: 0 8px 32px var(--red-dim); }
+
+  .kpi-card .icon-wrap {
+    width: 42px; height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    transition: var(--transition);
+  }
+  .kpi-card:nth-child(1) .icon-wrap { background: var(--accent-dim); color: var(--accent); }
+  .kpi-card:nth-child(2) .icon-wrap { background: var(--blue-dim); color: var(--blue); }
+  .kpi-card:nth-child(3) .icon-wrap { background: var(--amber-dim); color: var(--amber); }
+  .kpi-card:nth-child(4) .icon-wrap { background: var(--red-dim); color: var(--red); }
+
+  .kpi-card:hover .icon-wrap { transform: scale(1.1) rotate(-3deg); }
+
+  .kpi-card .icon-wrap svg { width: 20px; height: 20px; }
+
+  .kpi-label {
+    font-size: 0.78rem;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .kpi-value {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 10px;
+  }
+  .kpi-change {
+    font-size: 0.78rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+  .kpi-change.up { background: var(--accent-dim); color: var(--accent); }
+  .kpi-change.down { background: var(--red-dim); color: var(--red); }
+
+  .kpi-sparkline {
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 100px; height: 40px;
+    opacity: 0.2;
+    transition: opacity var(--transition);
+  }
+  .kpi-card:hover .kpi-sparkline { opacity: 0.45; }
+
+  /* Main grid */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 20px;
+  }
+
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+  .panel-subtitle {
+    font-size: 0.75rem;
+    color: var(--fg-muted);
+    margin-top: 2px;
+  }
+  .panel-body { padding: 20px 22px; }
+
+  /* Chart */
+  .chart-container {
+    position: relative;
+    width: 100%;
+    height: 320px;
+  }
+  .chart-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* Activity feed */
+  .activity-list { list-style: none; }
+  .activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    transition: var(--transition);
+    animation: feedSlideIn 0.4s ease-out both;
+  }
+  .activity-item:last-child { border-bottom: none; }
+  .activity-item:hover { padding-left: 6px; }
+
+  @keyframes feedSlideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .activity-avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.72rem;
+    flex-shrink: 0;
+    color: var(--bg);
+  }
+  .activity-content { flex: 1; min-width: 0; }
+  .activity-text {
+    font-size: 0.82rem;
+    line-height: 1.45;
+  }
+  .activity-text strong { font-weight: 600; }
+  .activity-meta {
+    font-size: 0.72rem;
+    color: var(--fg-muted);
+    margin-top: 3px;
+  }
+  .activity-badge {
+    font-size: 0.68rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    margin-left: 6px;
+  }
+
+  /* Toast notification */
+  .toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .toast {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 12px 18px;
+    font-size: 0.82rem;
+    box-shadow: var(--shadow);
+    animation: toastIn 0.35s ease-out, toastOut 0.35s ease-in 2.6s forwards;
+    max-width: 340px;
+  }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(40px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes toastOut {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(40px); }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--fg-dim); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--fg-muted); }
+
+  .activity-scroll {
+    max-height: 460px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  /* Chart tooltip */
+  .chart-tooltip {
+    position: absolute;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 0.78rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 10;
+    box-shadow: var(--shadow);
+  }
+  .chart-tooltip.visible { opacity: 1; }
+  .chart-tooltip .tt-label { color: var(--fg-muted); margin-bottom: 3px; }
+  .chart-tooltip .tt-value { font-weight: 700; font-size: 0.95rem; }
+
+  /* Filter group */
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .filter-group label {
+    font-size: 0.75rem;
+    color: var(--fg-muted);
+    font-weight: 600;
+  }
+
+  /* Secondary chart row */
+  .secondary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 20px;
+  }
+  .donut-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 10px 0;
+  }
+  .donut-canvas { width: 160px !important; height: 160px !important; }
+  .donut-legend { display: flex; flex-direction: column; gap: 8px; }
+  .legend-item {
+    display: flex; align-items: center; gap: 8px; font-size: 0.8rem;
+  }
+  .legend-dot {
+    width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
+  }
+  .legend-item .legend-val {
+    margin-left: auto; font-weight: 700; padding-left: 12px;
+  }
+
+  .bar-chart-container { height: 220px; position: relative; }
+  .bar-chart-container canvas { width: 100% !important; height: 100% !important; }
+
+  /* Responsive */
+  @media (max-width: 1100px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .secondary-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 800px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .topbar { flex-direction: column; align-items: flex-start; }
+    .dashboard { padding: 16px; }
+    html { font-size: 14px; }
+  }
+  @media (max-width: 500px) {
+    .kpi-grid { grid-template-columns: 1fr; }
+    .filter-group { flex-wrap: wrap; }
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="dashboard">
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="logo-mark" aria-hidden="true">N</div>
+      <h1>Nexus <span>Analytics</span></h1>
+    </div>
+    <div class="topbar-right">
+      <div class="refresh-badge" id="refreshBadge" aria-live="polite">
+        <span class="refresh-dot"></span>
+        <span>Live &mdash; next update in <strong id="countdown">30</strong>s</span>
+      </div>
+      <div class="filter-group">
+        <label for="dateFrom">From</label>
+        <input type="date" id="dateFrom" aria-label="Start date">
+        <label for="dateTo">To</label>
+        <input type="date" id="dateTo" aria-label="End date">
+        <button class="btn" id="applyFilter" aria-label="Apply date filter">Apply</button>
+      </div>
+      <button class="btn btn-accent" id="exportBtn" aria-label="Export dashboard data">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export
+      </button>
+    </div>
+  </header>
+
+  <!-- KPI Cards -->
+  <section class="kpi-grid" aria-label="Key performance indicators">
+    <div class="kpi-card" tabindex="0">
+      <div class="icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      </div>
+      <div class="kpi-label">Revenue</div>
+      <div class="kpi-value" id="kpiRevenue">$0</div>
+      <span class="kpi-change up" id="kpiRevenueChange">&#9650; 0%</span>
+      <canvas class="kpi-sparkline" id="sparkRevenue"></canvas>
+    </div>
+    <div class="kpi-card" tabindex="0">
+      <div class="icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <div class="kpi-label">Active Users</div>
+      <div class="kpi-value" id="kpiUsers">0</div>
+      <span class="kpi-change up" id="kpiUsersChange">&#9650; 0%</span>
+      <canvas class="kpi-sparkline" id="sparkUsers"></canvas>
+    </div>
+    <div class="kpi-card" tabindex="0">
+      <div class="icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2" ry="2"/><path d="M16 8h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-2"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+      </div>
+      <div class="kpi-label">Orders</div>
+      <div class="kpi-value" id="kpiOrders">0</div>
+      <span class="kpi-change up" id="kpiOrdersChange">&#9650; 0%</span>
+      <canvas class="kpi-sparkline" id="sparkOrders"></canvas>
+    </div>
+    <div class="kpi-card" tabindex="0">
+      <div class="icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      </div>
+      <div class="kpi-label">Growth Rate</div>
+      <div class="kpi-value" id="kpiGrowth">0%</div>
+      <span class="kpi-change up" id="kpiGrowthChange">&#9650; 0%</span>
+      <canvas class="kpi-sparkline" id="sparkGrowth"></canvas>
+    </div>
+  </section>
+
+  <!-- Main Grid: Chart + Activity Feed -->
+  <div class="main-grid">
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Revenue Overview</div>
+          <div class="panel-subtitle">Monthly revenue and trend analysis</div>
+        </div>
+        <select id="chartType" aria-label="Chart view type">
+          <option value="area">Area Chart</option>
+          <option value="bar">Bar Chart</option>
+          <option value="line">Line Chart</option>
+        </select>
+      </div>
+      <div class="panel-body">
+        <div class="chart-container" id="mainChartWrap">
+          <canvas id="mainChart"></canvas>
+          <div class="chart-tooltip" id="chartTooltip">
+            <div class="tt-label"></div>
+            <div class="tt-value"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Recent Activity</div>
+          <div class="panel-subtitle">Live transaction feed</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="activity-scroll">
+          <ul class="activity-list" id="activityFeed" aria-label="Recent activity feed"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Secondary charts row -->
+  <div class="secondary-grid">
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Revenue Sources</div>
+          <div class="panel-subtitle">Channel distribution</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="donut-container">
+          <canvas class="donut-canvas" id="donutChart"></canvas>
+          <div class="donut-legend" id="donutLegend"></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Weekly Performance</div>
+          <div class="panel-subtitle">Orders per day this week</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="bar-chart-container">
+          <canvas id="barChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+<script>
+/* ==================== DATA ==================== */
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+/* Simulated dataset generator */
+function generateDataset() {
+  const baseRevenue = [42, 48, 55, 51, 67, 72, 68, 78, 85, 82, 91, 97];
+  const revenue = baseRevenue.map(v => v + Math.round((Math.random() - 0.3) * 12));
+  const users = revenue.map(v => Math.round(v * (14 + Math.random() * 3)));
+  const orders = revenue.map(v => Math.round(v * (3.2 + Math.random() * 0.8)));
+  return { revenue, users, orders };
+}
+
+let currentData = generateDataset();
+let kpiState = {
+  revenue: 847, users: 12.4, orders: 3.2, growth: 24,
+  revenueChange: 12.3, usersChange: 8.7, ordersChange: 15.2, growthChange: 3.1
+};
+
+const activityTemplates = [
+  { text: '<strong>Sarah Chen</strong> completed a purchase of <strong>$284.50</strong>', type: 'purchase' },
+  { text: '<strong>Marcus Rivera</strong> signed up for a Pro plan', type: 'signup' },
+  { text: '<strong>Emily Watson</strong> upgraded to Enterprise tier', type: 'upgrade' },
+  { text: '<strong>Alex Kim</strong> placed order <strong>#4829</strong>', type: 'purchase' },
+  { text: '<strong>Jordan Lee</strong> requested a data export', type: 'system' },
+  { text: '<strong>Priya Sharma</strong> added 3 team members', type: 'signup' },
+  { text: '<strong>Liam O\'Brien</strong> processed refund <strong>$89.00</strong>', type: 'refund' },
+  { text: '<strong>Sofia Martinez</strong> updated billing details', type: 'system' },
+  { text: '<strong>Noah Tanaka</strong> triggered a bulk import', type: 'system' },
+  { text: '<strong>Aisha Patel</strong> completed onboarding flow', type: 'signup' },
+  { text: '<strong>Daniel Cho</strong> purchased annual subscription', type: 'purchase' },
+  { text: '<strong>Rachel Green</strong> downgraded to Starter plan', type: 'refund' },
+  { text: '<strong>Omar Hassan</strong> enabled two-factor auth', type: 'system' },
+  { text: '<strong>Yuki Sato</strong> created a new workspace', type: 'signup' },
+];
+
+const avatarColors = ['#00d4aa','#4da6ff','#ffb547','#ff5c72','#a78bfa','#f472b6','#34d399','#fbbf24'];
+const typeColors = { purchase: 'var(--accent)', signup: 'var(--blue)', upgrade: 'var(--amber)', refund: 'var(--red)', system: 'var(--fg-muted)' };
+const typeLabels = { purchase: 'Purchase', signup: 'Signup', upgrade: 'Upgrade', refund: 'Refund', system: 'System' };
+
+/* ==================== KPI ANIMATED COUNTER ==================== */
+function animateCounter(el, target, prefix, suffix, decimals, duration) {
+  const start = parseFloat(el.dataset.current || '0');
+  const startTime = performance.now();
+  duration = duration || 1200;
+
+  function tick(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    /* easeOutExpo */
+    const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+    const current = start + (target - start) * ease;
+    el.textContent = prefix + current.toFixed(decimals) + suffix;
+    el.dataset.current = current.toFixed(decimals);
+    if (progress < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function updateKPIs(animate) {
+  const dur = animate ? 1200 : 0;
+  animateCounter(document.getElementById('kpiRevenue'), kpiState.revenue, '$', 'K', 0, dur);
+  animateCounter(document.getElementById('kpiUsers'), kpiState.users, '', 'K', 1, dur);
+  animateCounter(document.getElementById('kpiOrders'), kpiState.orders, '', 'K', 1, dur);
+  animateCounter(document.getElementById('kpiGrowth'), kpiState.growth, '+', '%', 0, dur);
+
+  setChange('kpiRevenueChange', kpiState.revenueChange);
+  setChange('kpiUsersChange', kpiState.usersChange);
+  setChange('kpiOrdersChange', kpiState.ordersChange);
+  setChange('kpiGrowthChange', kpiState.growthChange);
+}
+
+function setChange(id, val) {
+  const el = document.getElementById(id);
+  const up = val >= 0;
+  el.className = 'kpi-change ' + (up ? 'up' : 'down');
+  el.innerHTML = (up ? '&#9650; ' : '&#9660; ') + Math.abs(val).toFixed(1) + '%';
+}
+
+/* ==================== SPARKLINES ==================== */
+function drawSparkline(canvasId, data, color) {
+  const canvas = document.getElementById(canvasId);
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const w = rect.width, h = rect.height;
+  const max = Math.max(...data), min = Math.min(...data);
+  const range = max - min || 1;
+  const pad = 4;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.beginPath();
+  data.forEach((v, i) => {
+    const x = pad + (i / (data.length - 1)) * (w - pad * 2);
+    const y = h - pad - ((v - min) / range) * (h - pad * 2);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  /* Fill area */
+  const lastX = pad + ((data.length - 1) / (data.length - 1)) * (w - pad * 2);
+  ctx.lineTo(lastX, h);
+  ctx.lineTo(pad, h);
+  ctx.closePath();
+  ctx.fillStyle = color.replace(')', ',0.15)').replace('rgb', 'rgba');
+  ctx.fill();
+}
+
+function updateSparklines() {
+  const d = currentData;
+  drawSparkline('sparkRevenue', d.revenue, 'rgb(0,212,170)');
+  drawSparkline('sparkUsers', d.users, 'rgb(77,166,255)');
+  drawSparkline('sparkOrders', d.orders, 'rgb(255,181,71)');
+  const growthData = d.revenue.map((v, i) => i === 0 ? 20 : ((v - d.revenue[i-1]) / d.revenue[i-1] * 100 + 24));
+  drawSparkline('sparkGrowth', growthData, 'rgb(255,92,114)');
+}
+
+/* ==================== MAIN CHART (Canvas) ==================== */
+let mainChartAnim = 0;
+let mainChartRAF = null;
+
+function drawMainChart() {
+  const canvas = document.getElementById('mainChart');
+  const wrap = document.getElementById('mainChartWrap');
+  const dpr = window.devicePixelRatio || 1;
+  const w = wrap.clientWidth;
+  const h = wrap.clientHeight;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const type = document.getElementById('chartType').value;
+  const data = currentData.revenue;
+  const padL = 55, padR = 20, padT = 20, padB = 40;
+  const chartW = w - padL - padR;
+  const chartH = h - padT - padB;
+  const maxVal = Math.max(...data) * 1.15;
+  const minVal = 0;
+
+  ctx.clearRect(0, 0, w, h);
+
+  /* Grid lines */
+  const gridLines = 5;
+  ctx.strokeStyle = '#1e2738';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  for (let i = 0; i <= gridLines; i++) {
+    const y = padT + (i / gridLines) * chartH;
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(w - padR, y);
+    ctx.stroke();
+    /* Y-axis labels */
+    const val = maxVal - (i / gridLines) * (maxVal - minVal);
+    ctx.fillStyle = '#6b7a94';
+    ctx.font = '11px Segoe UI, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText('$' + Math.round(val) + 'K', padL - 10, y + 4);
+  }
+  ctx.setLineDash([]);
+
+  /* X-axis labels */
+  ctx.fillStyle = '#6b7a94';
+  ctx.textAlign = 'center';
+  ctx.font = '11px Segoe UI, sans-serif';
+  const stepX = chartW / (data.length - 1);
+  MONTHS.forEach((label, i) => {
+    const x = padL + i * stepX;
+    ctx.fillText(label, x, h - 10);
+  });
+
+  /* Animated progress */
+  const progress = Math.min(mainChartAnim, 1);
+
+  function getX(i) { return padL + i * stepX; }
+  function getY(v) { return padT + chartH - ((v - minVal) / (maxVal - minVal)) * chartH; }
+
+  if (type === 'bar') {
+    const barW = Math.max(12, stepX * 0.5);
+    data.forEach((v, i) => {
+      const x = getX(i);
+      const barH = ((v - minVal) / (maxVal - minVal)) * chartH * progress;
+      const y = padT + chartH - barH;
+      const grad = ctx.createLinearGradient(x, y, x, padT + chartH);
+      grad.addColorStop(0, 'rgba(0,212,170,0.9)');
+      grad.addColorStop(1, 'rgba(0,212,170,0.2)');
+      ctx.fillStyle = grad;
+      roundRect(ctx, x - barW/2, y, barW, barH, 4);
+      ctx.fill();
+    });
+  } else {
+    /* Line / Area */
+    ctx.beginPath();
+    const visibleCount = Math.floor(data.length * progress);
+    const partial = (data.length * progress) - visibleCount;
+
+    for (let i = 0; i <= Math.min(visibleCount, data.length - 1); i++) {
+      const x = getX(i);
+      const y = getY(data[i]);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+
+    /* Smooth partial segment */
+    if (visibleCount < data.length - 1 && partial > 0) {
+      const idx = visibleCount;
+      const x0 = getX(idx), y0 = getY(data[idx]);
+      const x1 = getX(idx + 1), y1 = getY(data[idx + 1]);
+      ctx.lineTo(x0 + (x1 - x0) * partial, y0 + (y1 - y0) * partial);
+    }
+
+    ctx.strokeStyle = '#00d4aa';
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    /* Area fill */
+    const lastIdx = Math.min(visibleCount, data.length - 1);
+    let lastX = getX(lastIdx);
+    if (visibleCount < data.length - 1 && partial > 0) {
+      const x0 = getX(visibleCount), x1 = getX(visibleCount + 1);
+      lastX = x0 + (x1 - x0) * partial;
+    }
+    ctx.lineTo(lastX, padT + chartH);
+    ctx.lineTo(padL, padT + chartH);
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(0, padT, 0, padT + chartH);
+    grad.addColorStop(0, 'rgba(0,212,170,0.25)');
+    grad.addColorStop(1, 'rgba(0,212,170,0.01)');
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    /* Data dots */
+    if (progress >= 1) {
+      data.forEach((v, i) => {
+        ctx.beginPath();
+        ctx.arc(getX(i), getY(v), 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#0b0e14';
+        ctx.fill();
+        ctx.strokeStyle = '#00d4aa';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+    }
+  }
+
+  /* Animate entrance */
+  if (mainChartAnim < 1) {
+    mainChartAnim += 0.035;
+    mainChartRAF = requestAnimationFrame(drawMainChart);
+  }
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, 0);
+  ctx.arcTo(x, y + h, x, y, 0);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/* Chart tooltip on hover */
+(function() {
+  const canvas = document.getElementById('mainChart');
+  const tooltip = document.getElementById('chartTooltip');
+  const wrap = document.getElementById('mainChartWrap');
+
+  canvas.addEventListener('mousemove', function(e) {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const data = currentData.revenue;
+    const padL = 55, padR = 20;
+    const chartW = rect.width - padL - padR;
+    const stepX = chartW / (data.length - 1);
+    const idx = Math.round((mx - padL) / stepX);
+
+    if (idx >= 0 && idx < data.length && mx > padL - 10) {
+      tooltip.querySelector('.tt-label').textContent = MONTHS[idx] + ' 2024';
+      tooltip.querySelector('.tt-value').textContent = '$' + data[idx] + 'K';
+      tooltip.classList.add('visible');
+      const tx = Math.min(padL + idx * stepX + 12, rect.width - 130);
+      tooltip.style.left = tx + 'px';
+      tooltip.style.top = '30px';
+    } else {
+      tooltip.classList.remove('visible');
+    }
+  });
+  canvas.addEventListener('mouseleave', function() {
+    tooltip.classList.remove('visible');
+  });
+})();
+
+/* ==================== DONUT CHART ==================== */
+function drawDonutChart() {
+  const canvas = document.getElementById('donutChart');
+  const dpr = window.devicePixelRatio || 1;
+  const size = 160;
+  canvas.width = size * dpr;
+  canvas.height = size * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const slices = [
+    { label: 'Direct', value: 38, color: '#00d4aa' },
+    { label: 'Organic', value: 27, color: '#4da6ff' },
+    { label: 'Referral', value: 20, color: '#ffb547' },
+    { label: 'Social', value: 15, color: '#ff5c72' },
+  ];
+  const total = slices.reduce((s, sl) => s + sl.value, 0);
+  const cx = size / 2, cy = size / 2, r = 62, lineW = 18;
+
+  ctx.clearRect(0, 0, size, size);
+  let angle = -Math.PI / 2;
+
+  slices.forEach(sl => {
+    const sweep = (sl.value / total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, angle, angle + sweep);
+    ctx.strokeStyle = sl.color;
+    ctx.lineWidth = lineW;
+    ctx.lineCap = 'butt';
+    ctx.stroke();
+    angle += sweep;
+  });
+
+  /* Center text */
+  ctx.fillStyle = '#e8ecf4';
+  ctx.font = 'bold 22px Segoe UI, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('$847K', cx, cy - 6);
+  ctx.font = '11px Segoe UI, sans-serif';
+  ctx.fillStyle = '#6b7a94';
+  ctx.fillText('Total Revenue', cx, cy + 14);
+
+  /* Legend */
+  const legendEl = document.getElementById('donutLegend');
+  legendEl.innerHTML = slices.map(sl =>
+    `<div class="legend-item">
+      <span class="legend-dot" style="background:${sl.color}"></span>
+      <span>${sl.label}</span>
+      <span class="legend-val">${sl.value}%</span>
+    </div>`
+  ).join('');
+}
+
+/* ==================== BAR CHART (weekly) ==================== */
+function drawBarChart() {
+  const canvas = document.getElementById('barChart');
+  const wrap = canvas.parentElement;
+  const dpr = window.devicePixelRatio || 1;
+  const w = wrap.clientWidth;
+  const h = wrap.clientHeight;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const data = [320, 480, 410, 520, 390, 280, 190];
+  const padL = 45, padR = 15, padT = 10, padB = 35;
+  const chartW = w - padL - padR;
+  const chartH = h - padT - padB;
+  const maxVal = Math.max(...data) * 1.15;
+  const stepX = chartW / data.length;
+  const barW = Math.max(16, stepX * 0.55);
+
+  ctx.clearRect(0, 0, w, h);
+
+  /* Grid */
+  ctx.strokeStyle = '#1e2738';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + (i / 4) * chartH;
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(w - padR, y);
+    ctx.stroke();
+    const val = maxVal - (i / 4) * maxVal;
+    ctx.fillStyle = '#6b7a94';
+    ctx.font = '10px Segoe UI, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(Math.round(val), padL - 8, y + 3);
+  }
+  ctx.setLineDash([]);
+
+  /* Bars */
+  data.forEach((v, i) => {
+    const x = padL + i * stepX + stepX / 2;
+    const barH = (v / maxVal) * chartH;
+    const y = padT + chartH - barH;
+    const grad = ctx.createLinearGradient(x, y, x, padT + chartH);
+    grad.addColorStop(0, 'rgba(77,166,255,0.85)');
+    grad.addColorStop(1, 'rgba(77,166,255,0.15)');
+    ctx.fillStyle = grad;
+    roundRect(ctx, x - barW/2, y, barW, barH, 5);
+    ctx.fill();
+
+    /* Label */
+    ctx.fillStyle = '#6b7a94';
+    ctx.font = '11px Segoe UI, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(DAYS[i], x, h - 10);
+  });
+}
+
+/* ==================== ACTIVITY FEED ==================== */
+function generateActivities(count) {
+  const items = [];
+  for (let i = 0; i < count; i++) {
+    const tpl = activityTemplates[Math.floor(Math.random() * activityTemplates.length)];
+    const minsAgo = Math.floor(Math.random() * 58) + 1;
+    const colorIdx = Math.floor(Math.random() * avatarColors.length);
+    const initials = ['SC','MR','EW','AK','JL','PS','LO','SM','NT','AP','DC','RG','OH','YS'][Math.floor(Math.random() * 14)];
+    items.push({
+      text: tpl.text,
+      type: tpl.type,
+      time: minsAgo + 'm ago',
+      avatarColor: avatarColors[colorIdx],
+      initials: initials
+    });
+  }
+  items.sort((a, b) => parseInt(a.time) - parseInt(b.time));
+  return items;
+}
+
+let allActivities = generateActivities(10);
+
+function renderActivityFeed() {
+  const list = document.getElementById('activityFeed');
+  list.innerHTML = allActivities.map((item, i) => {
+    const badgeColor = typeColors[item.type] || 'var(--fg-muted)';
+    const badgeLabel = typeLabels[item.type] || item.type;
+    return `<li class="activity-item" style="animation-delay:${i * 0.05}s">
+      <div class="activity-avatar" style="background:${item.avatarColor}">${item.initials}</div>
+      <div class="activity-content">
+        <div class="activity-text">${item.text}
+          <span class="activity-badge" style="background:${badgeColor}20;color:${badgeColor}">${badgeLabel}</span>
+        </div>
+        <div class="activity-meta">${item.time}</div>
+      </div>
+    </li>`;
+  }).join('');
+}
+
+/* ==================== TOAST ==================== */
+function showToast(message) {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+/* ==================== EXPORT ==================== */
+document.getElementById('exportBtn').addEventListener('click', function() {
+  /* Build CSV */
+  let csv = 'Month,Revenue ($K),Users,Orders\n';
+  MONTHS.forEach((m, i) => {
+    csv += `${m},${currentData.revenue[i]},${currentData.users[i]},${currentData.orders[i]}\n`;
+  });
+  csv += `\nKPI Summary\n`;
+  csv += `Revenue,$${kpiState.revenue}K,Change,${kpiState.revenueChange}%\n`;
+  csv += `Users,${kpiState.users}K,Change,${kpiState.usersChange}%\n`;
+  csv += `Orders,${kpiState.orders}K,Change,${kpiState.ordersChange}%\n`;
+  csv += `Growth,${kpiState.growth}%,Change,${kpiState.growthChange}%\n`;
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'nexus_analytics_export.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Dashboard data exported as CSV');
+});
+
+/* ==================== DATE FILTER ==================== */
+(function() {
+  const now = new Date();
+  const from = new Date(now.getFullYear(), 0, 1);
+  document.getElementById('dateFrom').value = from.toISOString().split('T')[0];
+  document.getElementById('dateTo').value = now.toISOString().split('T')[0];
+})();
+
+document.getElementById('applyFilter').addEventListener('click', function() {
+  const fromVal = document.getElementById('dateFrom').value;
+  const toVal = document.getElementById('dateTo').value;
+  if (!fromVal || !toVal) {
+    showToast('Please select both start and end dates');
+    return;
+  }
+  /* Simulate filtering by regenerating data */
+  currentData = generateDataset();
+  mainChartAnim = 0;
+  if (mainChartRAF) cancelAnimationFrame(mainChartRAF);
+  drawMainChart();
+  updateSparklines();
+  drawBarChart();
+  showToast('Dashboard updated for ' + fromVal + ' to ' + toVal);
+});
+
+/* ==================== CHART TYPE SWITCH ==================== */
+document.getElementById('chartType').addEventListener('change', function() {
+  mainChartAnim = 0;
+  if (mainChartRAF) cancelAnimationFrame(mainChartRAF);
+  drawMainChart();
+});
+
+/* ==================== AUTO-REFRESH TIMER ==================== */
+let refreshInterval = 30;
+let countdownValue = refreshInterval;
+
+setInterval(function() {
+  countdownValue--;
+  document.getElementById('countdown').textContent = countdownValue;
+
+  if (countdownValue <= 0) {
+    countdownValue = refreshInterval;
+    simulateDataUpdate();
+  }
+}, 1000);
+
+function simulateDataUpdate() {
+  /* Slightly shift KPIs */
+  kpiState.revenue += Math.round((Math.random() - 0.4) * 8);
+  kpiState.users = Math.round((kpiState.users + (Math.random() - 0.4) * 0.3) * 10) / 10;
+  kpiState.orders = Math.round((kpiState.orders + (Math.random() - 0.4) * 0.2) * 10) / 10;
+  kpiState.growth += Math.round((Math.random() - 0.45) * 2);
+  kpiState.revenueChange = Math.round((kpiState.revenueChange + (Math.random() - 0.5) * 1.5) * 10) / 10;
+  kpiState.usersChange = Math.round((kpiState.usersChange + (Math.random() - 0.5) * 1) * 10) / 10;
+  kpiState.ordersChange = Math.round((kpiState.ordersChange + (Math.random() - 0.5) * 1.2) * 10) / 10;
+  kpiState.growthChange = Math.round((kpiState.growthChange + (Math.random() - 0.5) * 0.8) * 10) / 10;
+
+  /* Clamp values */
+  kpiState.revenue = Math.max(700, kpiState.revenue);
+  kpiState.users = Math.max(8, kpiState.users);
+  kpiState.orders = Math.max(2, kpiState.orders);
+  kpiState.growth = Math.max(5, kpiState.growth);
+
+  updateKPIs(true);
+
+  /* Regenerate chart data with slight variation */
+  currentData = generateDataset();
+  mainChartAnim = 0;
+  if (mainChartRAF) cancelAnimationFrame(mainChartRAF);
+  drawMainChart();
+  updateSparklines();
+  drawBarChart();
+
+  /* Add a new activity item */
+  const tpl = activityTemplates[Math.floor(Math.random() * activityTemplates.length)];
+  const colorIdx = Math.floor(Math.random() * avatarColors.length);
+  const initials = ['SC','MR','EW','AK','JL','PS','LO','SM','NT','AP','DC','RG','OH','YS'][Math.floor(Math.random() * 14)];
+  allActivities.unshift({
+    text: tpl.text,
+    type: tpl.type,
+    time: 'just now',
+    avatarColor: avatarColors[colorIdx],
+    initials: initials
+  });
+  if (allActivities.length > 10) allActivities.pop();
+  renderActivityFeed();
+
+  showToast('Dashboard refreshed with latest data');
+}
+
+/* ==================== RESIZE HANDLER ==================== */
+let resizeTimer;
+window.addEventListener('resize', function() {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function() {
+    mainChartAnim = 1;
+    drawMainChart();
+    updateSparklines();
+    drawDonutChart();
+    drawBarChart();
+  }, 200);
+});
+
+/* ==================== INIT ==================== */
+updateKPIs(true);
+mainChartAnim = 0;
+drawMainChart();
+updateSparklines();
+drawDonutChart();
+drawBarChart();
+renderActivityFeed();
+</script>
+</body>
+</html>

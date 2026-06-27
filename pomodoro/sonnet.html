@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pomodoro Timer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e4e4e7;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .container.compact {
+            padding: 1rem;
+            max-width: 200px;
+        }
+
+        .container.compact .controls,
+        .container.compact .session-info,
+        .container.compact .settings-btn,
+        .container.compact .history-section {
+            display: none;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .container.compact .header {
+            margin-bottom: 0.5rem;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+
+        .container.compact h1 {
+            font-size: 1rem;
+        }
+
+        .mode-display {
+            font-size: 0.9rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .timer-container {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            margin: 0 auto 2rem;
+        }
+
+        .container.compact .timer-container {
+            width: 150px;
+            height: 150px;
+            margin-bottom: 1rem;
+        }
+
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.3s;
+        }
+
+        .timer-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            font-weight: 200;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .container.compact .timer-display {
+            font-size: 1.8rem;
+        }
+
+        .session-counter {
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+            opacity: 0.8;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        button {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: rgba(255, 255, 255, 0.1);
+            color: #e4e4e7;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .start-btn {
+            background: #4ade80 !important;
+            color: #1a1a2e !important;
+        }
+
+        .pause-btn {
+            background: #fbbf24 !important;
+            color: #1a1a2e !important;
+        }
+
+        .reset-btn {
+            background: #f87171 !important;
+            color: #1a1a2e !important;
+        }
+
+        .minimize-btn, .settings-btn {
+            background: rgba(255, 255, 255, 0.1) !important;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+
+        .session-info {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .session-stat {
+            text-align: center;
+        }
+
+        .session-stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4ade80;
+        }
+
+        .session-stat-label {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-top: 0.3rem;
+        }
+
+        .settings-panel {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .settings-panel.active {
+            display: flex;
+        }
+
+        .settings-content {
+            background: #1a1a2e;
+            padding: 2rem;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .settings-content h2 {
+            margin-bottom: 1.5rem;
+            font-weight: 300;
+        }
+
+        .setting-item {
+            margin-bottom: 1.5rem;
+        }
+
+        .setting-item label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .setting-item input {
+            width: 100%;
+            padding: 0.8rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #e4e4e7;
+            font-size: 1rem;
+        }
+
+        .setting-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .history-section {
+            margin-top: 1.5rem;
+            text-align: left;
+        }
+
+        .history-section h3 {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            font-weight: 400;
+        }
+
+        .history-list {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 1rem;
+        }
+
+        .history-item {
+            padding: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-time {
+            color: #4ade80;
+            font-weight: bold;
+        }
+
+        .particles-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        .particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: particle-fall 3s ease-out forwards;
+        }
+
+        @keyframes particle-fall {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="container">
+        <div class="header">
+            <h1>POMODORO</h1>
+            <div class="mode-display" id="modeDisplay">WORK</div>
+        </div>
+
+        <div class="timer-container">
+            <svg class="progress-ring" width="280" height="280">
+                <circle class="progress-ring-circle" stroke="rgba(255,255,255,0.1)" stroke-width="8" fill="transparent" r="130" cx="140" cy="140"/>
+                <circle class="progress-ring-circle" id="progressCircle" stroke="#4ade80" stroke-width="8" fill="transparent" r="130" cx="140" cy="140" stroke-linecap="round"/>
+            </svg>
+            <div class="timer-display" id="timerDisplay">25:00</div>
+        </div>
+
+        <div class="session-counter">Session <span id="currentSession">1</span></div>
+
+        <div class="controls">
+            <button class="start-btn" id="startBtn">START</button>
+            <button class="pause-btn" id="pauseBtn">PAUSE</button>
+            <button class="reset-btn" id="resetBtn">RESET</button>
+        </div>
+
+        <div class="session-info">
+            <div class="session-stat">
+                <div class="session-stat-value" id="todaySessions">0</div>
+                <div class="session-stat-label">Today</div>
+            </div>
+            <div class="session-stat">
+                <div class="session-stat-value" id="totalSessions">0</div>
+                <div class="session-stat-label">Total</div>
+            </div>
+            <div class="session-stat">
+                <div class="session-stat-value" id="totalTime">0h</div>
+                <div class="session-stat-label">Focus Time</div>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; justify-content: center;">
+            <button class="minimize-btn" id="minimizeBtn">MINIMIZE</button>
+            <button class="settings-btn" id="settingsBtn">SETTINGS</button>
+        </div>
+
+        <div class="history-section">
+            <h3>Session History</h3>
+            <div class="history-list" id="historyList">
+                <div class="history-item">No sessions completed yet</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-panel" id="settingsPanel">
+        <div class="settings-content">
+            <h2>Settings</h2>
+            <div class="setting-item">
+                <label>Work Duration (minutes)</label>
+                <input type="number" id="workDuration" value="25" min="1" max="60">
+            </div>
+            <div class="setting-item">
+                <label>Break Duration (minutes)</label>
+                <input type="number" id="breakDuration" value="5" min="1" max="30">
+            </div>
+            <div class="setting-item">
+                <label>Long Break Duration (minutes)</label>
+                <input type="number" id="longBreakDuration" value="15" min="1" max="60">
+            </div>
+            <div class="setting-item">
+                <label>Sessions until long break</label>
+                <input type="number" id="sessionsUntilLongBreak" value="4" min="2" max="10">
+            </div>
+            <div class="setting-actions">
+                <button class="start-btn" id="saveSettings">SAVE</button>
+                <button class="reset-btn" id="cancelSettings">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="particles-container" id="particlesContainer"></div>
+
+    <script>
+        // Timer State
+        let timeLeft = 25 * 60;
+        let totalTime = 25 * 60;
+        let isRunning = false;
+        let isWorkMode = true;
+        let currentSession = 1;
+        let timerInterval = null;
+
+        // Settings
+        let settings = {
+            workDuration: 25,
+            breakDuration: 5,
+            longBreakDuration: 15,
+            sessionsUntilLongBreak: 4
+        };
+
+        // Stats
+        let stats = {
+            todaySessions: 0,
+            totalSessions: 0,
+            totalTime: 0,
+            history: []
+        };
+
+        // DOM Elements
+        const timerDisplay = document.getElementById('timerDisplay');
+        const progressCircle = document.getElementById('progressCircle');
+        const modeDisplay = document.getElementById('modeDisplay');
+        const currentSessionDisplay = document.getElementById('currentSession');
+        const todaySessionsDisplay = document.getElementById('todaySessions');
+        const totalSessionsDisplay = document.getElementById('totalSessions');
+        const totalTimeDisplay = document.getElementById('totalTime');
+        const historyList = document.getElementById('historyList');
+        const container = document.getElementById('container');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const particlesContainer = document.getElementById('particlesContainer');
+
+        // Circle circumference for progress
+        const circumference = 2 * Math.PI * 130;
+        progressCircle.style.strokeDasharray = circumference;
+        progressCircle.style.strokeDashoffset = 0;
+
+        // Audio Context for notifications
+        let audioContext = null;
+
+        function initAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playNotification() {
+            initAudioContext();
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+            oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+            oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        }
+
+        function updateDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            const progress = (totalTime - timeLeft) / totalTime;
+            const offset = circumference * (1 - progress);
+            progressCircle.style.strokeDashoffset = offset;
+            
+            const color = isWorkMode ? '#4ade80' : '#60a5fa';
+            progressCircle.style.stroke = color;
+        }
+
+        function updateStats() {
+            todaySessionsDisplay.textContent = stats.todaySessions;
+            totalSessionsDisplay.textContent = stats.totalSessions;
+            const hours = Math.floor(stats.totalTime / 60);
+            totalTimeDisplay.textContent = hours > 0 ? `${hours}h` : `${stats.totalTime}m`;
+        }
+
+        function updateHistory() {
+            if (stats.history.length === 0) {
+                historyList.innerHTML = '<div class="history-item">No sessions completed yet</div>';
+                return;
+            }
+
+            historyList.innerHTML = stats.history.slice().reverse().slice(0, 10).map(item => `
+                <div class="history-item">
+                    <span class="history-time">${item.time}</span> - ${item.type} (${item.duration}min)
+                </div>
+            `).join('');
+        }
+
+        function saveStats() {
+            localStorage.setItem('pomodoroStats', JSON.stringify(stats));
+        }
+
+        function loadStats() {
+            const saved = localStorage.getItem('pomodoroStats');
+            if (saved) {
+                stats = JSON.parse(saved);
+                
+                // Check if it's a new day
+                const today = new Date().toDateString();
+                if (stats.lastDate !== today) {
+                    stats.todaySessions = 0;
+                    stats.lastDate = today;
+                }
+                
+                updateStats();
+                updateHistory();
+            }
+        }
+
+        function saveSettings() {
+            localStorage.setItem('pomodoroSettings', JSON.stringify(settings));
+        }
+
+        function loadSettings() {
+            const saved = localStorage.getItem('pomodoroSettings');
+            if (saved) {
+                settings = JSON.parse(saved);
+                
+                document.getElementById('workDuration').value = settings.workDuration;
+                document.getElementById('breakDuration').value = settings.breakDuration;
+                document.getElementById('longBreakDuration').value = settings.longBreakDuration;
+                document.getElementById('sessionsUntilLongBreak').value = settings.sessionsUntilLongBreak;
+            }
+        }
+
+        function createParticles() {
+            const colors = ['#4ade80', '#60a5fa', '#fbbf24', '#f87171', '#a78bfa'];
+            
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.top = '-20px';
+                    particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    particle.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                    particlesContainer.appendChild(particle);
+                    
+                    setTimeout(() => particle.remove(), 4000);
+                }, i * 30);
+            }
+        }
+
+        function completeSession() {
+            playNotification();
+            createParticles();
+            
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            if (isWorkMode) {
+                stats.todaySessions++;
+                stats.totalSessions++;
+                stats.totalTime += settings.workDuration;
+                
+                stats.history.push({
+                    time: timeString,
+                    type: `Work Session #${currentSession}`,
+                    duration: settings.workDuration
+                });
+                
+                if (currentSession % settings.sessionsUntilLongBreak === 0) {
+                    // Long break
+                    timeLeft = settings.longBreakDuration * 60;
+                    totalTime = settings.longBreakDuration * 60;
+                    isWorkMode = false;
+                    modeDisplay.textContent = 'LONG BREAK';
+                } else {
+                    // Regular break
+                    timeLeft = settings.breakDuration * 60;
+                    totalTime = settings.breakDuration * 60;
+                    isWorkMode = false;
+                    modeDisplay.textContent = 'BREAK';
+                }
+            } else {
+                currentSession++;
+                timeLeft = settings.workDuration * 60;
+                totalTime = settings.workDuration * 60;
+                isWorkMode = true;
+                modeDisplay.textContent = 'WORK';
+                currentSessionDisplay.textContent = currentSession;
+            }
+            
+            saveStats();
+            updateStats();
+            updateHistory();
+            updateDisplay();
+        }
+
+        function tick() {
+            if (timeLeft > 0) {
+                timeLeft--;
+                updateDisplay();
+            } else {
+                completeSession();
+            }
+        }
+
+        function startTimer() {
+            if (!isRunning) {
+                isRunning = true;
+                timerInterval = setInterval(tick, 1000);
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('pauseBtn').disabled = false;
+            }
+        }
+
+        function pauseTimer() {
+            if (isRunning) {
+                isRunning = false;
+                clearInterval(timerInterval);
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('pauseBtn').disabled = true;
+            }
+        }
+
+        function resetTimer() {
+            pauseTimer();
+            currentSession = 1;
+            isWorkMode = true;
+            timeLeft = settings.workDuration * 60;
+            totalTime = settings.workDuration * 60;
+            modeDisplay.textContent = 'WORK';
+            currentSessionDisplay.textContent = currentSession;
+            updateDisplay();
+        }
+
+        function applySettings() {
+            settings.workDuration = parseInt(document.getElementById('workDuration').value);
+            settings.breakDuration = parseInt(document.getElementById('breakDuration').value);
+            settings.longBreakDuration = parseInt(document.getElementById('longBreakDuration').value);
+            settings.sessionsUntilLongBreak = parseInt(document.getElementById('sessionsUntilLongBreak').value);
+            
+            saveSettings();
+            resetTimer();
+            closeSettings();
+        }
+
+        function openSettings() {
+            settingsPanel.classList.add('active');
+        }
+
+        function closeSettings() {
+            settingsPanel.classList.remove('active');
+        }
+
+        function toggleMinimize() {
+            container.classList.toggle('compact');
+            const btn = document.getElementById('minimizeBtn');
+            btn.textContent = container.classList.contains('compact') ? 'EXPAND' : 'MINIMIZE';
+        }
+
+        // Event Listeners
+        document.getElementById('startBtn').addEventListener('click', startTimer);
+        document.getElementById('pauseBtn').addEventListener('click', pauseTimer);
+        document.getElementById('resetBtn').addEventListener('click', resetTimer);
+        document.getElementById('settingsBtn').addEventListener('click', openSettings);
+        document.getElementById('minimizeBtn').addEventListener('click', toggleMinimize);
+        document.getElementById('saveSettings').addEventListener('click', applySettings);
+        document.getElementById('cancelSettings').addEventListener('click', closeSettings);
+
+        // Close settings when clicking outside
+        settingsPanel.addEventListener('click', (e) => {
+            if (e.target === settingsPanel) {
+                closeSettings();
+            }
+        });
+
+        // Initialize
+        loadSettings();
+        loadStats();
+        updateDisplay();
+        document.getElementById('pauseBtn').disabled = true;
+    </script>
+</body>
+</html>

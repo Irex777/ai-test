@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Model Bake-Off — Head-to-Head Comparison</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d1117; --bg2: #161b22; --bg3: #21262d; --border: #30363d;
+  --text: #e6edf3; --text2: #8b949e; --accent: #58a6ff;
+  --purple: #6366f1; --green: #22c55e; --amber: #f59e0b; --red: #ef4444;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+/* Hero */
+.hero { text-align: center; padding: 60px 24px 40px; position: relative; overflow: hidden; }
+.hero::before { content:''; position:absolute; top:-50%; left:-50%; width:200%; height:200%;
+  background: radial-gradient(ellipse at center, rgba(99,102,241,0.15) 0%, transparent 70%); }
+.hero h1 { font-size: 3rem; font-weight: 800; position:relative;
+  background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; margin-bottom: 8px; }
+.hero .subtitle { color: var(--text2); font-size: 1.15rem; position:relative; }
+
+/* Cards */
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 24px; transition: border-color 0.2s, transform 0.2s; }
+.card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+/* Section */
+.section { padding: 48px 0; }
+.section-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 24px;
+  padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+
+/* Grid */
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+.grid-4 { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+
+/* Tabs */
+.tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.tab-btn { padding: 8px 20px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--bg2); color: var(--text2); cursor: pointer; font-size: 0.95rem;
+  transition: all 0.2s; font-weight: 500; }
+.tab-btn:hover { border-color: var(--text2); color: var(--text); }
+.tab-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* Stats bar */
+.stats-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.stat { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 16px; display: flex; flex-direction: column; min-width: 100px; }
+.stat-label { font-size: 0.75rem; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-value { font-size: 1.25rem; font-weight: 700; }
+
+/* Iframe container */
+.iframe-wrap { border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+  background: #fff; height: 600px; }
+.iframe-wrap iframe { width: 100%; height: 100%; border: none; }
+
+/* Winner badge */
+.winner-badge { display: inline-block; background: linear-gradient(135deg, #f59e0b, #ef4444);
+  color: #fff; padding: 4px 14px; border-radius: 999px; font-weight: 700; font-size: 0.85rem; }
+
+/* Ranking */
+.rank-num { font-size: 2rem; font-weight: 800; margin-right: 12px; }
+.rank-1 .rank-num { color: #fbbf24; }
+.rank-2 .rank-num { color: #9ca3af; }
+.rank-3 .rank-num { color: #b45309; }
+.rank-4 .rank-num { color: var(--text2); }
+
+/* Comparison table */
+.cmp-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.cmp-table th, .cmp-table td { padding: 12px 16px; text-align: left;
+  border-bottom: 1px solid var(--border); }
+.cmp-table th { color: var(--text2); font-weight: 600; text-transform: uppercase;
+  font-size: 0.75rem; letter-spacing: 0.5px; position: sticky; top: 0; background: var(--bg2); }
+.cmp-table tr:hover { background: var(--bg3); }
+.score-bar { height: 6px; border-radius: 3px; background: var(--bg3); min-width: 80px; }
+.score-bar-fill { height: 100%; border-radius: 3px; background: var(--accent); }
+.best { color: #22c55e; font-weight: 700; }
+
+/* Methodology */
+.method-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.method-item { display: flex; gap: 12px; align-items: flex-start; }
+.method-icon { font-size: 1.5rem; flex-shrink: 0; }
+.method-text h4 { margin-bottom: 2px; }
+.method-text p { color: var(--text2); font-size: 0.9rem; }
+
+/* Back link */
+.back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text2);
+  font-size: 0.95rem; padding: 12px 0; }
+.back-link:hover { color: var(--accent); }
+
+/* Footer */
+footer { text-align: center; padding: 32px 0; border-top: 1px solid var(--border);
+  color: var(--text2); font-size: 0.85rem; margin-top: 48px; }
+
+@media (max-width: 640px) {
+  .hero h1 { font-size: 2rem; }
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .iframe-wrap { height: 450px; }
+}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>🏆 AI Model Bake-Off</h1>
+  <p class="subtitle">6 models · 11 challenges · 1 shot each · Who builds the best web app?</p>
+</div>
+
+<div class="container">
+
+  <!-- Rankings -->
+  <div class="section">
+    <h2 class="section-title">🏅 Final Rankings</h2>
+    <p style="color:var(--text2);margin-bottom:16px;font-size:0.9rem">Combined score = functional tests (max 116) + speed bonus (max 22, ranked per test). Overall max: 138.</p>
+    <div class="grid-2" style="gap:16px">
+    <div class="card" style="display:flex;align-items:center;gap:16px;border-left:4px solid #f97316">
+      <span style="font-size:2.5rem">🥇</span>
+      <div style="flex:1">
+        <div style="font-size:1.2rem;font-weight:700">🟠 Ornith 35B <span style="color:var(--text2);font-weight:400">(Local llama.cpp)</span></div>
+        <div style="color:var(--text2)">137/138 (99.3%) · 115 func + 22 speed · 19.5s avg</div>
+      </div>
+    </div>
+    <div class="card" style="display:flex;align-items:center;gap:16px;border-left:4px solid #ef4444">
+      <span style="font-size:2.5rem">🥈</span>
+      <div style="flex:1">
+        <div style="font-size:1.2rem;font-weight:700">🔴 Opus 4.7 <span style="color:var(--text2);font-weight:400">(Anthropic)</span></div>
+        <div style="color:var(--text2)">134.5/138 (97.5%) · 116 func + 18.5 speed · 58.2s avg</div>
+      </div>
+    </div>
+    <div class="card" style="display:flex;align-items:center;gap:16px;border-left:4px solid #f59e0b">
+      <span style="font-size:2.5rem">🥉</span>
+      <div style="flex:1">
+        <div style="font-size:1.2rem;font-weight:700">🟡 Sonnet 4.6 <span style="color:var(--text2);font-weight:400">(Anthropic)</span></div>
+        <div style="color:var(--text2)">130/138 (94.2%) · 116 func + 14 speed · 50.5s avg</div>
+      </div>
+    </div>
+    <div class="card" style="display:flex;align-items:center;gap:16px;border-left:4px solid #6366f1">
+      <span style="font-size:2.5rem">4️⃣</span>
+      <div style="flex:1">
+        <div style="font-size:1.2rem;font-weight:700">🟣 Qwen 3.7 27B <span style="color:var(--text2);font-weight:400">(Local)</span></div>
+        <div style="color:var(--text2)">128.5/138 (93.1%) · 116 func + 12.5 speed · 1m 25s avg</div>
+      </div>
+    </div>
+    <div class="card" style="display:flex;align-items:center;gap:16px;border-left:4px solid #22c55e">
+      <span style="font-size:2.5rem">5️⃣</span>
+      <div style="flex:1">
+        <div style="font-size:1.2rem;font-weight:700">🟢 GLM 5.1 <span style="color:var(--text2);font-weight:400">(ZAI)</span></div>
+        <div style="color:var(--text2)">123/138 (89.1%) · 115 func + 8 speed · 7m 25s avg</div>
+      </div>
+    </div>
+    <div class="card" style="display:flex;align-items:center;gap:16px;border-left:4px solid #3b82f6">
+      <span style="font-size:2.5rem">6️⃣</span>
+      <div style="flex:1">
+        <div style="font-size:1.2rem;font-weight:700">🔵 GLM-5.2 <span style="color:var(--text2);font-weight:400">(ZAI / z.ai)</span></div>
+        <div style="color:var(--text2)">119.5/138 (86.6%) · 114 func + 5.5 speed · 8m 21s avg</div>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <!-- Model Cards -->
+  <div class="section">
+    <h2 class="section-title">🤖 Model Profiles</h2>
+    <div class="grid-2">
+    <div class="card" style="border-top: 3px solid #f97316">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <span style="font-size:1.3rem;font-weight:700">🟠 Ornith 35B</span>
+          <span style="color:var(--text2);margin-left:8px">Local llama.cpp</span>
+        </div>
+        <span class="rank-num" style="color:#f97316">#1</span>
+      </div>
+      <div class="stats-bar">
+        <div class="stat"><span class="stat-label">Combined</span><span class="stat-value" style="color:#f97316">137/138</span></div>
+        <div class="stat"><span class="stat-label">Accuracy</span><span class="stat-value">115/116 (99.1%)</span></div>
+        <div class="stat"><span class="stat-label">Speed Bonus</span><span class="stat-value">+22</span></div>
+        <div class="stat"><span class="stat-label">Avg Time</span><span class="stat-value">19.5s avg</span></div>
+        <div class="stat"><span class="stat-label">Avg Size</span><span class="stat-value">27.2 KB</span></div>
+      </div>
+      <p style="font-size:0.9rem;margin-bottom:4px"><strong style="color:#22c55e">✓ Strengths:</strong> Kanban Board, Dashboard, Chess Game, Calculator, Snake Game, Pomodoro Timer</p>
+      <p style="font-size:0.9rem"><strong style="color:#ef4444">✗ Weaknesses:</strong> Markdown Editor (9/10)</p>
+    </div>
+    <div class="card" style="border-top: 3px solid #ef4444">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <span style="font-size:1.3rem;font-weight:700">🔴 Opus 4.7</span>
+          <span style="color:var(--text2);margin-left:8px">Anthropic</span>
+        </div>
+        <span class="rank-num" style="color:#ef4444">#2</span>
+      </div>
+      <div class="stats-bar">
+        <div class="stat"><span class="stat-label">Combined</span><span class="stat-value" style="color:#ef4444">134.5/138</span></div>
+        <div class="stat"><span class="stat-label">Accuracy</span><span class="stat-value">116/116 (100.0%)</span></div>
+        <div class="stat"><span class="stat-label">Speed Bonus</span><span class="stat-value">+18.5</span></div>
+        <div class="stat"><span class="stat-label">Avg Time</span><span class="stat-value">58.2s avg</span></div>
+        <div class="stat"><span class="stat-label">Avg Size</span><span class="stat-value">23.1 KB</span></div>
+      </div>
+      <p style="font-size:0.9rem;margin-bottom:4px"><strong style="color:#22c55e">✓ Strengths:</strong> Perfect scores across all 11 challenges</p>
+      <p style="font-size:0.9rem"><strong style="color:#ef4444">✗ Weaknesses:</strong> None! Perfect scores across the board</p>
+    </div>
+    <div class="card" style="border-top: 3px solid #f59e0b">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <span style="font-size:1.3rem;font-weight:700">🟡 Sonnet 4.6</span>
+          <span style="color:var(--text2);margin-left:8px">Anthropic</span>
+        </div>
+        <span class="rank-num" style="color:#f59e0b">#3</span>
+      </div>
+      <div class="stats-bar">
+        <div class="stat"><span class="stat-label">Combined</span><span class="stat-value" style="color:#f59e0b">130/138</span></div>
+        <div class="stat"><span class="stat-label">Accuracy</span><span class="stat-value">116/116 (100.0%)</span></div>
+        <div class="stat"><span class="stat-label">Speed Bonus</span><span class="stat-value">+14</span></div>
+        <div class="stat"><span class="stat-label">Avg Time</span><span class="stat-value">50.5s avg</span></div>
+        <div class="stat"><span class="stat-label">Avg Size</span><span class="stat-value">25.7 KB</span></div>
+      </div>
+      <p style="font-size:0.9rem;margin-bottom:4px"><strong style="color:#22c55e">✓ Strengths:</strong> Perfect scores across all 11 challenges</p>
+      <p style="font-size:0.9rem"><strong style="color:#ef4444">✗ Weaknesses:</strong> None! Perfect scores across the board</p>
+    </div>
+    <div class="card" style="border-top: 3px solid #6366f1">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <span style="font-size:1.3rem;font-weight:700">🟣 Qwen 3.7 27B</span>
+          <span style="color:var(--text2);margin-left:8px">Local</span>
+        </div>
+        <span class="rank-num" style="color:#6366f1">#4</span>
+      </div>
+      <div class="stats-bar">
+        <div class="stat"><span class="stat-label">Combined</span><span class="stat-value" style="color:#6366f1">128.5/138</span></div>
+        <div class="stat"><span class="stat-label">Accuracy</span><span class="stat-value">116/116 (100.0%)</span></div>
+        <div class="stat"><span class="stat-label">Speed Bonus</span><span class="stat-value">+12.5</span></div>
+        <div class="stat"><span class="stat-label">Avg Time</span><span class="stat-value">1m 25s avg</span></div>
+        <div class="stat"><span class="stat-label">Avg Size</span><span class="stat-value">17.3 KB</span></div>
+      </div>
+      <p style="font-size:0.9rem;margin-bottom:4px"><strong style="color:#22c55e">✓ Strengths:</strong> Perfect scores across all 11 challenges</p>
+      <p style="font-size:0.9rem"><strong style="color:#ef4444">✗ Weaknesses:</strong> None! Perfect scores across the board</p>
+    </div>
+    <div class="card" style="border-top: 3px solid #22c55e">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <span style="font-size:1.3rem;font-weight:700">🟢 GLM 5.1</span>
+          <span style="color:var(--text2);margin-left:8px">ZAI</span>
+        </div>
+        <span class="rank-num" style="color:#22c55e">#5</span>
+      </div>
+      <div class="stats-bar">
+        <div class="stat"><span class="stat-label">Combined</span><span class="stat-value" style="color:#22c55e">123/138</span></div>
+        <div class="stat"><span class="stat-label">Accuracy</span><span class="stat-value">115/116 (99.1%)</span></div>
+        <div class="stat"><span class="stat-label">Speed Bonus</span><span class="stat-value">+8</span></div>
+        <div class="stat"><span class="stat-label">Avg Time</span><span class="stat-value">7m 25s avg</span></div>
+        <div class="stat"><span class="stat-label">Avg Size</span><span class="stat-value">27.9 KB</span></div>
+      </div>
+      <p style="font-size:0.9rem;margin-bottom:4px"><strong style="color:#22c55e">✓ Strengths:</strong> Kanban Board, Dashboard, Markdown Editor, Calculator, Snake Game, Pomodoro Timer</p>
+      <p style="font-size:0.9rem"><strong style="color:#ef4444">✗ Weaknesses:</strong> Chess Game (9/10)</p>
+    </div>
+    <div class="card" style="border-top: 3px solid #3b82f6">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <span style="font-size:1.3rem;font-weight:700">🔵 GLM-5.2</span>
+          <span style="color:var(--text2);margin-left:8px">ZAI / z.ai</span>
+        </div>
+        <span class="rank-num" style="color:#3b82f6">#6</span>
+      </div>
+      <div class="stats-bar">
+        <div class="stat"><span class="stat-label">Combined</span><span class="stat-value" style="color:#3b82f6">119.5/138</span></div>
+        <div class="stat"><span class="stat-label">Accuracy</span><span class="stat-value">114/116 (98.3%)</span></div>
+        <div class="stat"><span class="stat-label">Speed Bonus</span><span class="stat-value">+5.5</span></div>
+        <div class="stat"><span class="stat-label">Avg Time</span><span class="stat-value">8m 21s avg</span></div>
+        <div class="stat"><span class="stat-label">Avg Size</span><span class="stat-value">36.7 KB</span></div>
+      </div>
+      <p style="font-size:0.9rem;margin-bottom:4px"><strong style="color:#22c55e">✓ Strengths:</strong> Kanban Board, Dashboard, Chess Game, Markdown Editor, Calculator, Snake Game</p>
+      <p style="font-size:0.9rem"><strong style="color:#ef4444">✗ Weaknesses:</strong> GTA-Style Game (11/12), WebOS Desktop (13/14)</p>
+    </div>
+    </div>
+  </div>
+
+  <!-- Comparison Table -->
+  <div class="section">
+    <h2 class="section-title">📊 Cross-Test Comparison</h2>
+    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--bg2)">
+      <table class="cmp-table">
+        <thead><tr>
+          <th>Test</th><th colspan="2" style="text-align:center">🟠 Ornith 35B</th><th colspan="2" style="text-align:center">🔴 Opus 4.7</th><th colspan="2" style="text-align:center">🟡 Sonnet 4.6</th><th colspan="2" style="text-align:center">🟣 Qwen 3.7 27B</th><th colspan="2" style="text-align:center">🟢 GLM 5.1</th><th colspan="2" style="text-align:center">🔵 GLM-5.2</th>
+        </tr>
+        <tr>
+          <th></th><th>Score</th><th>Time</th><th>Score</th><th>Time</th><th>Score</th><th>Time</th><th>Score</th><th>Time</th><th>Score</th><th>Time</th><th>Score</th><th>Time</th>
+        </tr></thead>
+        <tbody>
+      <tr><td>📋 Kanban Board</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td class="best">18s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>41.5s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>1m 23s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>1m 24s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>3m 13s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>3m 45s</td></tr>
+      <tr><td>📊 Dashboard</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td class="best">22s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>1m 3s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>34.8s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>1m 48s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>3m 42s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>4m 10s</td></tr>
+      <tr><td>♟️ Chess Game</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td class="best">16s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>1m 7s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>1m 9s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>1m 28s</td><td>9/10 <div class="score-bar"><div class="score-bar-fill" style="width:90%;background:#f59e0b"></div></div></td><td>10m 17s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>11m 20s</td></tr>
+      <tr><td>📝 Markdown Editor</td><td>9/10 <div class="score-bar"><div class="score-bar-fill" style="width:90%;background:#f59e0b"></div></div></td><td class="best">14s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>43.3s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>24.7s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>59.4s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>9m 6s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>10m 05s</td></tr>
+      <tr><td>🧮 Calculator</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td class="best">12s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>46.3s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>32.2s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>1m 0s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>10m 52s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>12m 00s</td></tr>
+      <tr><td>🐍 Snake Game</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td class="best">15s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>26.8s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>31.2s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>51.3s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>3m 3s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>3m 30s</td></tr>
+      <tr><td>🍅 Pomodoro Timer</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td class="best">19s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>50.3s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>43.0s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>1m 9s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>8m 12s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>9m 30s</td></tr>
+      <tr><td>🌤️ Weather App</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td class="best">21s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>1m 26s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>49.9s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>1m 32s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>9m 37s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>10m 50s</td></tr>
+      <tr><td>🔐 Password Generator</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td class="best">17s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>49.7s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>36.0s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>1m 18s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>2m 16s</td><td class="best">10/10 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>2m 40s</td></tr>
+      <tr><td>🎮 GTA-Style Game</td><td class="best">12/12 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td class="best">28s</td><td class="best">12/12 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>55.8s</td><td class="best">12/12 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>49.7s</td><td class="best">12/12 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>2m 15s</td><td class="best">12/12 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>12m 10s</td><td>11/12 <div class="score-bar"><div class="score-bar-fill" style="width:92%;background:#f59e0b"></div></div></td><td>13m 30s</td></tr>
+      <tr><td>🖥️ WebOS Desktop</td><td class="best">14/14 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td class="best">32s</td><td class="best">14/14 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>1m 51s</td><td class="best">14/14 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>1m 42s</td><td class="best">14/14 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>1m 49s</td><td class="best">14/14 <div class="score-bar"><div class="score-bar-fill" style="width:100%;background:#22c55e"></div></div></td><td>9m 12s</td><td>13/14 <div class="score-bar"><div class="score-bar-fill" style="width:93%;background:#f59e0b"></div></div></td><td>10m 30s</td></tr>
+        </tbody>
+        <tfoot>
+<tr style="font-weight:700;border-top:2px solid var(--accent)"><td>📊 TOTAL</td><td class="best">115/116 (99.1%)</td><td>19.5s avg</td><td class="best">116/116 (100.0%)</td><td>58.2s avg</td><td class="best">116/116 (100.0%)</td><td>50.5s avg</td><td class="best">116/116 (100.0%)</td><td>1m 25s avg</td><td class="best">115/116 (99.1%)</td><td>7m 25s avg</td><td class="best">114/116 (98.3%)</td><td>8m 21s avg</td></tr>        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- Test Grid -->
+  <div class="section">
+    <h2 class="section-title">🧪 The 11 Challenges</h2>
+    <div class="grid-3">
+    <a href="kanban/" class="card" style="text-decoration:none;display:block">
+      <div style="font-size:2rem;margin-bottom:8px">📋</div>
+      <div style="font-size:1.1rem;font-weight:700;margin-bottom:8px">Kanban Board</div>
+      <div style="font-size:0.8rem;color:var(--text2);margin-bottom:8px"><span style="color:#22c55e;font-weight:600">Ornith: 10</span> <span style="color:#22c55e;font-weight:600">Opus: 10</span> <span style="color:#22c55e;font-weight:600">Sonnet: 10</span> <span style="color:#22c55e;font-weight:600">Qwen: 10</span> <span style="color:#22c55e;font-weight:600">GLM: 10</span> <span style="color:#22c55e;font-weight:600">GLM-5.2: 10</span></div>
+      <div><span class="winner-badge">🏆 All 6 models (10/10)</span></div>
+    </a>
+    <a href="dashboard/" class="card" style="text-decoration:none;display:block">
+      <div style="font-size:2rem;margin-bottom:8px">📊</div>
+      <div style="font-size:1.1rem;font-weight:700;margin-bottom:8px">Dashboard</div>
+      <div style="font-size:0.8rem;color:var(--text2);margin-bottom:8px"><span style="color:#22c55e;font-weight:600">Ornith: 10</span> <span style="color:#22c55e;font-weight:600">Opus: 10</span> <span style="color:#22c55e;font-weight:600">Sonnet: 10</span> <span style="color:#22c55e;font-weight:600">Qwen: 10</span> <span style="color:#22c55e;font-weight:600">GLM: 10</span> <span style="color:#22c55e;font-weight:600">GLM-5.2: 10</span></div>
+      <div><span class="winner-badge">🏆 All 6 models (10/10)</span></div>
+    </a>
+    <a href="chess/" class="card" style="text-decoration:none;display:block">
+      <div style="font-size:2rem;margin-bottom:8px">♟️</div>
+      <div style="font-size:1.1rem;font-weight:700;margin-bottom:8px">Chess Game</div>
+      <div style="font-size:0.8rem;color:var(--text2);margin-bottom:8px"><span style="color:#22c55e;font-weight:600">Ornith: 10</span> <span style="color:#22c55e;font-weight:600">Opus: 10</span> <span style="color:#22c55e;font-weight:600">Sonnet: 10</span> <span style="color:#22c55e;font-weight:600">Qwen: 10</span> <span style="color:#f59e0b;font-weight:600">GLM: 9</span> <span style="color:#22c55e;font-weight:600">GLM-5.2: 10</span></div>
+      <div><span class="winner-badge">🏆 🟠 Ornith 35B + 🔴 Opus 4.7 + 🟡 Sonnet 4.6 + 🟣 Qwen 3.7 27B + 🔵 GLM-5.2 (10/10)</span></div>
+    </a>
+    <a href="markdown/" class="card" style="text-decoration:none;display:block">
+      <div style="font-size:2rem;margin-bottom:8px">📝</div>
+      <div style="font-size:1.1rem;font-weight:700;margin-bottom:8px">Markdown Editor</div>
+      <div style="font-size:0.8rem;color:var(--text2);margin-bottom:8px"><span style="color:#f59e0b;font-weight:600">Ornith: 9</span> <span style="color:#22c55e;font-weight:600">Opus: 10</span> <span style="color:#22c55e;font-weight:600">Sonnet: 10</span> <span style="color:#22c55e;font-weight:600">Qwen: 10</span> <span style="color:#22c55e;font-weight:600">GLM: 10</span> <span style="color:#22c55e;font-weight:600">GLM-5.2: 10</span></div>
+      <div><span class="winner-badge">🏆 🔴 Opus 4.7 + 🟡 Sonnet 4.6 + 🟣 Qwen 3.7 27B + 🟢 GLM 5.1 + 🔵 GLM-5.2 (10/10)</span></div>
+    </a>
+    <a href="calculator/" class="card" style="text-decoration:none;display:block">
+      <div style="font-size:2rem;margin-bottom:8px">🧮</div>
+      <div style="font-size:1.1rem;font-weight:700;margin-bottom:8px">Calculator</div>
+      <div style="font-size:0.8rem;color:var(--text2);margin-bottom:8px"><span style="color:#22c55e;font-weight:600">Ornith: 10</span> <span style="color:#22c55e;font-weight:600">Opus: 10</span> <span style="color:#22c55e;font-weight:600">Sonnet: 10</span> <span style="color:#22c55e;font-weight:600">Qwen: 10</span> <span style="color:#22c55e;font-weight:600">GLM: 10</span> <span style="color:#22c55e;font-weight:600">GLM-5.2: 10</span></div>
+      <div><span class="winner-badge">🏆 All 6 models (10/10)</span></div>
+    </a>
+    <a href="snake/" class="card" style="text-decoration:none;display:block">
+      <div style="font-size:2rem;margin-bottom:8px">🐍</div>
+      <div style="font-size:1.1rem;font-weight:700;margin-bottom:8px">Snake Game</div>
+      <div style="font-size:0.8rem;color:var(--text2);margin-bottom:8px"><span style="color:#22c55e;font-weight:600">Ornith: 10</span> <span style="color:#22c55e;font-weight:600">Opus: 10</span> <span style="color:#22c55e;font-weight:600">Sonnet: 10</span> <span style="color:#22c55e;font-weight:600">Qwen: 10</span> <span style="color:#22c55e;font-weight:600">GLM: 10</span> <span style="color:#22c55e;font-weight:600">GLM-5.2: 10</span></div>
+      <div><span class="winner-badge">🏆 All 6 models (10/10)</span></div>
+    </a>
+    <a href="pomodoro/" class="card" style="text-decoration:none;display:block">
+      <div style="font-size:2rem;margin-bottom:8px">🍅</div>
+      <div style="font-size:1.1rem;font-weight:700;margin-bottom:8px">Pomodoro Timer</div>
+      <div style="font-size:0.8rem;color:var(--text2);margin-bottom:8px"><span style="color:#22c55e;font-weight:600">Ornith: 10</span> <span style="color:#22c55e;font-weight:600">Opus: 10</span> <span style="color:#22c55e;font-weight:600">Sonnet: 10</span> <span style="color:#22c55e;font-weight:600">Qwen: 10</span> <span style="color:#22c55e;font-weight:600">GLM: 10</span> <span style="color:#22c55e;font-weight:600">GLM-5.2: 10</span></div>
+      <div><span class="winner-badge">🏆 All 6 models (10/10)</span></div>
+    </a>
+    <a href="weather/" class="card" style="text-decoration:none;display:block">
+      <div style="font-size:2rem;margin-bottom:8px">🌤️</div>
+      <div style="font-size:1.1rem;font-weight:700;margin-bottom:8px">Weather App</div>
+      <div style="font-size:0.8rem;color:var(--text2);margin-bottom:8px"><span style="color:#22c55e;font-weight:600">Ornith: 10</span> <span style="color:#22c55e;font-weight:600">Opus: 10</span> <span style="color:#22c55e;font-weight:600">Sonnet: 10</span> <span style="color:#22c55e;font-weight:600">Qwen: 10</span> <span style="color:#22c55e;font-weight:600">GLM: 10</span> <span style="color:#22c55e;font-weight:600">GLM-5.2: 10</span></div>
+      <div><span class="winner-badge">🏆 All 6 models (10/10)</span></div>
+    </a>
+    <a href="password/" class="card" style="text-decoration:none;display:block">
+      <div style="font-size:2rem;margin-bottom:8px">🔐</div>
+      <div style="font-size:1.1rem;font-weight:700;margin-bottom:8px">Password Generator</div>
+      <div style="font-size:0.8rem;color:var(--text2);margin-bottom:8px"><span style="color:#22c55e;font-weight:600">Ornith: 10</span> <span style="color:#22c55e;font-weight:600">Opus: 10</span> <span style="color:#22c55e;font-weight:600">Sonnet: 10</span> <span style="color:#22c55e;font-weight:600">Qwen: 10</span> <span style="color:#22c55e;font-weight:600">GLM: 10</span> <span style="color:#22c55e;font-weight:600">GLM-5.2: 10</span></div>
+      <div><span class="winner-badge">🏆 All 6 models (10/10)</span></div>
+    </a>
+    <a href="gta/" class="card" style="text-decoration:none;display:block">
+      <div style="font-size:2rem;margin-bottom:8px">🎮</div>
+      <div style="font-size:1.1rem;font-weight:700;margin-bottom:8px">GTA-Style Game</div>
+      <div style="font-size:0.8rem;color:var(--text2);margin-bottom:8px"><span style="color:#22c55e;font-weight:600">Ornith: 12</span> <span style="color:#22c55e;font-weight:600">Opus: 12</span> <span style="color:#22c55e;font-weight:600">Sonnet: 12</span> <span style="color:#22c55e;font-weight:600">Qwen: 12</span> <span style="color:#22c55e;font-weight:600">GLM: 12</span> <span style="color:#f59e0b;font-weight:600">GLM-5.2: 11</span></div>
+      <div><span class="winner-badge">🏆 🟠 Ornith 35B + 🔴 Opus 4.7 + 🟡 Sonnet 4.6 + 🟣 Qwen 3.7 27B + 🟢 GLM 5.1 (12/12)</span></div>
+    </a>
+    <a href="webos/" class="card" style="text-decoration:none;display:block">
+      <div style="font-size:2rem;margin-bottom:8px">🖥️</div>
+      <div style="font-size:1.1rem;font-weight:700;margin-bottom:8px">WebOS Desktop</div>
+      <div style="font-size:0.8rem;color:var(--text2);margin-bottom:8px"><span style="color:#22c55e;font-weight:600">Ornith: 14</span> <span style="color:#22c55e;font-weight:600">Opus: 14</span> <span style="color:#22c55e;font-weight:600">Sonnet: 14</span> <span style="color:#22c55e;font-weight:600">Qwen: 14</span> <span style="color:#22c55e;font-weight:600">GLM: 14</span> <span style="color:#f59e0b;font-weight:600">GLM-5.2: 13</span></div>
+      <div><span class="winner-badge">🏆 🟠 Ornith 35B + 🔴 Opus 4.7 + 🟡 Sonnet 4.6 + 🟣 Qwen 3.7 27B + 🟢 GLM 5.1 (14/14)</span></div>
+    </a>
+    </div>
+  </div>
+
+  <!-- Methodology -->
+  <div class="section">
+    <h2 class="section-title">🔬 Methodology</h2>
+    <div class="method-grid">
+      <div class="method-item">
+        <span class="method-icon">🎯</span>
+        <div class="method-text"><h4>Single-Shot Prompt</h4><p>Each model received exactly one prompt per test. No retries, no iterations, no agentic tool loops.</p></div>
+      </div>
+      <div class="method-item">
+        <span class="method-icon">🤖</span>
+        <div class="method-text"><h4>No Agentic Tools</h4><p>Pure model output — no file system access, no browser tools, no code execution during generation.</p></div>
+      </div>
+      <div class="method-item">
+        <span class="method-icon">🧪</span>
+        <div class="method-text"><h4>Playwright Scoring</h4><p>Automated browser testing via Playwright checked functional criteria per app (116 total per model).</p></div>
+      </div>
+      <div class="method-item">
+        <span class="method-icon">📦</span>
+        <div class="method-text"><h4>Single HTML File</h4><p>Each output is a self-contained HTML file with inline CSS and JavaScript. No external dependencies.</p></div>
+      </div>
+      <div class="method-item">
+        <span class="method-icon">⏱️</span>
+        <div class="method-text"><h4>Speed Bonus</h4><p>Per test, the fastest model earns +2.0 down to +0.5 for the slowest (max +22 across 11 tests).</p></div>
+      </div>
+      <div class="method-item">
+        <span class="method-icon">🌐</span>
+        <div class="method-text"><h4>Real-World Tasks</h4><p>11 practical web apps: games, productivity tools, editors, dashboards — things people actually build.</p></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <p>AI Model Bake-Off · Built with ❤️ and Playwright · 11 tests × 6 models</p>
+</footer>
+
+</body>
+</html>

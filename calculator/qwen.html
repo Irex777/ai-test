@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro Calculator</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --calc-bg: #1e1e1e;
+            --screen-bg: #2d2d2d;
+            --text-main: #ffffff;
+            --text-dim: #888888;
+            --btn-bg: #333333;
+            --btn-hover: #444444;
+            --btn-active: #555555;
+            --accent-color: #03dac6; /* Teal */
+            --accent-hover: #02b0a0;
+            --danger-color: #cf6679;
+            --func-color: #2c2c2c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .calculator {
+            width: 100%;
+            max-width: 400px;
+            height: 100%;
+            max-height: 800px;
+            background-color: var(--calc-bg);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        /* Responsive adjustments */
+        @media (min-width: 450px) {
+            .calculator {
+                height: 90vh;
+                border-radius: 20px;
+            }
+        }
+
+        /* Screen Area */
+        .screen {
+            flex: 1;
+            background-color: var(--screen-bg);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: flex-end;
+            word-wrap: break-word;
+            word-break: break-all;
+            overflow: hidden;
+        }
+
+        .history {
+            color: var(--text-dim);
+            font-size: 1.2rem;
+            min-height: 1.5rem;
+            margin-bottom: 5px;
+            text-align: right;
+        }
+
+        .current {
+            color: var(--text-main);
+            font-size: 3.5rem;
+            font-weight: 300;
+            text-align: right;
+            transition: font-size 0.1s;
+        }
+
+        .memory-indicator {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            font-size: 0.9rem;
+            color: var(--accent-color);
+            font-weight: bold;
+            display: none;
+        }
+        .memory-indicator.active {
+            display: block;
+        }
+
+        /* Keypad Area */
+        .keypad {
+            flex: 2;
+            padding: 15px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(6, 1fr);
+            gap: 10px;
+            background-color: var(--calc-bg);
+        }
+
+        button {
+            border: none;
+            border-radius: 10px;
+            font-size: 1.5rem;
+            color: var(--text-main);
+            background-color: var(--btn-bg);
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button:active {
+            transform: scale(0.95);
+            background-color: var(--btn-active);
+        }
+
+        button:hover {
+            background-color: var(--btn-hover);
+        }
+
+        /* Specific Button Styles */
+        .btn-func {
+            background-color: var(--func-color);
+            color: var(--accent-color);
+        }
+
+        .btn-op {
+            background-color: #3c3c3c;
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+        .btn-eq {
+            background-color: var(--accent-color);
+            color: #000;
+            font-weight: bold;
+        }
+        .btn-eq:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .btn-zero {
+            grid-column: span 2;
+        }
+
+        .error-state {
+            color: var(--danger-color);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="calculator">
+        <div class="screen">
+            <div id="memory-ind" class="memory-indicator">M</div>
+            <div id="history" class="history"></div>
+            <div id="display" class="current">0</div>
+        </div>
+
+        <div class="keypad">
+            <!-- Row 1: Memory -->
+            <button class="btn-func" onclick="calc.memoryClear()">MC</button>
+            <button class="btn-func" onclick="calc.memoryRecall()">MR</button>
+            <button class="btn-func" onclick="calc.memorySub()">M-</button>
+            <button class="btn-func" onclick="calc.memoryAdd()">M+</button>
+
+            <!-- Row 2: Clear & Special -->
+            <button class="btn-func" onclick="calc.clearAll()">C</button>
+            <button class="btn-func" onclick="calc.clearEntry()">CE</button>
+            <button class="btn-func" onclick="calc.backspace()">⌫</button>
+            <button class="btn-op" onclick="calc.chooseOperation('/')">÷</button>
+
+            <!-- Row 3 -->
+            <button onclick="calc.appendNumber('7')">7</button>
+            <button onclick="calc.appendNumber('8')">8</button>
+            <button onclick="calc.appendNumber('9')">9</button>
+            <button class="btn-op" onclick="calc.chooseOperation('*')">×</button>
+
+            <!-- Row 4 -->
+            <button onclick="calc.appendNumber('4')">4</button>
+            <button onclick="calc.appendNumber('5')">5</button>
+            <button onclick="calc.appendNumber('6')">6</button>
+            <button class="btn-op" onclick="calc.chooseOperation('-')">-</button>
+
+            <!-- Row 5 -->
+            <button onclick="calc.appendNumber('1')">1</button>
+            <button onclick="calc.appendNumber('2')">2</button>
+            <button onclick="calc.appendNumber('3')">3</button>
+            <button class="btn-op" onclick="calc.chooseOperation('+')">+</button>
+
+            <!-- Row 6 -->
+            <button onclick="calc.toggleSign()">+/-</button>
+            <button onclick="calc.appendNumber('0')">0</button>
+            <button onclick="calc.appendNumber('.')">.</button>
+            <button class="btn-eq" onclick="calc.compute()">=</button>
+        </div>
+    </div>
+
+    <script>
+        class Calculator {
+            constructor(historyElement, displayElement, memoryElement) {
+                this.historyElement = historyElement;
+                this.displayElement = displayElement;
+                this.memoryElement = memoryElement;
+                this.clear();
+                this.memory = 0;
+            }
+
+            clear() {
+                this.currentOperand = '0';
+                this.previousOperand = '';
+                this.operation = undefined;
+                this.shouldResetScreen = false;
+                this.updateDisplay();
+            }
+
+            clearAll() {
+                this.clear();
+                this.historyElement.innerText = '';
+            }
+
+            clearEntry() {
+                this.currentOperand = '0';
+                this.updateDisplay();
+            }
+
+            delete() {
+                if (this.shouldResetScreen) return;
+                if (this.currentOperand === 'Error') {
+                    this.clearEntry();
+                    return;
+                }
+                this.currentOperand = this.currentOperand.toString().slice(0, -1);
+                if (this.currentOperand === '' || this.currentOperand === '-') {
+                    this.currentOperand = '0';
+                }
+                this.updateDisplay();
+            }
+
+            appendNumber(number) {
+                if (this.shouldResetScreen) {
+                    this.currentOperand = '';
+                    this.shouldResetScreen = false;
+                }
+                if (number === '.' && this.currentOperand.includes('.')) return;
+                if (this.currentOperand === '0' && number !== '.') {
+                    this.currentOperand = number.toString();
+                } else {
+                    this.currentOperand = this.currentOperand.toString() + number.toString();
+                }
+                this.updateDisplay();
+            }
+
+            toggleSign() {
+                if (this.currentOperand === '0' || this.currentOperand === 'Error') return;
+                this.currentOperand = (parseFloat(this.currentOperand) * -1).toString();
+                this.updateDisplay();
+            }
+
+            chooseOperation(operation) {
+                if (this.currentOperand === 'Error') return;
+                if (this.currentOperand === '') return;
+                
+                // Handle chained operations (e.g., 5 + 3 + ...)
+                if (this.previousOperand !== '' && !this.shouldResetScreen) {
+                    this.compute();
+                }
+
+                this.operation = operation;
+                this.previousOperand = this.currentOperand;
+                this.shouldResetScreen = true;
+                this.updateDisplay();
+            }
+
+            compute() {
+                let computation;
+                const prev = parseFloat(this.previousOperand);
+                const current = parseFloat(this.currentOperand);
+
+                if (isNaN(prev) || isNaN(current)) return;
+
+                switch (this.operation) {
+                    case '+':
+                        computation = prev + current;
+                        break;
+                    case '-':
+                        computation = prev - current;
+                        break;
+                    case '*':
+                        computation = prev * current;
+                        break;
+                    case '/':
+                        if (current === 0) {
+                            this.currentOperand = 'Error';
+                            this.operation = undefined;
+                            this.previousOperand = '';
+                            this.shouldResetScreen = true;
+                            this.updateDisplay();
+                            return;
+                        }
+                        computation = prev / current;
+                        break;
+                    default:
+                        return;
+                }
+
+                // Handle floating point precision issues roughly
+                computation = Math.round(computation * 100000000) / 100000000;
+
+                this.currentOperand = computation.toString();
+                this.operation = undefined;
+                this.previousOperand = '';
+                this.shouldResetScreen = true;
+                this.updateDisplay();
+            }
+
+            // Memory Functions
+            memoryAdd() {
+                if(this.currentOperand === 'Error') return;
+                this.memory += parseFloat(this.currentOperand);
+                this.updateMemoryIndicator();
+                this.shouldResetScreen = true;
+            }
+            
+            memorySub() {
+                if(this.currentOperand === 'Error') return;
+                this.memory -= parseFloat(this.currentOperand);
+                this.updateMemoryIndicator();
+                this.shouldResetScreen = true;
+            }
+
+            memoryRecall() {
+                this.currentOperand = this.memory.toString();
+                this.shouldResetScreen = true;
+                this.updateDisplay();
+            }
+
+            memoryClear() {
+                this.memory = 0;
+                this.updateMemoryIndicator();
+            }
+
+            updateMemoryIndicator() {
+                if(this.memory !== 0) {
+                    this.memoryElement.classList.add('active');
+                } else {
+                    this.memoryElement.classList.remove('active');
+                }
+            }
+
+            getDisplayNumber(number) {
+                if(number === 'Error') return number;
+                const stringNumber = number.toString();
+                const integerDigits = parseFloat(stringNumber.split('.')[0]);
+                const decimalDigits = stringNumber.split('.')[1];
+                let integerDisplay;
+                if (isNaN(integerDigits)) {
+                    integerDisplay = '';
+                } else {
+                    integerDisplay = integerDigits.toLocaleString('en', { maximumFractionDigits: 0 });
+                }
+                if (decimalDigits != null) {
+                    return `${integerDisplay}.${decimalDigits}`;
+                } else {
+                    return integerDisplay;
+                }
+            }
+
+            updateDisplay() {
+                this.displayElement.innerText = this.getDisplayNumber(this.currentOperand);
+                
+                if (this.operation != null) {
+                    // Show history like "5 + 3"
+                    let opSymbol = this.operation;
+                    if(opSymbol === '*') opSymbol = '×';
+                    if(opSymbol === '/') opSymbol = '÷';
+                    
+                    this.historyElement.innerText = `${this.getDisplayNumber(this.previousOperand)} ${opSymbol}`;
+                } else if (this.shouldResetScreen && this.operation === undefined && this.previousOperand === '') {
+                    // Clear history if we just hit equals and start typing new
+                     if(this.displayElement.innerText !== '0') {
+                         // Keep last result visible but no operator
+                         this.historyElement.innerText = ''; 
+                     }
+                }
+
+                // Visual error handling
+                if(this.currentOperand === 'Error') {
+                    this.displayElement.classList.add('error-state');
+                } else {
+                    this.displayElement.classList.remove('error-state');
+                }
+
+                // Auto-resize font if number is too long
+                if(this.currentOperand.toString().length > 10) {
+                    this.displayElement.style.fontSize = '2rem';
+                } else {
+                    this.displayElement.style.fontSize = '3.5rem';
+                }
+            }
+        }
+
+        const historyElement = document.getElementById('history');
+        const displayElement = document.getElementById('display');
+        const memoryElement = document.getElementById('memory-ind');
+
+        const calc = new Calculator(historyElement, displayElement, memoryElement);
+
+        // Keyboard Support
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= 0 && e.key <= 9) calc.appendNumber(e.key);
+            if (e.key === '.') calc.appendNumber('.');
+            if (e.key === '=' || e.key === 'Enter') {
+                e.preventDefault(); // prevent form submit behavior if any
+                calc.compute();
+            }
+            if (e.key === 'Backspace') calc.delete();
+            if (e.key === 'Escape') calc.clearAll();
+            if (e.key === 'Delete') calc.clearEntry();
+            if (e.key === '+') calc.chooseOperation('+');
+            if (e.key === '-') calc.chooseOperation('-');
+            if (e.key === '*') calc.chooseOperation('*');
+            if (e.key === '/') {
+                e.preventDefault(); // prevent quick find in firefox
+                calc.chooseOperation('/');
+            }
+        });
+
+    </script>
+</body>
+</html>

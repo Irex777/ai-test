@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Focus Flow - Pomodoro Timer</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --accent-work: #ff6b6b;
+            --accent-short: #4ecdc4;
+            --accent-long: #45b7d1;
+            --active-color: var(--accent-work);
+            --transition-speed: 0.3s;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            transition: background-color 0.5s;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+            position: relative;
+        }
+
+        /* Mode Switchers */
+        .modes {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 2rem;
+        }
+
+        .mode-btn {
+            background: transparent;
+            border: none;
+            color: #777;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .mode-btn.active {
+            background-color: rgba(255,255,255,0.1);
+            color: var(--active-color);
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        }
+
+        /* Timer Circle */
+        .timer-container {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            margin: 0 auto 2rem;
+        }
+
+        svg {
+            transform: rotate(-90deg);
+            width: 100%;
+            height: 100%;
+        }
+
+        circle {
+            fill: none;
+            stroke-width: 8;
+            stroke-linecap: round;
+        }
+
+        .circle-bg {
+            stroke: #333;
+        }
+
+        .circle-progress {
+            stroke: var(--active-color);
+            stroke-dasharray: 754; /* 2 * PI * 120 (radius) */
+            stroke-dashoffset: 0;
+            transition: stroke-dashoffset 0.5s linear, stroke 0.5s ease;
+            filter: drop-shadow(0 0 5px var(--active-color));
+        }
+
+        .time-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3.5rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .control-btn {
+            background: none;
+            border: 2px solid var(--active-color);
+            color: var(--active-color);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        .control-btn:hover {
+            background-color: var(--active-color);
+            color: #fff;
+            transform: scale(1.05);
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Session Counter */
+        .session-counter {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 1rem;
+        }
+
+        .session-count {
+            color: var(--text-color);
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        /* Settings */
+        .settings-toggle {
+            margin-top: 1rem;
+            background: none;
+            border: none;
+            color: #555;
+            cursor: pointer;
+            font-size: 0.8rem;
+            text-decoration: underline;
+        }
+        
+        .settings-panel {
+            display: none;
+            margin-top: 1rem;
+            background: #2a2a2a;
+            padding: 1rem;
+            border-radius: 10px;
+            text-align: left;
+        }
+
+        .settings-panel.show {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .setting-item label {
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        .setting-item input {
+            background: #333;
+            border: 1px solid #444;
+            color: #fff;
+            width: 60px;
+            padding: 4px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .setting-item input:focus {
+            outline: none;
+            border-color: var(--active-color);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Icons */
+        svg.icon {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Mode Selectors -->
+    <div class="modes">
+        <button class="mode-btn active" data-mode="work">Work</button>
+        <button class="mode-btn" data-mode="short">Short Break</button>
+        <button class="mode-btn" data-mode="long">Long Break</button>
+    </div>
+
+    <!-- Timer Visualization -->
+    <div class="timer-container">
+        <svg>
+            <circle class="circle-bg" cx="125" cy="125" r="120"></circle>
+            <circle class="circle-progress" cx="125" cy="125" r="120"></circle>
+        </svg>
+        <div class="time-display" id="time-display">25:00</div>
+    </div>
+
+    <!-- Main Controls -->
+    <div class="controls">
+        <button class="control-btn" id="start-pause-btn">
+            <!-- Play Icon (default) -->
+            <svg class="icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button class="control-btn" id="reset-btn">
+            <!-- Reset Icon -->
+            <svg class="icon" viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+        </button>
+    </div>
+
+    <!-- Session Stats -->
+    <div class="session-counter">
+        Completed Sessions: <span class="session-count" id="session-count">0</span>
+    </div>
+
+    <!-- Settings Toggle -->
+    <button class="settings-toggle" id="settings-btn">Customize Durations</button>
+
+    <!-- Settings Panel -->
+    <div class="settings-panel" id="settings-panel">
+        <div class="setting-item">
+            <label>Work (min)</label>
+            <input type="number" id="input-work" value="25" min="1" max="60">
+        </div>
+        <div class="setting-item">
+            <label>Short Break (min)</label>
+            <input type="number" id="input-short" value="5" min="1" max="30">
+        </div>
+        <div class="setting-item">
+            <label>Long Break (min)</label>
+            <input type="number" id="input-long" value="15" min="1" max="60">
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Configuration & State ---
+    const CIRCUMFERENCE = 2 * Math.PI * 120; // Radius is 120
+    
+    const state = {
+        timeLeft: 25 * 60,
+        totalTime: 25 * 60,
+        mode: 'work', // work, short, long
+        isRunning: false,
+        sessions: 0,
+        intervalId: null,
+        durations: {
+            work: 25,
+            short: 5,
+            long: 15
+        }
+    };
+
+    // --- DOM Elements ---
+    const timeDisplay = document.getElementById('time-display');
+    const circleProgress = document.querySelector('.circle-progress');
+    const startPauseBtn = document.getElementById('start-pause-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const modeBtns = document.querySelectorAll('.mode-btn');
+    const sessionCountDisplay = document.getElementById('session-count');
+    
+    // Settings
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsPanel = document.getElementById('settings-panel');
+    const inputWork = document.getElementById('input-work');
+    const inputShort = document.getElementById('input-short');
+    const inputLong = document.getElementById('input-long');
+
+    // Audio Context
+    let audioCtx = null;
+
+    // --- Initialization ---
+    circleProgress.style.strokeDasharray = `${CIRCUMFERENCE} ${CIRCUMFERENCE}`;
+    circleProgress.style.strokeDashoffset = 0; // Start full
+
+    // --- Core Functions ---
+
+    function playNotification() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+        oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.5);
+
+        gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.5);
+    }
+
+    function formatTime(seconds) {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function updateDisplay() {
+        timeDisplay.textContent = formatTime(state.timeLeft);
+        
+        // Update Circle
+        const offset = CIRCUMFERENCE - (state.timeLeft / state.totalTime) * CIRCUMFERENCE;
+        circleProgress.style.strokeDashoffset = offset;
+
+        // Update Title
+        document.title = `${formatTime(state.timeLeft)} - Pomodoro`;
+    }
+
+    function switchMode(mode) {
+        stopTimer();
+        state.mode = mode;
+        state.durations[mode] = parseInt(document.getElementById(`input-${mode}`).value);
+        state.totalTime = state.durations[mode] * 60;
+        state.timeLeft = state.totalTime;
+        
+        // Visual updates
+        document.documentElement.style.setProperty('--active-color', 
+            mode === 'work' ? 'var(--accent-work)' : 
+            mode === 'short' ? 'var(--accent-short)' : 'var(--accent-long)'
+        );
+
+        modeBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === mode);
+        });
+
+        updateDisplay();
+    }
+
+    function startTimer() {
+        if (state.isRunning) return;
+        
+        // Initialize Audio Context on first user interaction
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        state.isRunning = true;
+        startPauseBtn.innerHTML = `<svg class="icon" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`; // Pause Icon
+
+        state.intervalId = setInterval(() => {
+            state.timeLeft--;
+            updateDisplay();
+
+            if (state.timeLeft <= 0) {
+                stopTimer();
+                handleTimerComplete();
+            }
+        }, 1000);
+    }
+
+    function stopTimer() {
+        state.isRunning = false;
+        clearInterval(state.intervalId);
+        startPauseBtn.innerHTML = `<svg class="icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>`; // Play Icon
+    }
+
+    function resetTimer() {
+        stopTimer();
+        state.timeLeft = state.totalTime;
+        updateDisplay();
+    }
+
+    function handleTimerComplete() {
+        playNotification();
+
+        if (state.mode === 'work') {
+            state.sessions++;
+            sessionCountDisplay.textContent = state.sessions;
+            // Auto switch to break
+            // Simple logic: every 4th session is a long break, otherwise short
+            // But for simplicity, let's just switch to Short Break by default, 
+            // or Long if user manually selected it previously.
+            // Let's stick to a standard: Work -> Short Break.
+            // If it was a long break, go back to Work.
+            
+            // Update durations from inputs just in case they changed while running
+            state.durations.work = parseInt(inputWork.value);
+            state.durations.short = parseInt(inputShort.value);
+            state.durations.long = parseInt(inputLong.value);
+
+            switchMode('short');
+            // Optional: Auto start break? Let's not, user might want to rest eyes.
+        } else {
+            switchMode('work');
+        }
+    }
+
+    // --- Event Listeners ---
+
+    startPauseBtn.addEventListener('click', () => {
+        if (state.isRunning) stopTimer();
+        else startTimer();
+    });
+
+    resetBtn.addEventListener('click', resetTimer);
+
+    modeBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            switchMode(e.target.dataset.mode);
+        });
+    });
+
+    // Settings Listeners
+    settingsBtn.addEventListener('click', () => {
+        settingsPanel.classList.toggle('show');
+    });
+
+    // Input change listeners to update state immediately if timer is stopped
+    const handleInputChange = (e) => {
+        const target = e.target;
+        const val = parseInt(target.value);
+        if (val > 0) {
+            state.durations[target.id.replace('input-', '')] = val;
+            // If timer is not running and we are in this mode, update time
+            if (!state.isRunning && target.id.replace('input-', '') === state.mode) {
+                state.totalTime = val * 60;
+                state.timeLeft = state.totalTime;
+                updateDisplay();
+            }
+        }
+    };
+
+    [inputWork, inputShort, inputLong].forEach(input => {
+        input.addEventListener('change', handleInputChange);
+    });
+
+    // Initial Render
+    updateDisplay();
+
+</script>
+</body>
+</html>
