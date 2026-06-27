@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebOS</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;}
+@font-face{font-family:sys;src:local('Segoe UI'),local('Helvetica Neue'),local('Arial');}
+body{font-family:sys,sans-serif;overflow:hidden;height:100vh;width:100vw;background:#1a1a2e;}
+
+/* Boot Screen */
+#boot-screen{position:fixed;inset:0;background:#0a0a1a;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.8s;}
+#boot-screen.fade-out{opacity:0;pointer-events:none;}
+.boot-logo{width:80px;height:80px;border:3px solid #4fc3f7;border-radius:50%;display:flex;align-items:center;justify-content:center;animation:bootPulse 1.5s ease-in-out infinite;margin-bottom:30px;}
+.boot-logo span{font-size:36px;color:#4fc3f7;font-weight:bold;}
+@keyframes bootPulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.1);opacity:0.7;}}
+.boot-text{color:#4fc3f7;font-size:14px;letter-spacing:3px;margin-bottom:20px;}
+.boot-bar{width:200px;height:2px;background:#1a1a3e;border-radius:2px;overflow:hidden;}
+.boot-bar-fill{height:100%;width:0;background:linear-gradient(90deg,#4fc3f7,#7c4dff);border-radius:2px;transition:width 0.3s;}
+.boot-percent{color:#666;font-size:11px;margin-top:10px;}
+
+/* Desktop */
+#desktop{position:fixed;top:0;left:0;right:0;bottom:48px;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);overflow:hidden;}
+.desktop-icon{position:absolute;width:80px;text-align:center;cursor:pointer;border-radius:8px;padding:6px;transition:background 0.15s;}
+.desktop-icon:hover{background:rgba(255,255,255,0.08);}
+.desktop-icon.selected{background:rgba(79,195,247,0.2);border:1px solid rgba(79,195,247,0.4);}
+.desktop-icon .icon{font-size:36px;margin-bottom:4px;display:block;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));}
+.desktop-icon .label{color:#fff;font-size:11px;text-shadow:0 1px 3px rgba(0,0,0,0.8);word-wrap:break-word;line-height:1.3;}
+
+/* Taskbar */
+#taskbar{position:fixed;bottom:0;left:0;right:0;height:48px;background:rgba(20,20,40,0.95);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;z-index:9000;padding:0 8px;}
+#start-btn{width:40px;height:36px;border:none;background:transparent;color:#4fc3f7;font-size:18px;cursor:pointer;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:background 0.15s;}
+#start-btn:hover{background:rgba(79,195,247,0.15);}
+#taskbar-apps{flex:1;display:flex;gap:3px;padding:0 8px;overflow-x:auto;}
+.taskbar-app{height:36px;min-width:44px;padding:0 12px;border:none;background:transparent;color:#aaa;font-size:12px;cursor:pointer;border-radius:6px;display:flex;align-items:center;gap:6px;transition:all 0.15s;white-space:nowrap;}
+.taskbar-app:hover{background:rgba(255,255,255,0.06);}
+.taskbar-app.active{background:rgba(79,195,247,0.15);color:#4fc3f7;}
+.taskbar-app.minimized{opacity:0.6;}
+.taskbar-app .ta-icon{font-size:14px;}
+#system-tray{display:flex;align-items:center;gap:12px;padding:0 12px;color:#888;font-size:12px;border-left:1px solid rgba(255,255,255,0.06);}
+#clock{cursor:pointer;padding:4px 8px;border-radius:4px;}
+#clock:hover{background:rgba(255,255,255,0.06);}
+
+/* Start Menu */
+#start-menu{position:fixed;bottom:52px;left:8px;width:340px;background:rgba(25,25,50,0.97);backdrop-filter:blur(30px);border:1px solid rgba(255,255,255,0.08);border-radius:12px;z-index:9001;display:none;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
+#start-menu.show{display:flex;}
+#start-menu-header{padding:16px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.06);}
+#start-menu-header h2{color:#fff;font-size:16px;font-weight:600;}
+#start-menu-header p{color:#666;font-size:11px;margin-top:2px;}
+#start-apps{flex:1;overflow-y:auto;padding:8px;}
+.start-app-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background 0.15s;color:#ccc;font-size:13px;}
+.start-app-item:hover{background:rgba(79,195,247,0.12);color:#fff;}
+.start-app-item .sa-icon{font-size:20px;width:28px;text-align:center;}
+#start-menu-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;align-items:center;}
+#shutdown-btn{padding:6px 16px;border:1px solid rgba(255,80,80,0.3);background:rgba(255,80,80,0.1);color:#ff6b6b;border-radius:6px;cursor:pointer;font-size:12px;transition:all 0.15s;}
+#shutdown-btn:hover{background:rgba(255,80,80,0.25);border-color:rgba(255,80,80,0.5);}
+
+/* Windows */
+.window{position:absolute;background:rgba(28,28,52,0.97);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4);display:flex;flex-direction:column;min-width:300px;min-height:200px;transition:box-shadow 0.2s;}
+.window.focused{box-shadow:0 12px 48px rgba(0,0,0,0.6);border-color:rgba(79,195,247,0.15);}
+.window.minimized{display:none!important;}
+.window.maximized{border-radius:0!important;}
+.window-header{height:36px;background:rgba(15,15,35,0.9);display:flex;align-items:center;padding:0 8px;cursor:default;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.window-header .wh-icon{font-size:14px;margin-right:8px;}
+.window-header .wh-title{flex:1;color:#ccc;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.window-header .wh-controls{display:flex;gap:2px;}
+.window-header .wh-btn{width:28px;height:24px;border:none;background:transparent;color:#888;cursor:pointer;border-radius:4px;font-size:14px;display:flex;align-items:center;justify-content:center;}
+.window-header .wh-btn:hover{background:rgba(255,255,255,0.1);color:#fff;}
+.window-header .wh-btn.close-btn:hover{background:rgba(255,60,60,0.3);color:#ff6b6b;}
+.window-body{flex:1;overflow:auto;position:relative;}
+.window .resize-handle{position:absolute;bottom:0;right:0;width:16px;height:16px;cursor:nwse-resize;}
+
+/* Menu bar in windows */
+.window-menubar{display:flex;background:rgba(10,10,25,0.8);border-bottom:1px solid rgba(255,255,255,0.04);padding:2px 4px;gap:2px;}
+.window-menubar .menu-item{padding:4px 10px;color:#999;font-size:12px;border-radius:4px;cursor:pointer;transition:all 0.1s;}
+.window-menubar .menu-item:hover{background:rgba(79,195,247,0.12);color:#fff;}
+
+/* Context Menu */
+#context-menu{position:fixed;background:rgba(30,30,55,0.97);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:4px;min-width:180px;z-index:99999;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+#context-menu.show{display:block;}
+.ctx-item{padding:7px 14px;color:#ccc;font-size:12px;border-radius:4px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background 0.1s;}
+.ctx-item:hover{background:rgba(79,195,247,0.15);color:#fff;}
+.ctx-separator{height:1px;background:rgba(255,255,255,0.06);margin:4px 8px;}
+
+/* Notepad */
+.notepad-textarea{width:100%;height:100%;background:rgba(15,15,30,0.95);color:#d4d4d4;border:none;padding:12px;font-family:'Consolas','Courier New',monospace;font-size:14px;resize:none;outline:none;line-height:1.6;}
+
+/* Calculator */
+.calc-display{background:rgba(10,10,25,0.9);color:#4fc3f7;font-size:28px;text-align:right;padding:16px 20px;font-family:'Consolas',monospace;border-bottom:1px solid rgba(255,255,255,0.04);min-height:70px;display:flex;align-items:center;justify-content:flex-end;word-break:break-all;}
+.calc-buttons{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:4px;}
+.calc-btn{padding:16px;border:none;font-size:16px;cursor:pointer;border-radius:6px;transition:all 0.1s;font-family:sys,sans-serif;}
+.calc-btn.num{background:rgba(40,40,70,0.8);color:#ddd;}
+.calc-btn.num:hover{background:rgba(60,60,100,0.8);}
+.calc-btn.op{background:rgba(79,195,247,0.15);color:#4fc3f7;}
+.calc-btn.op:hover{background:rgba(79,195,247,0.25);}
+.calc-btn.eq{background:rgba(79,195,247,0.3);color:#4fc3f7;font-weight:bold;}
+.calc-btn.eq:hover{background:rgba(79,195,247,0.45);}
+.calc-btn.fn{background:rgba(30,30,55,0.8);color:#999;}
+.calc-btn.fn:hover{background:rgba(50,50,80,0.8);}
+
+/* Terminal */
+.terminal-body{background:rgba(10,10,20,0.98);color:#4fc3f7;font-family:'Consolas','Courier New',monospace;font-size:13px;padding:12px;height:100%;display:flex;flex-direction:column;}
+.terminal-output{flex:1;overflow-y:auto;white-space:pre-wrap;word-break:break-all;line-height:1.5;}
+.terminal-input-line{display:flex;align-items:center;gap:0;margin-top:4px;}
+.terminal-prompt{color:#7c4dff;font-size:13px;white-space:nowrap;}
+.terminal-input{flex:1;background:transparent;border:none;color:#4fc3f7;font-family:inherit;font-size:13px;outline:none;caret-color:#4fc3f7;}
+
+/* Browser */
+.browser-toolbar{display:flex;align-items:center;gap:6px;padding:6px 8px;background:rgba(10,10,25,0.8);border-bottom:1px solid rgba(255,255,255,0.04);}
+.browser-nav-btn{width:28px;height:28px;border:none;background:rgba(255,255,255,0.05);color:#999;border-radius:6px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;}
+.browser-nav-btn:hover{background:rgba(255,255,255,0.1);color:#fff;}
+.browser-url{flex:1;height:30px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:0 14px;color:#ccc;font-size:12px;outline:none;}
+.browser-url:focus{border-color:rgba(79,195,247,0.3);background:rgba(255,255,255,0.08);}
+.browser-content{flex:1;background:#fff;display:flex;align-items:center;justify-content:center;color:#333;font-size:14px;}
+
+/* Settings */
+.settings-body{padding:20px;color:#ccc;}
+.settings-body h3{color:#4fc3f7;margin-bottom:16px;font-size:16px;}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.settings-row label{font-size:13px;color:#aaa;}
+.settings-toggle{width:40px;height:22px;background:rgba(255,255,255,0.1);border-radius:11px;cursor:pointer;position:relative;border:none;transition:background 0.2s;}
+.settings-toggle.on{background:rgba(79,195,247,0.4);}
+.settings-toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform 0.2s;}
+.settings-toggle.on::after{transform:translateX(18px);}
+
+/* My Computer */
+.computer-body{padding:16px;color:#ccc;}
+.drive{display:flex;align-items:center;gap:12px;padding:12px;border-radius:8px;cursor:pointer;transition:background 0.15s;margin-bottom:4px;}
+.drive:hover{background:rgba(79,195,247,0.08);}
+.drive .drive-icon{font-size:28px;}
+.drive .drive-info{flex:1;}
+.drive .drive-name{font-size:13px;color:#ddd;}
+.drive .drive-space{font-size:11px;color:#666;margin-top:2px;}
+.drive .drive-bar{height:4px;background:rgba(255,255,255,0.06);border-radius:2px;margin-top:6px;overflow:hidden;}
+.drive .drive-bar-fill{height:100%;border-radius:2px;}
+
+/* Pictures */
+.pictures-body{padding:16px;color:#ccc;display:flex;flex-wrap:wrap;gap:12px;align-content:flex-start;}
+.pic-placeholder{width:120px;height:120px;background:rgba(30,30,60,0.8);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;border:1px solid rgba(255,255,255,0.04);}
+.pic-placeholder:hover{background:rgba(40,40,80,0.8);border-color:rgba(79,195,247,0.2);}
+.pic-placeholder .pic-icon{font-size:32px;margin-bottom:6px;}
+.pic-placeholder .pic-name{font-size:11px;color:#888;}
+
+/* Shutdown overlay */
+#shutdown-overlay{position:fixed;inset:0;background:#0a0a1a;z-index:99998;display:none;flex-direction:column;align-items:center;justify-content:center;color:#4fc3f7;}
+#shutdown-overlay.show{display:flex;}
+#shutdown-overlay .shutdown-text{font-size:18px;letter-spacing:3px;margin-bottom:20px;animation:shutdownPulse 1.5s ease-in-out infinite;}
+@keyframes shutdownPulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+#shutdown-overlay .shutdown-logo{font-size:48px;margin-bottom:20px;opacity:0.6;}
+</style>
+</head>
+<body>
+
+<!-- Boot Screen -->
+<div id="boot-screen">
+  <div class="boot-logo"><span>W</span></div>
+  <div class="boot-text">WebOS</div>
+  <div class="boot-bar"><div class="boot-bar-fill" id="boot-bar-fill"></div></div>
+  <div class="boot-percent" id="boot-percent">0%</div>
+</div>
+
+<!-- Shutdown Overlay -->
+<div id="shutdown-overlay">
+  <div class="shutdown-logo">W</div>
+  <div class="shutdown-text">Shutting down...</div>
+</div>
+
+<!-- Desktop -->
+<div id="desktop">
+  <div class="desktop-icon" style="left:20px;top:20px" data-app="computer" ondblclick="openApp('computer')" onclick="selectIcon(this)">
+    <span class="icon">🖥️</span><span class="label">My Computer</span>
+  </div>
+  <div class="desktop-icon" style="left:20px;top:120px" data-app="recycle" ondblclick="openApp('recycle')" onclick="selectIcon(this)">
+    <span class="icon">🗑️</span><span class="label">Recycle Bin</span>
+  </div>
+  <div class="desktop-icon" style="left:20px;top:220px" data-app="notepad" ondblclick="openApp('notepad')" onclick="selectIcon(this)">
+    <span class="icon">📝</span><span class="label">Notepad</span>
+  </div>
+  <div class="desktop-icon" style="left:20px;top:320px" data-app="calculator" ondblclick="openApp('calculator')" onclick="selectIcon(this)">
+    <span class="icon">🔢</span><span class="label">Calculator</span>
+  </div>
+  <div class="desktop-icon" style="left:200px;top:20px" data-app="browser" ondblclick="openApp('browser')" onclick="selectIcon(this)">
+    <span class="icon">🌐</span><span class="label">Browser</span>
+  </div>
+  <div class="desktop-icon" style="left:200px;top:120px" data-app="terminal" ondblclick="openApp('terminal')" onclick="selectIcon(this)">
+    <span class="icon">⬛</span><span class="label">Terminal</span>
+  </div>
+  <div class="desktop-icon" style="left:200px;top:220px" data-app="settings" ondblclick="openApp('settings')" onclick="selectIcon(this)">
+    <span class="icon">⚙️</span><span class="label">Settings</span>
+  </div>
+  <div class="desktop-icon" style="left:200px;top:320px" data-app="pictures" ondblclick="openApp('pictures')" onclick="selectIcon(this)">
+    <span class="icon">🖼️</span><span class="label">Pictures</span>
+  </div>
+</div>
+
+<!-- Taskbar -->
+<div id="taskbar">
+  <button id="start-btn" onclick="toggleStartMenu()" title="Start">⊞</button>
+  <div id="taskbar-apps"></div>
+  <div id="system-tray">
+    <span id="clock"></span>
+  </div>
+</div>
+
+<!-- Start Menu -->
+<div id="start-menu">
+  <div id="start-menu-header">
+    <h2>WebOS</h2>
+    <p>Welcome back</p>
+  </div>
+  <div id="start-apps">
+    <div class="start-app-item" onclick="openApp('computer');toggleStartMenu()"><span class="sa-icon">🖥️</span>My Computer</div>
+    <div class="start-app-item" onclick="openApp('notepad');toggleStartMenu()"><span class="sa-icon">📝</span>Notepad</div>
+    <div class="start-app-item" onclick="openApp('calculator');toggleStartMenu()"><span class="sa-icon">🔢</span>Calculator</div>
+    <div class="start-app-item" onclick="openApp('browser');toggleStartMenu()"><span class="sa-icon">🌐</span>Browser</div>
+    <div class="start-app-item" onclick="openApp('terminal');toggleStartMenu()"><span class="sa-icon">⬛</span>Terminal</div>
+    <div class="start-app-item" onclick="openApp('settings');toggleStartMenu()"><span class="sa-icon">⚙️</span>Settings</div>
+    <div class="start-app-item" onclick="openApp('pictures');toggleStartMenu()"><span class="sa-icon">🖼️</span>Pictures</div>
+    <div class="start-app-item" onclick="openApp('recycle');toggleStartMenu()"><span class="sa-icon">🗑️</span>Recycle Bin</div>
+  </div>
+  <div id="start-menu-footer">
+    <span style="color:#555;font-size:11px;">WebOS v1.0</span>
+    <button id="shutdown-btn" onclick="shutdown()">⏻ Shut Down</button>
+  </div>
+</div>
+
+<!-- Context Menu -->
+<div id="context-menu">
+  <div class="ctx-item" onclick="changeWallpaper()">🎨 Change Wallpaper</div>
+  <div class="ctx-separator"></div>
+  <div class="ctx-item" onclick="openApp('notepad')">📝 New Text File</div>
+  <div class="ctx-item" onclick="openApp('terminal')">⬛ Open Terminal</div>
+  <div class="ctx-separator"></div>
+  <div class="ctx-item" onclick="openApp('settings')">⚙️ Settings</div>
+  <div class="ctx-item" onclick="refreshDesktop()">🔄 Refresh</div>
+</div>
+
+<script>
+// State
+let windowZIndex = 100;
+let openWindows = {};
+let activeWindowId = null;
+let dragState = null;
+let resizeState = null;
+let calcState = {display:'0',prev:null,op:null,reset:false};
+let bootComplete = false;
+
+// Boot sequence
+(function boot(){
+  const fill = document.getElementById('boot-bar-fill');
+  const pct = document.getElementById('boot-percent');
+  let progress = 0;
+  const steps = [
+    {p:15,t:'Loading kernel...'},
+    {p:30,t:'Initializing system...'},
+    {p:50,t:'Loading drivers...'},
+    {p:70,t:'Starting services...'},
+    {p:85,t:'Preparing desktop...'},
+    {p:100,t:'Ready'}
+  ];
+  let i = 0;
+  const interval = setInterval(()=>{
+    if(i < steps.length){
+      progress = steps[i].p;
+      fill.style.width = progress + '%';
+      pct.textContent = progress + '%';
+      i++;
+    } else {
+      clearInterval(interval);
+      setTimeout(()=>{
+        document.getElementById('boot-screen').classList.add('fade-out');
+        setTimeout(()=>{
+          document.getElementById('boot-screen').style.display='none';
+          bootComplete = true;
+        },800);
+      },300);
+    }
+  },400);
+})();
+
+// Clock
+function updateClock(){
+  const now = new Date();
+  const h = now.getHours();
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  const date = now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  document.getElementById('clock').innerHTML = `<span style="font-size:10px;color:#666;display:block;text-align:center;">${date}</span>${h12}:${m} ${ampm}`;
+}
+updateClock();
+setInterval(updateClock,1000);
+
+// App definitions
+const appDefs = {
+  computer:{name:'My Computer',icon:'🖥️'},
+  recycle:{name:'Recycle Bin',icon:'🗑️'},
+  notepad:{name:'Notepad',icon:'📝'},
+  calculator:{name:'Calculator',icon:'🔢'},
+  browser:{name:'Browser',icon:'🌐'},
+  terminal:{name:'Terminal',icon:'⬛'},
+  settings:{name:'Settings',icon:'⚙️'},
+  pictures:{name:'Pictures',icon:'🖼️'}
+};
+
+function selectIcon(el){
+  document.querySelectorAll('.desktop-icon').forEach(i=>i.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// Context menu
+document.getElementById('desktop').addEventListener('contextmenu',function(e){
+  e.preventDefault();
+  const cm = document.getElementById('context-menu');
+  cm.style.left = e.clientX+'px';
+  cm.style.top = e.clientY+'px';
+  cm.classList.add('show');
+});
+document.addEventListener('click',function(e){
+  document.getElementById('context-menu').classList.remove('show');
+  if(!e.target.closest('#start-menu')&&!e.target.closest('#start-btn')){
+    document.getElementById('start-menu').classList.remove('show');
+  }
+  if(!e.target.closest('.desktop-icon')){
+    document.querySelectorAll('.desktop-icon').forEach(i=>i.classList.remove('selected'));
+  }
+});
+
+// Start menu
+function toggleStartMenu(){
+  document.getElementById('start-menu').classList.toggle('show');
+}
+
+// Wallpaper
+const wallpapers = [
+  'linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)',
+  'linear-gradient(135deg,#0c0c1d 0%,#1b2838 50%,#2d1b69 100%)',
+  'linear-gradient(135deg,#1a0a2e 0%,#16213e 50%,#0a2a1a 100%)',
+  'linear-gradient(135deg,#0d1117 0%,#161b22 50%,#1a1a2e 100%)',
+  'linear-gradient(135deg,#1e3a5f 0%,#2d1b69 50%,#1a1a2e 100%)'
+];
+let wpIdx = 0;
+function changeWallpaper(){
+  wpIdx = (wpIdx+1)%wallpapers.length;
+  document.getElementById('desktop').style.background = wallpapers[wpIdx];
+}
+function refreshDesktop(){location.reload();}
+
+// Window management
+function createWindow(id,appId,title,icon,width,height,content){
+  if(openWindows[id]){
+    const existing = document.getElementById('win-'+id);
+    if(existing){
+      existing.classList.remove('minimized');
+      focusWindow(id);
+      return existing;
+    }
+  }
+  const win = document.createElement('div');
+  win.className = 'window focused';
+  win.id = 'win-'+id;
+  win.dataset.appId = appId;
+  win.style.width = width+'px';
+  win.style.height = height+'px';
+  win.style.left = (80 + Object.keys(openWindows).length*30)+'px';
+  win.style.top = (40 + Object.keys(openWindows).length*30)+'px';
+  win.style.zIndex = ++windowZIndex;
+
+  win.innerHTML = `
+    <div class="window-header" data-winid="${id}">
+      <span class="wh-icon">${icon}</span>
+      <span class="wh-title">${title}</span>
+      <div class="wh-controls">
+        <button class="wh-btn min-btn" onclick="minimizeWindow('${id}')" title="Minimize">─</button>
+        <button class="wh-btn max-btn" onclick="maximizeWindow('${id}')" title="Maximize">□</button>
+        <button class="wh-btn close-btn" onclick="closeWindow('${id}')" title="Close">✕</button>
+      </div>
+    </div>
+    <div class="window-body">${content}</div>
+    <div class="resize-handle" data-winid="${id}"></div>
+  `;
+
+  document.getElementById('desktop').appendChild(win);
+  openWindows[id] = {appId,title,icon,minimized:false,maximized:false,prevBounds:null};
+
+  // Focus on click
+  win.addEventListener('mousedown',()=>focusWindow(id));
+
+  // Drag
+  const header = win.querySelector('.window-header');
+  header.addEventListener('mousedown',function(e){
+    if(e.target.closest('.wh-controls'))return;
+    if(openWindows[id].maximized)return;
+    e.preventDefault();
+    dragState = {
+      winId:id,
+      startX:e.clientX,
+      startY:e.clientY,
+      origLeft:win.offsetLeft,
+      origTop:win.offsetTop
+    };
+  });
+
+  // Resize
+  const handle = win.querySelector('.resize-handle');
+  handle.addEventListener('mousedown',function(e){
+    if(openWindows[id].maximized)return;
+    e.preventDefault();
+    e.stopPropagation();
+    resizeState = {
+      winId:id,
+      startX:e.clientX,
+      startY:e.clientY,
+      origW:win.offsetWidth,
+      origH:win.offsetHeight
+    };
+  });
+
+  focusWindow(id);
+  addTaskbarApp(id,appId);
+  return win;
+}
+
+function focusWindow(id){
+  document.querySelectorAll('.window').forEach(w=>w.classList.remove('focused'));
+  const win = document.getElementById('win-'+id);
+  if(win){
+    win.classList.add('focused');
+    win.style.zIndex = ++windowZIndex;
+    activeWindowId = id;
+  }
+  // Update taskbar
+  document.querySelectorAll('.taskbar-app').forEach(t=>t.classList.remove('active'));
+  const tb = document.querySelector(`.taskbar-app[data-winid="${id}"]`);
+  if(tb)tb.classList.add('active');
+}
+
+function minimizeWindow(id){
+  const win = document.getElementById('win-'+id);
+  if(win){
+    win.classList.add('minimized');
+    openWindows[id].minimized = true;
+    const tb = document.querySelector(`.taskbar-app[data-winid="${id}"]`);
+    if(tb)tb.classList.add('minimized');
+  }
+}
+
+function maximizeWindow(id){
+  const win = document.getElementById('win-'+id);
+  if(!win)return;
+  if(openWindows[id].maximized){
+    // Restore
+    const b = openWindows[id].prevBounds;
+    win.style.left=b.left;win.style.top=b.top;
+    win.style.width=b.width;win.style.height=b.height;
+    win.style.borderRadius='10px';
+    win.classList.remove('maximized');
+    openWindows[id].maximized=false;
+  } else {
+    openWindows[id].prevBounds={left:win.style.left,top:win.style.top,width:win.style.width,height:win.style.height};
+    win.style.left='0';win.style.top='0';
+    win.style.width='100%';win.style.height='100%';
+    win.style.borderRadius='0';
+    win.classList.add('maximized');
+    openWindows[id].maximized=true;
+  }
+}
+
+function closeWindow(id){
+  const win = document.getElementById('win-'+id);
+  if(win)win.remove();
+  delete openWindows[id];
+  removeTaskbarApp(id);
+}
+
+function addTaskbarApp(id,appId){
+  const container = document.getElementById('taskbar-apps');
+  const def = appDefs[appId];
+  const btn = document.createElement('button');
+  btn.className = 'taskbar-app active';
+  btn.dataset.winid = id;
+  btn.innerHTML = `<span class="ta-icon">${def.icon}</span>${def.name}`;
+  btn.onclick = function(){
+    const win = document.getElementById('win-'+id);
+    if(!win||win.classList.contains('minimized')){
+      if(win)win.classList.remove('minimized');
+      openWindows[id].minimized=false;
+      focusWindow(id);
+    } else if(activeWindowId===id){
+      minimizeWindow(id);
+    } else {
+      focusWindow(id);
+    }
+  };
+  container.appendChild(btn);
+}
+
+function removeTaskbarApp(id){
+  const btn = document.querySelector(`.taskbar-app[data-winid="${id}"]`);
+  if(btn)btn.remove();
+}
+
+// Global mouse move/up for drag/resize
+document.addEventListener('mousemove',function(e){
+  if(dragState){
+    const win = document.getElementById('win-'+dragState.winId);
+    if(!win)return;
+    const dx = e.clientX - dragState.startX;
+    const dy = e.clientY - dragState.startY;
+    win.style.left = (dragState.origLeft+dx)+'px';
+    win.style.top = Math.max(0,dragState.origTop+dy)+'px';
+  }
+  if(resizeState){
+    const win = document.getElementById('win-'+resizeState.winId);
+    if(!win)return;
+    const dx = e.clientX - resizeState.startX;
+    const dy = e.clientY - resizeState.startY;
+    win.style.width = Math.max(300,resizeState.origW+dx)+'px';
+    win.style.height = Math.max(200,resizeState.origH+dy)+'px';
+  }
+});
+document.addEventListener('mouseup',function(){
+  dragState=null;resizeState=null;
+});
+
+// App openers
+function openApp(appId){
+  switch(appId){
+    case 'computer': openComputer(); break;
+    case 'recycle': openRecycle(); break;
+    case 'notepad': openNotepad(); break;
+    case 'calculator': openCalculator(); break;
+    case 'browser': openBrowser(); break;
+    case 'terminal': openTerminal(); break;
+    case 'settings': openSettings(); break;
+    case 'pictures': openPictures(); break;
+  }
+}
+
+// My Computer
+function openComputer(){
+  const id = 'win-computer-'+Date.now();
+  const content = `
+    <div class="computer-body">
+      <div style="color:#4fc3f7;font-size:15px;font-weight:600;margin-bottom:16px;">🖥️ This PC</div>
+      <div class="drive">
+        <span class="drive-icon">💿</span>
+        <div class="drive-info">
+          <div class="drive-name">Local Disk (C:)</div>
+          <div class="drive-space">234 GB free of 500 GB</div>
+          <div class="drive-bar"><div class="drive-bar-fill" style="width:53%;background:linear-gradient(90deg,#4fc3f7,#7c4dff);"></div></div>
+        </div>
+      </div>
+      <div class="drive">
+        <span class="drive-icon">💿</span>
+        <div class="drive-info">
+          <div class="drive-name">Data (D:)</div>
+          <div class="drive-space">412 GB free of 1 TB</div>
+          <div class="drive-bar"><div class="drive-bar-fill" style="width:59%;background:linear-gradient(90deg,#4fc3f7,#7c4dff);"></div></div>
+        </div>
+      </div>
+      <div class="drive">
+        <span class="drive-icon">💿</span>
+        <div class="drive-info">
+          <div class="drive-name">WebOS Storage</div>
+          <div class="drive-space">localStorage (session data)</div>
+          <div class="drive-bar"><div class="drive-bar-fill" style="width:12%;background:linear-gradient(90deg,#4fc3f7,#7c4dff);"></div></div>
+        </div>
+      </div>
+    </div>`;
+  createWindow(id,'computer','My Computer','🖥️',500,380,content);
+}
+
+// Recycle Bin
+function openRecycle(){
+  const id = 'win-recycle-'+Date.now();
+  const content = `<div style="padding:40px;text-align:center;color:#666;">
+    <div style="font-size:48px;margin-bottom:12px;">🗑️</div>
+    <div style="font-size:14px;">Recycle Bin is empty</div>
+  </div>`;
+  createWindow(id,'recycle','Recycle Bin','🗑️',400,300,content);
+}
+
+// Notepad
+function openNotepad(){
+  const id = 'win-notepad-'+Date.now();
+  const saved = localStorage.getItem('webos-notepad') || '';
+  const content = `
+    <div class="window-menubar">
+      <span class="menu-item" onclick="notepadNew('${id}')">File</span>
+      <span class="menu-item" onclick="notepadSave('${id}')">Save</span>
+      <span class="menu-item" onclick="notepadOpen('${id}')">Open</span>
+    </div>
+    <textarea class="notepad-textarea" id="notepad-${id}" placeholder="Start typing...">${saved}</textarea>`;
+  createWindow(id,'notepad','Notepad','📝',550,400,content);
+}
+
+function notepadNew(id){
+  const ta = document.getElementById('notepad-'+id);
+  if(ta)ta.value='';
+}
+function notepadSave(id){
+  const ta = document.getElementById('notepad-'+id);
+  if(ta)localStorage.setItem('webos-notepad',ta.value);
+}
+function notepadOpen(id){
+  const saved = localStorage.getItem('webos-notepad')||'';
+  const ta = document.getElementById('notepad-'+id);
+  if(ta)ta.value=saved;
+}
+
+// Calculator
+function openCalculator(){
+  const id = 'win-calc-'+Date.now();
+  const content = `
+    <div class="calc-display" id="calc-display-${id}">0</div>
+    <div class="calc-buttons">
+      <button class="calc-btn fn" onclick="calcAction('${id}','C')">C</button>
+      <button class="calc-btn fn" onclick="calcAction('${id}','±')">±</button>
+      <button class="calc-btn fn" onclick="calcAction('${id}','%')">%</button>
+      <button class="calc-btn op" onclick="calcAction('${id}','÷')">÷</button>
+      <button class="calc-btn num" onclick="calcAction('${id}','7')">7</button>
+      <button class="calc-btn num" onclick="calcAction('${id}','8')">8</button>
+      <button class="calc-btn num" onclick="calcAction('${id}','9')">9</button>
+      <button class="calc-btn op" onclick="calcAction('${id}','×')">×</button>
+      <button class="calc-btn num" onclick="calcAction('${id}','4')">4</button>
+      <button class="calc-btn num" onclick="calcAction('${id}','5')">5</button>
+      <button class="calc-btn num" onclick="calcAction('${id}','6')">6</button>
+      <button class="calc-btn op" onclick="calcAction('${id}','-')">−</button>
+      <button class="calc-btn num" onclick="calcAction('${id}','1')">1</button>
+      <button class="calc-btn num" onclick="calcAction('${id}','2')">2</button>
+      <button class="calc-btn num" onclick="calcAction('${id}','3')">3</button>
+      <button class="calc-btn op" onclick="calcAction('${id}','+')">+</button>
+      <button class="calc-btn num" onclick="calcAction('${id}','0')" style="grid-column:span 2;">0</button>
+      <button class="calc-btn num" onclick="calcAction('${id}','.')">.</button>
+      <button class="calc-btn eq" onclick="calcAction('${id}','=')">=</button>
+    </div>`;
+  createWindow(id,'calculator','Calculator','🔢',300,440,content);
+}
+
+function calcAction(id,action){
+  const display = document.getElementById('calc-display-'+id);
+  if(!display)return;
+  const s = calcState;
+  if(action==='C'){s.display='0';s.prev=null;s.op=null;s.reset=false;}
+  else if(action==='±'){s.display=String(-parseFloat(s.display));}
+  else if(action==='%'){s.display=String(parseFloat(s.display)/100);}
+  else if(['+','-','×','÷'].includes(action)){
+    if(s.prev!==null&&!s.reset){
+      s.display=String(calcCompute(s.prev,s.display,s.op));
+    }
+    s.prev=parseFloat(s.display);s.op=action;s.reset=true;
+  }
+  else if(action==='='){
+    if(s.prev!==null){
+      s.display=String(calcCompute(s.prev,s.display,s.op));
+      s.prev=null;s.op=null;s.reset=false;
+    }
+  }
+  else if(action==='.'&&s.display.indexOf('.')===-1){
+    s.display+='.';s.reset=false;
+  }
+  else if('0123456789'.includes(action)){
+    if(s.display==='0'||s.reset){s.display=action;s.reset=false;}
+    else s.display+=action;
+  }
+  display.textContent=s.display;
+}
+
+function calcCompute(a,b,op){
+  switch(op){
+    case '+':return a+parseFloat(b);
+    case '-':return a-parseFloat(b);
+    case '×':return a*parseFloat(b);
+    case '÷':return parseFloat(b)!==0?a/parseFloat(b):'Error';
+    default:return b;
+  }
+}
+
+// Terminal
+function openTerminal(){
+  const id = 'win-term-'+Date.now();
+  const content = `
+    <div class="terminal-body">
+      <div class="terminal-output" id="term-out-${id}">WebOS Terminal v1.0\nType 'help' for available commands.\n\n</div>
+      <div class="terminal-input-line">
+        <span class="terminal-prompt">user@webos:~$</span>
+        <input class="terminal-input" id="term-in-${id}" autofocus onkeydown="terminalKey(event,'${id}')"></input>
+      </div>
+    </div>`;
+  createWindow(id,'terminal','Terminal','⬛',550,380,content);
+  setTimeout(()=>{
+    const inp=document.getElementById('term-in-'+id);
+    if(inp)inp.focus();
+  },100);
+}
+
+function terminalKey(e,id){
+  if(e.key!=='Enter')return;
+  const input=document.getElementById('term-in-'+id);
+  const output=document.getElementById('term-out-'+id);
+  if(!input||!output)return;
+  const cmd=input.value.trim();
+  output.textContent+=`user@webos:~$ ${cmd}\n`;
+  input.value='';
+  if(!cmd)return;
+  const parts=cmd.split(/\s+/);
+  const command=parts[0].toLowerCase();
+  const args=parts.slice(1);
+  let result='';
+  switch(command){
+    case 'help':
+      result='Available commands:\n  help     - Show this help\n  date     - Show current date/time\n  echo [t] - Print text\n  clear    - Clear terminal\n  ls       - List files\n  pwd      - Print working directory\n  whoami   - Current user\n  uname    - System info\n  calc [e] - Calculate expression\n  neofetch - System info display\n  history  - Command history';
+      break;
+    case 'date':
+      result=new Date().toString();
+      break;
+    case 'echo':
+      result=args.join(' ');
+      break;
+    case 'clear':
+      output.textContent='';
+      return;
+    case 'ls':
+      result='Desktop  Documents  Downloads  Music  Pictures  Videos  .config  .bashrc';
+      break;
+    case 'pwd':
+      result='/home/user';
+      break;
+    case 'whoami':
+      result='user';
+      break;
+    case 'uname':
+      result=args.includes('-a')?'WebOS 1.0.0 WebOS x86_64 JavaScript/HTML5':'WebOS 1.0.0';
+      break;
+    case 'calc':
+      try{result=String(eval(args.join('')));}catch(e){result='Error: Invalid expression';}
+      break;
+    case 'neofetch':
+      result=`       ___       \n      /   \\      user@webos\n     /  _  \\     ----------\n    /  | |  \\    OS: WebOS 1.0\n   /   | |   \\   Kernel: JS/ES6\n  /    | |    \\  Shell: webterm\n /     | |     \\ Resolution: ${window.innerWidth}x${window.innerHeight}\n        | |      Uptime: ${Math.floor(performance.now()/1000)}s`;
+      break;
+    case 'history':
+      result='  1  help\n  2  date\n  3  ls\n  4  whoami';
+      break;
+    default:
+      result=`Command not found: ${command}. Type 'help' for available commands.`;
+  }
+  if(result)output.textContent+=result+'\n\n';
+  output.scrollTop=output.scrollHeight;
+}
+
+// Browser
+function openBrowser(){
+  const id = 'win-browse-'+Date.now();
+  const content = `
+    <div style="display:flex;flex-direction:column;height:100%;">
+      <div class="browser-toolbar">
+        <button class="browser-nav-btn" onclick="browserBack('${id}')">←</button>
+        <button class="browser-nav-btn" onclick="browserForward('${id}')">→</button>
+        <button class="browser-nav-btn" onclick="browserRefresh('${id}')">↻</button>
+        <input class="browser-url" id="browser-url-${id}" value="https://www.example.com" onkeydown="if(event.key==='Enter')browserNavigate('${id}')"></input>
+      </div>
+      <div class="browser-content" id="browser-content-${id}">
+        <div style="text-align:center;">
+          <div style="font-size:48px;margin-bottom:16px;">🌐</div>
+          <div style="font-size:18px;font-weight:600;color:#333;margin-bottom:8px;">WebOS Browser</div>
+          <div style="color:#888;font-size:13px;">Navigate to a URL or browse the web</div>
+        </div>
+      </div>
+    </div>`;
+  createWindow(id,'browser','Browser','🌐',650,450,content);
+}
+
+function browserNavigate(id){
+  const urlInput=document.getElementById('browser-url-'+id);
+  const content=document.getElementById('browser-content-'+id);
+  if(!urlInput||!content)return;
+  let url=urlInput.value.trim();
+  if(!url.startsWith('http'))url='https://'+url;
+  content.innerHTML=`<div style="padding:40px;text-align:center;color:#666;">
+    <div style="font-size:36px;margin-bottom:12px;">🌐</div>
+    <div style="font-size:14px;margin-bottom:8px;">Navigating to:</div>
+    <div style="color:#333;font-size:13px;word-break:break-all;">${url}</div>
+    <div style="margin-top:16px;color:#999;font-size:12px;">(External navigation not supported in WebOS)</div>
+  </div>`;
+}
+function browserBack(id){}
+function browserForward(id){}
+function browserRefresh(id){
+  const content=document.getElementById('browser-content-'+id);
+  if(content)content.innerHTML='<div style="padding:40px;text-align:center;color:#666;"><div style="font-size:36px;margin-bottom:12px;">🌐</div><div>Navigating to: '+(document.getElementById('browser-url-'+id)?.value||'')+'</div></div>';
+}
+
+// Settings
+function openSettings(){
+  const id = 'win-settings-'+Date.now();
+  const content = `
+    <div class="settings-body">
+      <h3>⚙️ Settings</h3>
+      <div class="settings-row"><label>Dark Mode</label><button class="settings-toggle on" onclick="this.classList.toggle('on')"></button></div>
+      <div class="settings-row"><label>Notifications</label><button class="settings-toggle on" onclick="this.classList.toggle('on')"></button></div>
+      <div class="settings-row"><label>Animations</label><button class="settings-toggle on" onclick="this.classList.toggle('on')"></button></div>
+      <div class="settings-row"><label>Transparency Effects</label><button class="settings-toggle on" onclick="this.classList.toggle('on')"></button></div>
+      <div class="settings-row"><label>Sound Effects</label><button class="settings-toggle" onclick="this.classList.toggle('on')"></button></div>
+      <div class="settings-row"><label>Auto-save Notepad</label><button class="settings-toggle on" onclick="this.classList.toggle('on')"></button></div>
+      <div style="margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06);">
+        <div style="color:#666;font-size:12px;">WebOS Version 1.0.0</div>
+        <div style="color:#555;font-size:11px;margin-top:4px;">Built with HTML, CSS & JavaScript</div>
+      </div>
+    </div>`;
+  createWindow(id,'settings','Settings','⚙️',450,420,content);
+}
+
+// Pictures
+function openPictures(){
+  const id = 'win-pics-'+Date.now();
+  const content = `
+    <div class="pictures-body">
+      <div class="pic-placeholder"><span class="pic-icon">🏔️</span><span class="pic-name">Mountain.jpg</span></div>
+      <div class="pic-placeholder"><span class="pic-icon">🌅</span><span class="pic-name">Sunset.png</span></div>
+      <div class="pic-placeholder"><span class="pic-icon">🌊</span><span class="pic-name">Ocean.jpg</span></div>
+      <div class="pic-placeholder"><span class="pic-icon">🌲</span><span class="pic-name">Forest.png</span></div>
+      <div class="pic-placeholder"><span class="pic-icon">🏙️</span><span class="pic-name">City.jpg</span></div>
+      <div class="pic-placeholder"><span class="pic-icon">🌸</span><span class="pic-name">Flowers.png</span></div>
+    </div>`;
+  createWindow(id,'pictures','Pictures','🖼️',420,340,content);
+}
+
+// Shutdown
+function shutdown(){
+  document.getElementById('start-menu').classList.remove('show');
+  const overlay=document.getElementById('shutdown-overlay');
+  overlay.classList.add('show');
+  setTimeout(()=>{
+    document.body.innerHTML='<div style="position:fixed;inset:0;background:#0a0a1a;display:flex;align-items:center;justify-content:center;color:#4fc3f7;font-size:14px;letter-spacing:2px;">System halted. Refresh to restart.</div>';
+  },2500);
+}
+</script>
+</body>
+</html>

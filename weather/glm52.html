@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en" data-unit="C">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atmos · Prague Weather</title>
+<style>
+:root {
+  --bg: #0a0b0d;
+  --bg-2: #111316;
+  --card: rgba(255, 255, 255, 0.025);
+  --card-hover: rgba(255, 255, 255, 0.05);
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --fg: #f5f1e8;
+  --fg-dim: #c8c4ba;
+  --muted: #6b6a64;
+  --accent: #ff8c42;
+  --accent-2: #ffd166;
+  --accent-3: #ef476f;
+  --cool: #4ecdc4;
+  --good: #06d6a0;
+  --moderate: #ffd166;
+  --bad: #ef476f;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+/* Atmospheric background */
+.bg-atmos {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bg-atmos::before {
+  content: '';
+  position: absolute;
+  top: -15%;
+  right: -10%;
+  width: 60%;
+  height: 70%;
+  background: radial-gradient(ellipse, rgba(255, 140, 66, 0.22), transparent 65%);
+  filter: blur(80px);
+}
+
+.bg-atmos::after {
+  content: '';
+  position: absolute;
+  bottom: -20%;
+  left: -10%;
+  width: 55%;
+  height: 60%;
+  background: radial-gradient(ellipse, rgba(78, 205, 196, 0.12), transparent 65%);
+  filter: blur(80px);
+}
+
+.noise {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px 40px 60px;
+}
+
+/* Header */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-mark {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-3));
+  display: grid;
+  place-items: center;
+  position: relative;
+  box-shadow: 0 8px 24px rgba(255, 140, 66, 0.35);
+}
+
+.brand-mark::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 9px;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.5), transparent 60%);
+}
+
+.brand h1 {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.brand p {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toggle {
+  display: flex;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 4px;
+  position: relative;
+}
+
+.toggle button {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: 100px;
+  transition: color 0.3s;
+  position: relative;
+  z-index: 2;
+  min-width: 42px;
+  font-family: inherit;
+}
+
+.toggle button.active {
+  color: #1a1a1a;
+}
+
+.toggle-slider {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  height: calc(100% - 8px);
+  width: 42px;
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  border-radius: 100px;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 1;
+}
+
+html[data-unit="F"] .toggle-slider {
+  transform: translateX(42px);
+}
+
+.refresh-btn {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--fg-dim);
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.3s;
+}
+
+.refresh-btn:hover {
+  background: var(--card-hover);
+  border-color: var(--border-strong);
+  color: var(--accent);
+  transform: rotate(180deg);
+}
+
+/* Hero */
+.hero {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.current-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 36px;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.current-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 80%;
+  height: 200%;
+  background: radial-gradient(ellipse, rgba(255, 140, 66, 0.1), transparent 60%);
+  pointer-events: none;
+}
+
+.location {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 32px;
+  position: relative;
+  z-index: 1;
+}
+
+.location-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--good);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--good);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.3); }
+}
+
+.weather-main {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  position: relative;
+  z-index: 1;
+}
+
+.weather-icon {
+  width: 140px;
+  height: 140px;
+  flex-shrink: 0;
+}
+
+.temp-display {
+  flex: 1;
+}
+
+.temp-value {
+  font-size: 96px;
+  font-weight: 200;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  display: flex;
+  align-items: flex-start;
+}
+
+.temp-unit {
+  font-size: 32px;
+  font-weight: 300;
+  color: var(--accent);
+  margin-top: 14px;
+  margin-left: 4px;
+}
+
+.condition {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--fg-dim);
+  margin-top: 8px;
+}
+
+.feels-like {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 36px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border);
+  position: relative;
+  z-index: 1;
+}
+
+.metric {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.metric-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  display: grid;
+  place-items: center;
+  color: var(--accent-2);
+  flex-shrink: 0;
+}
+
+.metric-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.metric-label {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.metric-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--fg);
+  margin-top: 2px;
+}
+
+/* Side panel */
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sun-card, .aqi-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 22px;
+  backdrop-filter: blur(10px);
+}
+
+.card-title {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sun-arc {
+  position: relative;
+  height: 90px;
+  margin-bottom: 12px;
+}
+
+.sun-arc svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.sun-times {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.sun-time {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sun-time-label {
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sun-time-value {
+  font-weight: 700;
+  color: var(--fg);
+  font-size: 14px;
+}
+
+.aqi-value {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.aqi-number {
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.aqi-label {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.aqi-bar {
+  height: 6px;
+  background: linear-gradient(90deg, #06d6a0 0%, #06d6a0 16%, #ffd166 33%, #ff8c42 50%, #ef476f 66%, #b91c5c 83%, #7a1f3d 100%);
+  border-radius: 3px;
+  position: relative;
+  margin-bottom: 14px;
+}
+
+.aqi-marker {
+  position: absolute;
+  top: -3px;
+  width: 4px;
+  height: 12px;
+  background: var(--fg);
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.5);
+  transform: translateX(-50%);
+  transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.aqi-detail {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Chart */
+.chart-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 28px 32px;
+  margin-bottom: 24px;
+  backdrop-filter: blur(10px);
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.chart-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 18px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.temp-chart {
+  width: 100%;
+  height: 220px;
+  display: block;
+}
+
+/* Forecast */
+.forecast-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 28px 32px;
+  backdrop-filter: blur(10px);
+}
+
+.forecast-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.forecast-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.forecast-day {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 14px;
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.forecast-day::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent, rgba(255, 140, 66, 0.06));
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.forecast-day:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-strong);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.forecast-day:hover::before {
+  opacity: 1;
+}
+
+.forecast-day.today {
+  background: rgba(255, 140, 66, 0.06);
+  border-color: rgba(255, 140, 66, 0.3);
+}
+
+.day-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  position: relative;
+  z-index: 1;
+}
+
+.forecast-day.today .day-name {
+  color: var(--accent-2);
+}
+
+.day-icon {
+  width: 56px;
+  height: 56px;
+  margin: 8px auto;
+  position: relative;
+  z-index: 1;
+}
+
+.day-temps {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  align-items: baseline;
+  position: relative;
+  z-index: 1;
+}
+
+.temp-high {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.temp-low {
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.day-desc {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 6px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Footer */
+footer {
+  margin-top: 40px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes drift {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(4px); }
+}
+
+@keyframes fall {
+  to { transform: translateY(20px); opacity: 0; }
+}
+
+@keyframes draw {
+  from { stroke-dashoffset: var(--len); }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.sun-core { animation: rotate 60s linear infinite; transform-origin: center; }
+.sun-ray { animation: rotate 90s linear infinite reverse; transform-origin: center; }
+.cloud-shape { animation: drift 6s ease-in-out infinite; }
+.rain-drop { animation: fall 1.2s linear infinite; transform-origin: center; }
+.weather-icon { animation: float 5s ease-in-out infinite; }
+
+.container > * {
+  animation: fadeIn 0.6s ease-out backwards;
+}
+.hero { animation-delay: 0.05s; }
+.chart-card { animation-delay: 0.15s; }
+.forecast-card { animation-delay: 0.25s; }
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .hero { grid-template-columns: 1fr; }
+  .container { padding: 24px 24px 40px; }
+}
+
+@media (max-width: 720px) {
+  .container { padding: 20px 16px 40px; }
+  .current-card { padding: 24px; }
+  .weather-main { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .weather-icon { width: 100px; height: 100px; }
+  .temp-value { font-size: 72px; }
+  .temp-unit { font-size: 24px; margin-top: 10px; }
+  .metrics { grid-template-columns: 1fr; gap: 12px; }
+  .forecast-row { grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .forecast-day { padding: 14px 4px; }
+  .day-icon { width: 40px; height: 40px; }
+  .temp-high { font-size: 15px; }
+  .temp-low { font-size: 12px; }
+  .day-desc { display: none; }
+  .chart-card, .forecast-card { padding: 20px; }
+  .brand h1 { font-size: 18px; }
+}
+
+@media (max-width: 480px) {
+  .forecast-row { grid-template-columns: repeat(5, 1fr); }
+  .day-name { font-size: 10px; }
+  .temp-value { font-size: 60px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+<div class="bg-atmos"></div>
+<div class="noise"></div>
+
+<div class="container">
+  <header>
+    <div class="brand">
+      <div class="brand-mark">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="5" fill="#fff"/>
+          <g stroke="#fff" stroke-width="2" stroke-linecap="round">
+            <line x1="12" y1="2" x2="12" y2="4"/>
+            <line x1="12" y1="20" x2="12" y2="22"/>
+            <line x1="2" y1="12" x2="4" y2="12"/>
+            <line x1="20" y1="12" x2="22" y2="12"/>
+          </g>
+        </svg>
+      </div>
+      <div>
+        <h1>ATMOS</h1>
+        <p>Prague Weather Station</p>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="toggle" role="group" aria-label="Temperature unit">
+        <div class="toggle-slider"></div>
+        <button class="active" data-unit="C" aria-pressed="true">°C</button>
+        <button data-unit="F" aria-pressed="false">°F</button>
+      </div>
+      <button class="refresh-btn" aria-label="Refresh data" title="Refresh">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
+          <path d="M21 3v5h-5"/>
+          <path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+          <path d="M3 21v-5h5"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="current-card">
+      <div class="location">
+        <span class="location-dot"></span>
+        Prague, Czech Republic · 50.07°N, 14.43°E
+      </div>
+      <div class="weather-main">
+        <div class="weather-icon" id="currentIcon"></div>
+        <div class="temp-display">
+          <div class="temp-value">
+            <span class="temp-number" data-c="18">18</span>
+            <span class="temp-unit">°C</span>
+          </div>
+          <div class="condition">Partly Cloudy</div>
+          <div class="feels-like">Feels like <span data-c="17">17</span>° · Light breeze from the northwest</div>
+        </div>
+      </div>
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+            </svg>
+          </div>
+          <div class="metric-info">
+            <span class="metric-label">Humidity</span>
+            <span class="metric-value">64%</span>
+          </div>
+        </div>
+        <div class="metric">
+          <div class="metric-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9.59 4.59A2 2 0 1 1 11 8H2"/>
+              <path d="M17.73 7.73A2.5 2.5 0 1 1 19.5 12H2"/>
+              <path d="M14.59 16.59A2 2 0 1 0 16 20H2"/>
+            </svg>
+          </div>
+          <div class="metric-info">
+            <span class="metric-label">Wind</span>
+            <span class="metric-value">12 km/h NW</span>
+          </div>
+        </div>
+        <div class="metric">
+          <div class="metric-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div class="metric-info">
+            <span class="metric-label">Pressure</span>
+            <span class="metric-value">1018 hPa</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-panel">
+      <div class="sun-card">
+        <div class="card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+          </svg>
+          Daylight Cycle
+        </div>
+        <div class="sun-arc">
+          <svg viewBox="0 0 200 90" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#ff8c42" stop-opacity="0.1"/>
+                <stop offset="50%" stop-color="#ffd166" stop-opacity="0.5"/>
+                <stop offset="100%" stop-color="#ff8c42" stop-opacity="0.1"/>
+              </linearGradient>
+              <linearGradient id="arcFill" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#ffd166" stop-opacity="0.3"/>
+                <stop offset="100%" stop-color="#ffd166" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path d="M 10 80 Q 100 -10 190 80" fill="url(#arcFill)" stroke="none"/>
+            <path d="M 10 80 Q 100 -10 190 80" fill="none" stroke="url(#arcGrad)" stroke-width="1.5" stroke-dasharray="3 3"/>
+            <line x1="10" y1="80" x2="190" y2="80" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+            <circle id="sunPos" cx="100" cy="22" r="6" fill="#ffd166">
+              <animate attributeName="r" values="6;7;6" dur="3s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="100" cy="22" r="10" fill="#ffd166" opacity="0.3" id="sunGlow"/>
+          </svg>
+        </div>
+        <div class="sun-times">
+          <div class="sun-time">
+            <span class="sun-time-label">Sunrise</span>
+            <span class="sun-time-value">06:42</span>
+          </div>
+          <div class="sun-time" style="text-align: right; align-items: flex-end;">
+            <span class="sun-time-label">Sunset</span>
+            <span class="sun-time-value">19:28</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="aqi-card">
+        <div class="card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>
+          </svg>
+          Air Quality
+        </div>
+        <div class="aqi-value">
+          <span class="aqi-number">42</span>
+          <span class="aqi-label" style="background: rgba(6, 214, 160, 0.15); color: var(--good);">Good</span>
+        </div>
+        <div class="aqi-bar">
+          <div class="aqi-marker" style="left: 16%;"></div>
+        </div>
+        <div class="aqi-detail">
+          <span>PM2.5 · 12 μg/m³</span>
+          <span>Updated 5m ago</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="chart-card">
+    <div class="chart-header">
+      <div class="chart-title">5-Day Temperature Trend</div>
+      <div class="chart-legend">
+        <div class="legend-item">
+          <span class="legend-dot" style="background: var(--accent);"></span>
+          <span>High</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background: var(--cool);"></span>
+          <span>Low</span>
+        </div>
+      </div>
+    </div>
+    <svg class="temp-chart" id="tempChart" viewBox="0 0 800 220" preserveAspectRatio="none"></svg>
+  </section>
+
+  <section class="forecast-card">
+    <div class="forecast-header">
+      <div class="chart-title">5-Day Forecast</div>
+    </div>
+    <div class="forecast-row" id="forecastRow"></div>
+  </section>
+
+  <footer>
+    ATMOS · Local sensor data · Updated in real time
+  </footer>
+</div>
+
+<script>
+// Hardcoded fake data for Prague
+const weatherData = {
+  city: "Prague",
+  current: { temp: 18, condition: "partly-cloudy", humidity: 64, wind: 12, windDir: "NW", pressure: 1018, feelsLike: 17 },
+  forecast: [
+    { day: "Today", date: "Oct 28", high: 19, low: 11, condition: "partly-cloudy", desc: "Partly Cloudy" },
+    { day: "Tue", date: "Oct 29", high: 22, low: 13, condition: "sunny", desc: "Sunny" },
+    { day: "Wed", date: "Oct 30", high: 16, low: 9, condition: "cloudy", desc: "Cloudy" },
+    { day: "Thu", date: "Oct 31", high: 14, low: 7, condition: "rainy", desc: "Light Rain" },
+    { day: "Fri", date: "Nov 1", high: 17, low: 10, condition: "partly-cloudy", desc: "Partly Cloudy" }
+  ]
+};
+
+// SVG icon library
+const icons = {
+  sunny: (size) => `
+    <svg viewBox="0 0 100 100" width="${size}" height="${size}">
+      <defs>
+        <radialGradient id="sunGrad-${size}" cx="50%" cy="50%">
+          <stop offset="0%" stop-color="#fff5b8"/>
+          <stop offset="60%" stop-color="#ffd166"/>
+          <stop offset="100%" stop-color="#ff8c42"/>
+        </radialGradient>
+      </defs>
+      <g class="sun-ray">
+        ${[0,45,90,135,180,225,270,315].map(a => `
+          <line x1="50" y1="12" x2="50" y2="4" stroke="#ffd166" stroke-width="3" stroke-linecap="round" transform="rotate(${a} 50 50)"/>
+        `).join('')}
+      </g>
+      <circle cx="50" cy="50" r="22" fill="url(#sunGrad-${size})" class="sun-core"/>
+      <circle cx="42" cy="44" r="6" fill="rgba(255,255,255,0.4)"/>
+    </svg>
+  `,
+  cloudy: (size) => `
+    <svg viewBox="0 0 100 100" width="${size}" height="${size}">
+      <g class="cloud-shape">
+        <ellipse cx="68" cy="38" rx="14" ry="11" fill="rgba(255,255,255,0.25)"/>
+        <ellipse cx="35" cy="60" rx="22" ry="16" fill="#d0cdc4"/>
+        <ellipse cx="58" cy="55" rx="24" ry="20" fill="#f5f1e8"/>
+        <ellipse cx="42" cy="65" rx="20" ry="13" fill="#e8e4dc"/>
+        <ellipse cx="48" cy="50" rx="8" ry="6" fill="rgba(255,255,255,0.5)"/>
+      </g>
+    </svg>
+  `,
+  rainy: (size) => `
+    <svg viewBox="0 0 100 100" width="${size}" height="${size}">
+      <g class="cloud-shape">
+        <ellipse cx="35" cy="42" rx="18" ry="13" fill="#9ea0a3"/>
+        <ellipse cx="58" cy="40" rx="22" ry="17" fill="#b8babd"/>
+        <ellipse cx="48" cy="48" rx="20" ry="13" fill="#a8aaad"/>
+      </g>
+      <g>
+        ${[28,42,56,70].map((x,i) => `
+          <line x1="${x}" y1="65" x2="${x-3}" y2="78" stroke="#4ecdc4" stroke-width="2.5" stroke-linecap="round" class="rain-drop" style="animation-delay: ${i*0.2}s"/>
+        `).join('')}
+      </g>
+    </svg>
+  `,
+  'partly-cloudy': (size) => `
+    <svg viewBox="0 0 100 100" width="${size}" height="${size}">
+      <defs>
+        <radialGradient id="pcSun-${size}" cx="50%" cy="50%">
+          <stop offset="0%" stop-color="#fff5b8"/>
+          <stop offset="60%" stop-color="#ffd166"/>
+          <stop offset="100%" stop-color="#ff8c42"/>
+        </radialGradient>
+      </defs>
+      <g class="sun-ray" style="transform-origin: 32px 32px;">
+        ${[0,60,120,180,240,300].map(a => `
+          <line x1="32" y1="6" x2="32" y2="0" stroke="#ffd166" stroke-width="2.5" stroke-linecap="round" transform="rotate(${a} 32 32)"/>
+        `).join('')}
+      </g>
+      <circle cx="32" cy="32" r="14" fill="url(#pcSun-${size})" class="sun-core"/>
+      <g class="cloud-shape">
+        <ellipse cx="42" cy="68" rx="18" ry="13" fill="#d0cdc4"/>
+        <ellipse cx="64" cy="62" rx="22" ry="17" fill="#f5f1e8"/>
+        <ellipse cx="54" cy="72" rx="20" ry="12" fill="#e8e4dc"/>
+      </g>
+    </svg>
+  `
+};
+
+function getIcon(condition, size = 100) {
+  return icons[condition] ? icons[condition](size) : icons['cloudy'](size);
+}
+
+// Render current weather icon
+document.getElementById('currentIcon').innerHTML = getIcon(weatherData.current.condition, 140);
+
+// Render forecast
+function renderForecast() {
+  const row = document.getElementById('forecastRow');
+  row.innerHTML = weatherData.forecast.map((day, i) => `
+    <div class="forecast-day ${i === 0 ? 'today' : ''}" data-condition="${day.condition}">
+      <div class="day-name">${day.day}</div>
+      <div class="day-icon">${getIcon(day.condition, 56)}</div>
+      <div class="day-temps">
+        <span class="temp-high" data-c="${day.high}">${day.high}°</span>
+        <span class="temp-low" data-c="${day.low}">${day.low}°</span>
+      </div>
+      <div class="day-desc">${day.desc}</div>
+    </div>
+  `).join('');
+}
+renderForecast();
+
+// Draw temperature chart
+function drawChart() {
+  const svg = document.getElementById('tempChart');
+  const data = weatherData.forecast;
+  const W = 800, H = 220;
+  const padX = 60, padY = 40;
+  const innerW = W - padX * 2;
+  const innerH = H - padY * 2;
+  
+  const allTemps = data.flatMap(d => [d.high, d.low]);
+  const maxT = Math.max(...allTemps) + 2;
+  const minT = Math.min(...allTemps) - 2;
+  const range = Math.max(1, maxT - minT);
+  
+  const xStep = innerW / (data.length - 1);
+  
+  const getX = i => padX + i * xStep;
+  const getY = t => padY + innerH - ((t - minT) / range) * innerH;
+  
+  // Build smooth path
+  function smoothPath(points) {
+    if (points.length < 2) return '';
+    let d = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = points[Math.max(0, i-1)];
+      const p1 = points[i];
+      const p2 = points[i+1];
+      const p3 = points[Math.min(points.length-1, i+2)];
+      const cp1x = p1.x + (p2.x - p0.x) / 6;
+      const cp1y = p1.y + (p2.y - p0.y) / 6;
+      const cp2x = p2.x - (p3.x - p1.x) / 6;
+      const cp2y = p2.y - (p3.y - p1.y) / 6;
+      d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+    }
+    return d;
+  }
+  
+  const highs = data.map((d, i) => ({ x: getX(i), y: getY(d.high), t: d.high }));
+  const lows = data.map((d, i) => ({ x: getX(i), y: getY(d.low), t: d.low }));
+  
+  const highPath = smoothPath(highs);
+  const lowPath = smoothPath(lows);
+  
+  // Area between curves
+  const areaPath = highPath + ' L ' + lows.slice().reverse().map(p => `${p.x} ${p.y}`).join(' L ') + ' Z';
+  
+  // Grid lines
+  const gridLines = [0, 0.25, 0.5, 0.75, 1].map(p => {
+    const y = padY + innerH * p;
+    const temp = Math.round(maxT - range * p);
+    return `
+      <line x1="${padX}" y1="${y}" x2="${W - padX}" y2="${y}" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+      <text x="${padX - 12}" y="${y + 4}" fill="#6b6a64" font-size="11" text-anchor="end" font-family="inherit">${temp}°</text>
+    `;
+  }).join('');
+  
+  // X-axis labels
+  const xLabels = data.map((d, i) => `
+    <text x="${getX(i)}" y="${H - 8}" fill="#c8c4ba" font-size="12" text-anchor="middle" font-weight="700" font-family="inherit">${d.day}</text>
+  `).join('');
+  
+  // Points
+  const highPoints = highs.map((p, i) => `
+    <circle cx="${p.x}" cy="${p.y}" r="5" fill="#ff8c42" stroke="#0a0b0d" stroke-width="3"/>
+    <text x="${p.x}" y="${p.y - 14}" fill="#ff8c42" font-size="13" text-anchor="middle" font-weight="700" font-family="inherit">${data[i].high}°</text>
+  `).join('');
+  
+  const lowPoints = lows.map((p, i) => `
+    <circle cx="${p.x}" cy="${p.y}" r="5" fill="#4ecdc4" stroke="#0a0b0d" stroke-width="3"/>
+    <text x="${p.x}" y="${p.y + 22}" fill="#4ecdc4" font-size="13" text-anchor="middle" font-weight="700" font-family="inherit">${data[i].low}°</text>
+  `).join('');
+  
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="areaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#ff8c42" stop-opacity="0.25"/>
+        <stop offset="100%" stop-color="#4ecdc4" stop-opacity="0.1"/>
+      </linearGradient>
+      <linearGradient id="highGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#ffd166"/>
+        <stop offset="100%" stop-color="#ff8c42"/>
+      </linearGradient>
+      <linearGradient id="lowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#4ecdc4"/>
+        <stop offset="100%" stop-color="#7e9eff"/>
+      </linearGradient>
+    </defs>
+    ${gridLines}
+    <path d="${areaPath}" fill="url(#areaGrad)" opacity="0.6"/>
+    <path d="${lowPath}" fill="none" stroke="url(#lowGrad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4 4" opacity="0.8"/>
+    <path d="${highPath}" fill="none" stroke="url(#highGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    ${xLabels}
+    ${lowPoints}
+    ${highPoints}
+  `;
+}
+drawChart();
+
+// Unit toggle
+const toggleButtons = document.querySelectorAll('.toggle button');
+toggleButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const unit = btn.dataset.unit;
+    document.documentElement.setAttribute('data-unit', unit);
+    toggleButtons.forEach(b => {
+      b.classList.toggle('active', b.dataset.unit === unit);
+      b.setAttribute('aria-pressed', b.dataset.unit === unit);
+    });
+    convertTemps(unit);
+  });
+});
+
+function convertTemps(unit) {
+  const temps = document.querySelectorAll('[data-c]');
+  temps.forEach(el => {
+    const c = parseFloat(el.dataset.c);
+    let val;
+    if (unit === 'F') {
+      val = Math.round(c * 9 / 5 + 32);
+    } else {
+      val = Math.round(c);
+    }
+    // Preserve trailing ° if present
+    const txt = el.textContent;
+    if (txt.includes('°')) {
+      el.textContent = val + '°';
+    } else {
+      el.textContent = val;
+    }
+  });
+  // Update unit labels
+  document.querySelectorAll('.temp-unit').forEach(el => {
+    el.textContent = '°' + unit;
+  });
+  // Redraw chart with converted values
+  drawChartConverted(unit);
+}
+
+function drawChartConverted(unit) {
+  // Temporarily convert forecast data for chart
+  const original = weatherData.forecast;
+  const converted = original.map(d => ({
+    ...d,
+    high: unit === 'F' ? Math.round(d.high * 9/5 + 32) : d.high,
+    low: unit === 'F' ? Math.round(d.low * 9/5 + 32) : d.low
+  }));
+  const orig = weatherData.forecast;
+  weatherData.forecast = converted;
+  drawChart();
+  weatherData.forecast = orig;
+}
+
+// Refresh button - subtle animation
+document.querySelector('.refresh-btn').addEventListener('click', function() {
+  this.style.transform = 'rotate(720deg)';
+  setTimeout(() => { this.style.transform = ''; }, 800);
+});
+
+// Animate sun position on arc based on current time
+function updateSunPosition() {
+  const sunrise = 6 * 60 + 42; // 06:42 in minutes
+  const sunset = 19 * 60 + 28; // 19:28
+  const now = new Date();
+  const currentMin = now.getHours() * 60 + now.getMinutes();
+  
+  let progress;
+  if (currentMin < sunrise) progress = 0;
+  else if (currentMin > sunset) progress = 1;
+  else progress = (currentMin - sunrise) / (sunset - sunrise);
+  
+  // Position on quadratic curve: x from 10 to 190, peak at center
+  const x = 10 + progress * 180;
+  // Quadratic bezier: y = (1-t)^2 * 80 + 2(1-t)t * (-10) + t^2 * 80
+  const t = progress;
+  const y = (1-t)*(1-t) * 80 + 2*(1-t)*t * (-10) + t*t * 80;
+  
+  const sun = document.getElementById('sunPos');
+  const glow = document.getElementById('sunGlow');
+  if (sun) {
+    sun.setAttribute('cx', x);
+    sun.setAttribute('cy', y);
+  }
+  if (glow) {
+    glow.setAttribute('cx', x);
+    glow.setAttribute('cy', y);
+  }
+}
+updateSunPosition();
+setInterval(updateSunPosition, 60000);
+
+// Animate chart on load
+window.addEventListener('load', () => {
+  const paths = document.querySelectorAll('#tempChart path');
+  paths.forEach((path, i) => {
+    if (path.getAttribute('fill') !== 'none' && !path.getAttribute('fill')) return;
+    const len = path.getTotalLength ? path.getTotalLength() : 1000;
+    if (path.getAttribute('stroke') && path.getAttribute('stroke') !== 'none') {
+      path.style.strokeDasharray = len;
+      path.style.strokeDashoffset = len;
+      path.style.transition = `stroke-dashoffset 1.5s ease-out ${i * 0.2}s`;
+      requestAnimationFrame(() => {
+        path.style.strokeDashoffset = '0';
+      });
+    }
+  });
+});
+</script>
+</body>
+</html>

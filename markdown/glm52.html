@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Markdown Studio — Live Editor</title>
+<style>
+  :root {
+    --bg: #0a0e14;
+    --bg-2: #0d1219;
+    --surface: #11161f;
+    --surface-2: #161c27;
+    --border: #232b3a;
+    --border-soft: #1a212e;
+    --fg: #e6edf3;
+    --fg-soft: #b8c2d0;
+    --muted: #6b7589;
+    --accent: #ff8a3d;
+    --accent-2: #ffb366;
+    --accent-soft: rgba(255, 138, 61, 0.12);
+    --teal: #4dd0c4;
+    --pink: #ff6b9d;
+    --green: #7ee787;
+    --red: #ff6b6b;
+    --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5);
+    --shadow-glow: 0 0 24px rgba(255, 138, 61, 0.25);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; overflow: hidden; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  /* Ambient background glow */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 800px 600px at 15% 0%, rgba(255, 138, 61, 0.08), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 85% 100%, rgba(77, 208, 196, 0.06), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ===== Header ===== */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 22px;
+    background: rgba(13, 18, 25, 0.85);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    z-index: 10;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-mark {
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--accent) 0%, #ff5e3a 100%);
+    display: grid;
+    place-items: center;
+    font-family: 'Courier New', monospace;
+    font-weight: 900;
+    font-size: 20px;
+    color: #1a0a00;
+    box-shadow: var(--shadow-glow), inset 0 1px 0 rgba(255,255,255,0.3);
+    position: relative;
+    overflow: hidden;
+  }
+  .logo-mark::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.2) 50%, transparent 60%);
+    animation: shimmer 4s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0%, 100% { transform: translateX(-100%); }
+    50% { transform: translateX(100%); }
+  }
+
+  .brand h1 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .brand h1 span { color: var(--accent); }
+
+  .brand .tag {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .stat-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--fg-soft);
+  }
+  .stat-pill strong {
+    color: var(--accent);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-pill .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--fg-soft);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    font-family: inherit;
+  }
+  .btn:hover {
+    background: var(--surface-2);
+    border-color: var(--accent);
+    color: var(--fg);
+    transform: translateY(-1px);
+  }
+  .btn:active { transform: translateY(0); }
+  .btn svg { width: 14px; height: 14px; }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #ff5e3a);
+    border-color: transparent;
+    color: #1a0a00;
+    font-weight: 600;
+  }
+  .btn-primary:hover {
+    box-shadow: var(--shadow-glow);
+    color: #1a0a00;
+  }
+
+  /* ===== Toolbar ===== */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 16px;
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    position: relative;
+    z-index: 5;
+    scrollbar-width: thin;
+  }
+  .toolbar::-webkit-scrollbar { height: 4px; }
+  .toolbar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .tool-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 10px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    color: var(--fg-soft);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .tool-btn:hover {
+    background: var(--surface);
+    border-color: var(--border);
+    color: var(--accent);
+  }
+  .tool-btn:active { transform: scale(0.96); }
+  .tool-btn svg { width: 16px; height: 16px; }
+  .tool-btn .label { margin-left: 6px; font-size: 12px; }
+
+  .tool-divider {
+    width: 1px;
+    height: 22px;
+    background: var(--border);
+    margin: 0 6px;
+    flex-shrink: 0;
+  }
+
+  .tool-btn .kbd {
+    margin-left: 6px;
+    padding: 1px 5px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 10px;
+    color: var(--muted);
+    font-family: 'SF Mono', Consolas, monospace;
+  }
+
+  /* ===== Main Layout ===== */
+  main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
+    min-height: 0;
+  }
+
+  .pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .pane-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 18px;
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--border-soft);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .pane-header .dot-trail {
+    display: flex;
+    gap: 5px;
+  }
+  .pane-header .dot-trail span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+  .pane-header .dot-trail span:nth-child(1) { background: #ff6b6b; }
+  .pane-header .dot-trail span:nth-child(2) { background: #ffb366; }
+  .pane-header .dot-trail span:nth-child(3) { background: var(--green); }
+
+  .pane-info {
+    font-size: 10px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pane-info code {
+    font-family: 'SF Mono', Consolas, monospace;
+    color: var(--teal);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  #editor {
+    flex: 1;
+    width: 100%;
+    padding: 24px 28px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--fg);
+    font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', Consolas, 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.7;
+    resize: none;
+    tab-size: 2;
+    caret-color: var(--accent);
+  }
+  #editor::selection { background: var(--accent-soft); }
+  #editor::-webkit-scrollbar { width: 10px; }
+  #editor::-webkit-scrollbar-track { background: transparent; }
+  #editor::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 5px;
+    border: 2px solid var(--bg);
+  }
+  #editor::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  /* Divider */
+  .divider {
+    width: 1px;
+    background: var(--border);
+    cursor: col-resize;
+    position: relative;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .divider::before {
+    content: '';
+    position: absolute;
+    inset: 0 -4px;
+  }
+  .divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 4px;
+    height: 40px;
+    background: var(--border);
+    border-radius: 2px;
+    transition: background 0.2s;
+  }
+  .divider:hover::after, .divider.dragging::after {
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+  }
+
+  /* Preview */
+  #preview {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px 40px 60px;
+    background: var(--bg);
+    line-height: 1.7;
+  }
+  #preview::-webkit-scrollbar { width: 10px; }
+  #preview::-webkit-scrollbar-track { background: transparent; }
+  #preview::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 5px;
+    border: 2px solid var(--bg);
+  }
+
+  /* ===== Markdown Preview Styles ===== */
+  #preview > *:first-child { margin-top: 0; }
+
+  #preview h1, #preview h2, #preview h3, #preview h4, #preview h5, #preview h6 {
+    color: var(--fg);
+    font-weight: 700;
+    line-height: 1.25;
+    margin: 28px 0 14px;
+    letter-spacing: -0.02em;
+  }
+  #preview h1 {
+    font-size: 2.1em;
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(135deg, #fff 0%, var(--accent-2) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  #preview h2 {
+    font-size: 1.55em;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  #preview h2::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 0.85em;
+    background: linear-gradient(180deg, var(--accent), var(--pink));
+    margin-right: 10px;
+    vertical-align: -2px;
+    border-radius: 2px;
+  }
+  #preview h3 { font-size: 1.25em; color: var(--accent-2); }
+  #preview h4 { font-size: 1.05em; color: var(--fg-soft); }
+  #preview h5, #preview h6 { font-size: 0.9em; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  #preview p {
+    margin: 12px 0;
+    color: var(--fg-soft);
+  }
+
+  #preview a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px dashed rgba(255, 138, 61, 0.4);
+    transition: all 0.15s;
+  }
+  #preview a:hover {
+    color: var(--accent-2);
+    border-bottom-color: var(--accent-2);
+    border-bottom-style: solid;
+  }
+
+  #preview strong { color: var(--fg); font-weight: 700; }
+  #preview em { color: var(--teal); font-style: italic; }
+
+  #preview ul, #preview ol {
+    margin: 14px 0;
+    padding-left: 28px;
+    color: var(--fg-soft);
+  }
+  #preview li { margin: 6px 0; }
+  #preview li::marker { color: var(--accent); }
+  #preview ol li::marker { color: var(--teal); font-weight: 600; }
+
+  #preview ul ul, #preview ol ol, #preview ul ol, #preview ol ul {
+    margin: 4px 0;
+  }
+
+  #preview blockquote {
+    margin: 18px 0;
+    padding: 12px 20px;
+    background: linear-gradient(90deg, var(--accent-soft), transparent);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    color: var(--fg-soft);
+    font-style: italic;
+  }
+  #preview blockquote p { margin: 4px 0; }
+
+  #preview code {
+    font-family: 'SF Mono', 'JetBrains Mono', Consolas, monospace;
+    font-size: 0.88em;
+    padding: 2px 6px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--pink);
+  }
+
+  #preview pre {
+    margin: 18px 0;
+    padding: 18px 20px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow-x: auto;
+    position: relative;
+  }
+  #preview pre::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.5;
+  }
+  #preview pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: var(--fg);
+    font-size: 13px;
+    line-height: 1.6;
+    display: block;
+  }
+
+  /* Simple syntax-ish coloring via post-process */
+  #preview .tok-key { color: var(--accent); }
+  #preview .tok-str { color: var(--green); }
+  #preview .tok-com { color: var(--muted); font-style: italic; }
+  #preview .tok-num { color: var(--teal); }
+
+  #preview hr {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 28px 0;
+  }
+
+  #preview img {
+    max-width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+
+  #preview table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 18px 0;
+    font-size: 0.95em;
+  }
+  #preview th, #preview td {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    text-align: left;
+  }
+  #preview th {
+    background: var(--surface);
+    color: var(--accent-2);
+    font-weight: 600;
+  }
+  #preview td { color: var(--fg-soft); }
+
+  /* ===== Statusbar ===== */
+  .statusbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 18px;
+    background: var(--bg-2);
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+    z-index: 5;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .status-group { display: flex; align-items: center; gap: 18px; }
+  .status-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .status-item strong {
+    color: var(--fg-soft);
+    font-weight: 600;
+  }
+  .status-item svg { width: 12px; height: 12px; opacity: 0.7; }
+
+  /* ===== Toast ===== */
+  .toast {
+    position: fixed;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    padding: 12px 20px;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    color: var(--fg);
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: var(--shadow-lg), var(--shadow-glow);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  .toast svg { width: 16px; height: 16px; color: var(--accent); }
+
+  /* ===== Mobile ===== */
+  .mobile-tabs { display: none; }
+
+  @media (max-width: 768px) {
+    header {
+      padding: 12px 14px;
+    }
+    .brand h1 { font-size: 15px; }
+    .brand .tag { display: none; }
+    .stat-pill { display: none; }
+    .header-actions .btn span { display: none; }
+
+    .mobile-tabs {
+      display: flex;
+      background: var(--bg-2);
+      border-bottom: 1px solid var(--border);
+    }
+    .mobile-tab {
+      flex: 1;
+      padding: 12px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-family: inherit;
+      position: relative;
+      transition: color 0.2s;
+    }
+    .mobile-tab.active { color: var(--accent); }
+    .mobile-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 25%;
+      right: 25%;
+      height: 2px;
+      background: var(--accent);
+      border-radius: 2px 2px 0 0;
+    }
+
+    main { flex-direction: column; }
+    .pane { display: none; flex: none; height: 100%; }
+    .pane.active { display: flex; }
+    .divider { display: none; }
+
+    #editor { padding: 16px; font-size: 13px; }
+    #preview { padding: 20px; }
+
+    .tool-btn .label, .tool-btn .kbd { display: none; }
+    .statusbar { font-size: 10px; padding: 6px 12px; }
+    .status-group { gap: 12px; }
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo-mark">M</div>
+    <div>
+      <h1>Markdown <span>Studio</span></h1>
+      <div class="tag">Live Editor · Zero Dependencies</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <div class="stat-pill">
+      <span class="dot"></span>
+      <span>Live</span>
+    </div>
+    <button class="btn" id="clearBtn" title="Clear editor">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/></svg>
+      <span>Clear</span>
+    </button>
+    <button class="btn btn-primary" id="copyBtn" title="Copy markdown to clipboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      <span>Copy Markdown</span>
+    </button>
+  </div>
+</header>
+
+<div class="toolbar" id="toolbar">
+  <button class="tool-btn" data-action="h1" title="Heading 1 (Ctrl+1)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h8M4 6v12M12 6v12M17 12l3-1v7"/></svg>
+  </button>
+  <button class="tool-btn" data-action="h2" title="Heading 2 (Ctrl+2)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h8M4 6v12M12 6v12M21 18v-2a4 4 0 00-4-4H14"/></svg>
+  </button>
+  <button class="tool-btn" data-action="h3" title="Heading 3 (Ctrl+3)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h8M4 6v12M12 6v12M17.5 12a2.5 2.5 0 110-5 2.5 2.5 0 013 2.5 2.5 2.5 0 11-3 2.5"/></svg>
+  </button>
+  <div class="tool-divider"></div>
+  <button class="tool-btn" data-action="bold" title="Bold (Ctrl+B)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6zM6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z"/></svg>
+  </button>
+  <button class="tool-btn" data-action="italic" title="Italic (Ctrl+I)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>
+  </button>
+  <button class="tool-btn" data-action="strike" title="Strikethrough">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="20" y2="12"/><path d="M16 6a4 4 0 00-4-2h-2a4 4 0 000 8h4a4 4 0 010 8h-2a4 4 0 01-4-2"/></svg>
+  </button>
+  <button class="tool-btn" data-action="code" title="Inline code">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+  </button>
+  <div class="tool-divider"></div>
+  <button class="tool-btn" data-action="link" title="Link (Ctrl+K)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1"/><path d="M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1"/></svg>
+  </button>
+  <button class="tool-btn" data-action="image" title="Image">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+  </button>
+  <div class="tool-divider"></div>
+  <button class="tool-btn" data-action="ul" title="Bullet list">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+  </button>
+  <button class="tool-btn" data-action="ol" title="Numbered list">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4M4 10h2M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
+  </button>
+  <button class="tool-btn" data-action="quote" title="Blockquote">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2-2-2H4c-1.25 0-2 .75-2 2v4c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21z"/></svg>
+  </button>
+  <button class="tool-btn" data-action="codeblock" title="Code block">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M6 8l.01 0M6 12l.01 0M6 16l.01 0M10 8h8M10 12h8M10 16h8"/></svg>
+  </button>
+  <div class="tool-divider"></div>
+  <button class="tool-btn" data-action="hr" title="Horizontal rule">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="20" y2="12"/></svg>
+  </button>
+</div>
+
+<div class="mobile-tabs">
+  <button class="mobile-tab active" data-tab="editor">Editor</button>
+  <button class="mobile-tab" data-tab="preview">Preview</button>
+</div>
+
+<main>
+  <section class="pane active" id="editorPane">
+    <div class="pane-header">
+      <div class="dot-trail"><span></span><span></span><span></span></div>
+      <div class="pane-info">Markdown Source · <code>.md</code></div>
+    </div>
+    <textarea id="editor" spellcheck="false" autocomplete="off"></textarea>
+  </section>
+
+  <div class="divider" id="divider"></div>
+
+  <section class="pane active" id="previewPane">
+    <div class="pane-header">
+      <div class="pane-info">Rendered Output · Live</div>
+      <div class="dot-trail"><span></span><span></span><span></span></div>
+    </div>
+    <article id="preview" class="markdown-body"></article>
+  </section>
+</main>
+
+<div class="statusbar">
+  <div class="status-group">
+    <div class="status-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span><strong id="words">0</strong> words</span>
+    </div>
+    <div class="status-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>
+      <span><strong id="chars">0</strong> chars</span>
+    </div>
+    <div class="status-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span><strong id="lines">0</strong> lines</span>
+    </div>
+    <div class="status-item">
+      <span>~<strong id="readtime">0</strong> min read</span>
+    </div>
+  </div>
+  <div class="status-group">
+    <div class="status-item">
+      <span>Ln <strong id="curLine">1</strong>, Col <strong id="curCol">1</strong></span>
+    </div>
+    <div class="status-item">
+      <span style="color: var(--teal)">●</span>
+      <span>UTF-8</span>
+    </div>
+    <div class="status-item">
+      <span>Markdown</span>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="toastMsg">Copied to clipboard</span>
+</div>
+
+<script>
+/* =========================================================
+   Markdown Studio — single-file live editor
+   ========================================================= */
+
+const editor = document.getElementById('editor');
+const preview = document.getElementById('preview');
+const divider = document.getElementById('divider');
+
+/* ---------- Sample content ---------- */
+const SAMPLE = `# Welcome to Markdown Studio
+
+A **zero-dependency** live editor that fits in a single HTML file. Start typing on the left and watch your rendered document appear on the right — instantly.
+
+> Good tools feel like extensions of your own thinking. The best editor is the one that disappears.
+
+## Quick Examples
+
+Here's a paragraph with *italic*, **bold**, ~~strikethrough~~ and \`inline code\`. You can also add [links](https://example.com) inline.
+
+### Lists
+
+Unordered:
+- Pure HTML, CSS and JavaScript
+- No frameworks, no build step
+- Works fully offline
+
+Ordered:
+1. Type Markdown in the editor
+2. Parser converts tokens to HTML
+3. Preview updates in real time
+
+### Code Block
+
+\`\`\`javascript
+// Debounced live preview
+function parseMarkdown(src) {
+  return src
+    .split(/\\n\\n+/)
+    .map(blockify)
+    .join('\\n');
+}
+
+const editor = document.querySelector('#editor');
+editor.addEventListener('input', render); // magic
+\`\`\`
+
+### Blockquote
+
+> "Simplicity is the ultimate sophistication." — *Leonardo da Vinci*
+
+### Table
+
+| Feature        | Status | Notes                  |
+| -------------- | :----: | ---------------------- |
+| Live preview   |   ✓    | Sub-100ms updates      |
+| Syntax support |   ✓    | CommonMark subset      |
+| Mobile ready   |   ✓    | Stacked panes ≤768px   |
+
+---
+
+## Keyboard Shortcuts
+
+| Combo              | Action          |
+| ------------------ | --------------- |
+| \`Ctrl + B\`        | Bold            |
+| \`Ctrl + I\`        | Italic          |
+| \`Ctrl + K\`        | Insert link     |
+| \`Ctrl + 1/2/3\`    | Heading levels  |
+
+Click any toolbar button above to insert formatting, or just start writing. Happy documenting!
+`;
+
+/* ---------- Markdown parser ---------- */
+function escapeHtml(s) {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Apply inline markdown to a string (after HTML-escaping)
+function applyInline(s) {
+  return s
+    // Images: ![alt](url)
+    .replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g,
+      (m, alt, url, title) => `<img src="${url}" alt="${alt}"${title ? ` title="${title}"` : ''}>`)
+    // Links: [text](url)
+    .replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g,
+      (m, text, url, title) => `<a href="${url}" target="_blank" rel="noopener noreferrer"${title ? ` title="${title}"` : ''}>${text}</a>`)
+    // Bold: **text** or __text__
+    .replace(/\*\*([^*\n]+?)\*\*|__([^_\n]+?)__/g, (m, a, b) => `<strong>${a || b}</strong>`)
+    // Italic: *text* or _text_
+    .replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>')
+    .replace(/(^|[^_])_([^_\n]+?)_(?!_)/g, '$1<em>$2</em>')
+    // Strikethrough: ~~text~~
+    .replace(/~~([^~\n]+?)~~/g, '<del>$1</del>')
+    // Inline code: `code`
+    .replace(/`([^`\n]+?)`/g, (m, c) => `<code>${c}</code>`);
+}
+
+// Light syntax highlighting for code blocks
+function highlightCode(code) {
+  // escape first
+  let h = escapeHtml(code);
+  // comments
+  h = h.replace(/(\/\/[^\n]*|#[^\n]*)/g, '<span class="tok-com">$1</span>');
+  // strings
+  h = h.replace(/('[^'\n]*'|"[^"\n]*"|`[^`\n]*`)/g, '<span class="tok-str">$1</span>');
+  // keywords
+  h = h.replace(/\b(function|const|let|var|return|if|else|for|while|class|new|import|from|export|default|=&gt;|async|await|try|catch)\b/g, '<span class="tok-key">$1</span>');
+  // numbers
+  h = h.replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="tok-num">$1</span>');
+  return h;
+}
+
+function parseMarkdown(md) {
+  if (!md.trim()) return '<p style="color:var(--muted);text-align:center;padding:40px 0;">Nothing to preview yet — start typing in the editor.</p>';
+
+  const lines = md.replace(/\r\n/g, '\n').split('\n');
+  const html = [];
+  let i = 0;
+
+  const isBlank = (l) => /^\s*$/.test(l);
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Blank line
+    if (isBlank(line)) { i++; continue; }
+
+    // Fenced code block
+    const fence = line.match(/^(\s*)(```|~~~)(\w*)\s*$/);
+    if (fence) {
+      const lang = fence[3];
+      const code = [];
+      i++;
+      while (i < lines.length && !lines[i].match(/^\s*(```|~~~)\s*$/)) {
+        code.push(lines[i]);
+        i++;
+      }
+      i++; // skip closing fence
+      const langLabel = lang ? `<div style="position:absolute;top:8px;right:14px;font-size:10px;color:var(--muted);font-family:'SF Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;">${escapeHtml(lang)}</div>` : '';
+      html.push(`<pre data-lang="${escapeHtml(lang)}">${langLabel}<code>${highlightCode(code.join('\n'))}</code></pre>`);
+      continue;
+    }
+
+    // Horizontal rule
+    if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(line)) {
+      html.push('<hr>');
+      i++;
+      continue;
+    }
+
+    // Heading
+    const heading = line.match(/^(#{1,6})\s+(.*?)\s*#*\s*$/);
+    if (heading) {
+      const level = heading[1].length;
+      html.push(`<h${level}>${applyInline(escapeHtml(heading[2]))}</h${level}>`);
+      i++;
+      continue;
+    }
+
+    // Blockquote (possibly multi-line)
+    if (/^\s*>\s?/.test(line)) {
+      const quote = [];
+      while (i < lines.length && /^\s*>\s?/.test(lines[i])) {
+        quote.push(lines[i].replace(/^\s*>\s?/, ''));
+        i++;
+      }
+      html.push(`<blockquote>${applyInline(escapeHtml(quote.join(' ')))}</blockquote>`);
+      continue;
+    }
+
+    // Table
+    if (line.includes('|') && i + 1 < lines.length && /^\s*\|?[\s:|-]+\|[\s:|-]+\s*$/.test(lines[i + 1])) {
+      const parseRow = (r) => r.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split('|').map(c => c.trim());
+      const headers = parseRow(line);
+      const aligns = parseRow(lines[i + 1]).map(c => {
+        if (/^:.*:$/.test(c)) return 'center';
+        if (/:$/.test(c)) return 'right';
+        return 'left';
+      });
+      i += 2;
+      const rows = [];
+      while (i < lines.length && lines[i].includes('|') && !isBlank(lines[i])) {
+        rows.push(parseRow(lines[i]));
+        i++;
+      }
+      let table = '<table><thead><tr>';
+      headers.forEach((h, idx) => {
+        table += `<th style="text-align:${aligns[idx] || 'left'}">${applyInline(escapeHtml(h))}</th>`;
+      });
+      table += '</tr></thead><tbody>';
+      rows.forEach(row => {
+        table += '<tr>';
+        row.forEach((cell, idx) => {
+          table += `<td style="text-align:${aligns[idx] || 'left'}">${applyInline(escapeHtml(cell))}</td>`;
+        });
+        table += '</tr>';
+      });
+      table += '</tbody></table>';
+      html.push(table);
+      continue;
+    }
+
+    // Unordered list
+    if (/^\s*[-*+]\s+/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^\s*[-*+]\s+/.test(lines[i])) {
+        const indent = lines[i].match(/^(\s*)/)[1].length;
+        const text = lines[i].replace(/^\s*[-*+]\s+/, '');
+        items.push({ indent, text });
+        i++;
+      }
+      html.push(buildList(items, 'ul'));
+      continue;
+    }
+
+    // Ordered list
+    if (/^\s*\d+\.\s+/.test(line)) {
+      const items = [];
+      while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
+        const indent = lines[i].match(/^(\s*)/)[1].length;
+        const text = lines[i].replace(/^\s*\d+\.\s+/, '');
+        items.push({ indent, text });
+        i++;
+      }
+      html.push(buildList(items, 'ol'));
+      continue;
+    }
+
+    // Paragraph (gather consecutive non-blank, non-special lines)
+    const para = [];
+    while (i < lines.length && !isBlank(lines[i]) &&
+      !/^(#{1,6})\s+/.test(lines[i]) &&
+      !/^\s*[-*+]\s+/.test(lines[i]) &&
+      !/^\s*\d+\.\s+/.test(lines[i]) &&
+      !/^\s*>\s?/.test(lines[i]) &&
+      !/^(\s*)(```|~~~)/.test(lines[i]) &&
+      !/^\s*([-*_])(\s*\1){2,}\s*$/.test(lines[i]) &&
+      !(lines[i].includes('|') && i + 1 < lines.length && /^\s*\|?[\s:|-]+\|[\s:|-]+\s*$/.test(lines[i + 1]))) {
+      para.push(lines[i]);
+      i++;
+    }
+    if (para.length) {
+      html.push(`<p>${applyInline(escapeHtml(para.join('<br>')))}</p>`);
+    }
+  }
+
+  return html.join('\n');
+}
+
+// Build nested list from flat items with indent info
+function buildList(items, type) {
+  let html = `<${type}>`;
+  let i = 0;
+  const walk = (depth) => {
+    while (i < items.length) {
+      const item = items[i];
+      if (item.indent > depth) {
+        html += `<${type === 'ul' ? 'ul' : 'ol'}>`;
+        walk(item.indent);
+        html += `</${type === 'ul' ? 'ul' : 'ol'}>`;
+        html += '</li>';
+        continue;
+      }
+      if (item.indent < depth) return;
+      html += `<li>${applyInline(escapeHtml(item.text))}`;
+      i++;
+      // peek: if next item is deeper, recurse; if shallier or end, close li
+      if (i >= items.length || items[i].indent <= depth) {
+        html += '</li>';
+      }
+    }
+  };
+  walk(items[0]?.indent || 0);
+  // close any remaining open li
+  html += `</${type}>`;
+  return html;
+}
+
+/* ---------- Render ---------- */
+let renderTimer;
+function render() {
+  const md = editor.value;
+  preview.innerHTML = parseMarkdown(md);
+  updateStats(md);
+}
+
+function scheduleRender() {
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(render, 60);
+}
+
+/* ---------- Stats ---------- */
+function updateStats(md) {
+  const text = md.replace(/[#*`>\-_\[\]()!~]/g, ' ').trim();
+  const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
+  const chars = md.length;
+  const lines = md ? md.split('\n').length : 0;
+  const readtime = Math.max(1, Math.ceil(words / 200));
+
+  document.getElementById('words').textContent = words.toLocaleString();
+  document.getElementById('chars').textContent = chars.toLocaleString();
+  document.getElementById('lines').textContent = lines.toLocaleString();
+  document.getElementById('readtime').textContent = readtime;
+}
+
+/* ---------- Cursor position ---------- */
+function updateCursor() {
+  const pos = editor.selectionStart;
+  const before = editor.value.substring(0, pos);
+  const line = before.split('\n').length;
+  const col = pos - before.lastIndexOf('\n');
+  document.getElementById('curLine').textContent = line;
+  document.getElementById('curCol').textContent = col;
+}
+
+/* ---------- Toolbar actions ---------- */
+function wrapSelection(prefix, suffix = prefix, placeholder = 'text') {
+  const start = editor.selectionStart;
+  const end = editor.selectionEnd;
+  const selected = editor.value.substring(start, end);
+  const text = selected || placeholder;
+  const replacement = prefix + text + suffix;
+  editor.value = editor.value.substring(0, start) + replacement + editor.value.substring(end);
+  editor.focus();
+  if (selected) {
+    editor.setSelectionRange(start + prefix.length, start + prefix.length + text.length);
+  } else {
+    editor.setSelectionRange(start + prefix.length, start + prefix.length + text.length);
+  }
+  scheduleRender();
+}
+
+function prefixLines(prefix, placeholder = 'item') {
+  const start = editor.selectionStart;
+  const end = editor.selectionEnd;
+  const value = editor.value;
+  const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+  const selected = value.substring(lineStart, end);
+  const text = selected || placeholder;
+  const lines = text.split('\n').map((l, i) => {
+    if (typeof prefix === 'function') return prefix(i) + l;
+    return prefix + l;
+  }).join('\n');
+  editor.value = value.substring(0, lineStart) + lines + value.substring(end);
+  editor.focus();
+  editor.setSelectionRange(lineStart, lineStart + lines.length);
+  scheduleRender();
+}
+
+function insertBlock(text, cursorOffset = null) {
+  const start = editor.selectionStart;
+  const value = editor.value;
+  const prefix = (start > 0 && value[start - 1] !== '\n') ? '\n\n' : (start > 0 ? '\n' : '');
+  editor.value = value.substring(0, start) + prefix + text + value.substring(start);
+  editor.focus();
+  const newPos = start + prefix.length + (cursorOffset !== null ? cursorOffset : text.length);
+  editor.setSelectionRange(newPos, newPos);
+  scheduleRender();
+}
+
+function applyAction(action) {
+  switch (action) {
+    case 'h1': prefixLines('# ', 'Heading 1'); break;
+    case 'h2': prefixLines('## ', 'Heading 2'); break;
+    case 'h3': prefixLines('### ', 'Heading 3'); break;
+    case 'bold': wrapSelection('**', '**', 'bold text'); break;
+    case 'italic': wrapSelection('*', '*', 'italic text'); break;
+    case 'strike': wrapSelection('~~', '~~', 'strikethrough'); break;
+    case 'code': wrapSelection('`', '`', 'code'); break;
+    case 'link': {
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      const sel = editor.value.substring(start, end);
+      const text = sel || 'link text';
+      const replacement = `[${text}](https://)`;
+      editor.value = editor.value.substring(0, start) + replacement + editor.value.substring(end);
+      editor.focus();
+      // select the URL
+      const urlStart = start + text.length + 3;
+      editor.setSelectionRange(urlStart, urlStart + 8);
+      scheduleRender();
+      break;
+    }
+    case 'image': {
+      insertBlock('![alt text](https://)', 10);
+      break;
+    }
+    case 'ul': prefixLines('- ', 'list item'); break;
+    case 'ol': prefixLines((i) => `${i + 1}. `, 'list item'); break;
+    case 'quote': prefixLines('> ', 'quoted text'); break;
+    case 'codeblock': {
+      const start = editor.selectionStart;
+      const value = editor.value;
+      const prefix = (start > 0 && value[start - 1] !== '\n') ? '\n\n' : (start > 0 ? '\n' : '');
+      const block = prefix + '```\ncode here\n```';
+      editor.value = value.substring(0, start) + block + value.substring(start);
+      editor.focus();
+      const cursorPos = start + prefix.length + 5;
+      editor.setSelectionRange(cursorPos, cursorPos + 9);
+      scheduleRender();
+      break;
+    }
+    case 'hr': insertBlock('---'); break;
+  }
+}
+
+/* ---------- Bind toolbar ---------- */
+document.getElementById('toolbar').addEventListener('click', (e) => {
+  const btn = e.target.closest('.tool-btn');
+  if (!btn) return;
+  applyAction(btn.dataset.action);
+});
+
+/* ---------- Keyboard shortcuts ---------- */
+editor.addEventListener('keydown', (e) => {
+  const mod = e.ctrlKey || e.metaKey;
+  if (!mod) return;
+  const key = e.key.toLowerCase();
+  const map = { b: 'bold', i: 'italic', k: 'link' };
+  if (map[key]) {
+    e.preventDefault();
+    applyAction(map[key]);
+  } else if (['1', '2', '3'].includes(e.key)) {
+    e.preventDefault();
+    applyAction('h' + e.key);
+  }
+});
+
+/* ---------- Input ---------- */
+editor.addEventListener('input', scheduleRender);
+editor.addEventListener('keyup', updateCursor);
+editor.addEventListener('click', updateCursor);
+editor.addEventListener('select', updateCursor);
+
+/* ---------- Tab key inserts spaces ---------- */
+editor.addEventListener('keydown', (e) => {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
+    editor.setSelectionRange(start + 2, start + 2);
+    scheduleRender();
+  }
+});
+
+/* ---------- Copy button ---------- */
+const toast = document.getElementById('toast');
+const toastMsg = document.getElementById('toastMsg');
+let toastTimer;
+function showToast(msg) {
+  toastMsg.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+document.getElementById('copyBtn').addEventListener('click', async () => {
+  const text = editor.value;
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('Markdown copied to clipboard');
+  } catch (err) {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      showToast('Markdown copied to clipboard');
+    } catch (e) {
+      showToast('Copy failed — select manually');
+    }
+    document.body.removeChild(ta);
+  }
+});
+
+/* ---------- Clear button ---------- */
+document.getElementById('clearBtn').addEventListener('click', () => {
+  if (editor.value.trim() === '') {
+    editor.value = SAMPLE;
+    render();
+    showToast('Sample restored');
+  } else {
+    editor.value = '';
+    render();
+    editor.focus();
+    showToast('Editor cleared');
+  }
+});
+
+/* ---------- Mobile tabs ---------- */
+document.querySelectorAll('.mobile-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.mobile-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const target = tab.dataset.tab;
+    document.getElementById('editorPane').classList.toggle('active', target === 'editor');
+    document.getElementById('previewPane').classList.toggle('active', target === 'preview');
+  });
+});
+
+/* ---------- Resizable divider ---------- */
+let dragging = false;
+divider.addEventListener('mousedown', (e) => {
+  dragging = true;
+  divider.classList.add('dragging');
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+  e.preventDefault();
+});
+document.addEventListener('mousemove', (e) => {
+  if (!dragging) return;
+  const main = document.querySelector('main');
+  const rect = main.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const pct = Math.max(20, Math.min(80, (x / rect.width) * 100));
+  document.getElementById('editorPane').style.flex = `0 0 ${pct}%`;
+  document.getElementById('previewPane').style.flex = `1 1 ${100 - pct}%`;
+});
+document.addEventListener('mouseup', () => {
+  if (dragging) {
+    dragging = false;
+    divider.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }
+});
+
+/* ---------- Init ---------- */
+editor.value = SAMPLE;
+render();
+updateCursor();
+editor.focus();
+</script>
+</body>
+</html>
