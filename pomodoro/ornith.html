@@ -4,444 +4,418 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pomodoro Timer</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg:#1a1a2e;--surface:#16213e;--surface2:#0f3460;
-  --accent:#e94560;--accent2:#533483;--text:#eee;--text-dim:#a0a0b0;
-  --work:#e94560;--break:#00b894;--long-break:#6c5ce7;
-  --ring-bg:rgba(255,255,255,0.08);
-}
-body{
-  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
-  background:var(--bg);color:var(--text);
-  min-height:100vh;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  overflow:hidden;
-}
-.container{
-  display:flex;flex-direction:column;align-items:center;
-  gap:24px;padding:20px;width:100%;max-width:480px;
-}
-h1{
-  font-size:1.5rem;font-weight:700;letter-spacing:2px;
-  text-transform:uppercase;
-  background:linear-gradient(135deg,var(--work),var(--accent2));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  background-clip:text;
-}
-.modes{display:flex;gap:8px}
-.mode-btn{
-  padding:8px 18px;border:none;border-radius:24px;
-  background:var(--surface);color:var(--text-dim);
-  font-size:.85rem;font-weight:600;cursor:pointer;
-  transition:all .3s ease;letter-spacing:.5px;
-}
-.mode-btn:hover{background:var(--surface2);color:var(--text)}
-.mode-btn.active{color:#fff;box-shadow:0 4px 20px rgba(0,0,0,.3)}
-.mode-btn.active[data-mode="work"]{background:var(--work)}
-.mode-btn.active[data-mode="shortBreak"]{background:var(--break)}
-.mode-btn.active[data-mode="longBreak"]{background:var(--long-break)}
-
-.timer-wrapper{position:relative;width:300px;height:300px}
-svg.progress-ring{
-  width:100%;height:100%;
-  transform:rotate(-90deg);
-}
-.ring-bg{fill:none;stroke:var(--ring-bg);stroke-width:8}
-.ring-progress{
-  fill:none;stroke-width:8;stroke-linecap:round;
-  transition:stroke-dashoffset .4s ease,stroke .4s ease;
-  filter:drop-shadow(0 0 8px currentColor);
-}
-.ring-progress.work{stroke:var(--work);color:var(--work)}
-.ring-progress.shortBreak{stroke:var(--break);color:var(--break)}
-.ring-progress.longBreak{stroke:var(--long-break);color:var(--long-break)}
-
-.timer-display{
-  position:absolute;top:50%;left:50%;
-  transform:translate(-50%,-50%);
-  text-align:center;
-}
-.time{
-  font-size:3.2rem;font-weight:300;letter-spacing:3px;
-  font-variant-numeric:tabular-nums;
-  text-shadow:0 0 30px rgba(0,0,0,.5);
-}
-.label{
-  font-size:.8rem;text-transform:uppercase;letter-spacing:2px;
-  color:var(--text-dim);margin-top:4px;
-}
-
-.controls{display:flex;gap:12px;align-items:center}
-.ctrl-btn{
-  border:none;border-radius:50%;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:all .25s ease;font-weight:700;
-}
-.main-btn{
-  width:64px;height:64px;
-  background:linear-gradient(135deg,var(--work),var(--accent2));
-  color:#fff;font-size:1.4rem;
-  box-shadow:0 6px 30px rgba(233,69,96,.3);
-}
-.main-btn:hover{transform:scale(1.08);box-shadow:0 8px 40px rgba(233,69,96,.5)}
-.main-btn:active{transform:scale(.95)}
-.secondary-btn{
-  width:44px;height:44px;
-  background:var(--surface);color:var(--text-dim);
-  font-size:.9rem;border:1px solid rgba(255,255,255,.08);
-}
-.secondary-btn:hover{background:var(--surface2);color:var(--text)}
-
-.session-counter{
-  display:flex;gap:6px;align-items:center;
-  font-size:.85rem;color:var(--text-dim);
-}
-.session-dots{display:flex;gap:5px}
-.dot{
-  width:10px;height:10px;border-radius:50%;
-  background:var(--ring-bg);transition:all .3s ease;
-}
-.dot.filled{background:var(--work);box-shadow:0 0 8px rgba(233,69,96,.5)}
-.dot.filled.break-dot{background:var(--break);box-shadow:0 0 8px rgba(0,184,148,.5)}
-.session-label{margin-left:6px;font-weight:600}
-
-.settings-toggle{
-  background:none;border:none;color:var(--text-dim);
-  cursor:pointer;font-size:1.1rem;padding:8px;
-  transition:color .2s;
-}
-.settings-toggle:hover{color:var(--text)}
-
-.settings-panel{
-  width:100%;background:var(--surface);border-radius:16px;
-  padding:20px;display:none;
-  border:1px solid rgba(255,255,255,.05);
-  animation:slideDown .3s ease;
-}
-.settings-panel.open{display:block}
-@keyframes slideDown{
-  from{opacity:0;transform:translateY(-10px)}
-  to{opacity:1;transform:translateY(0)}
-}
-.settings-panel h3{
-  font-size:.9rem;text-transform:uppercase;letter-spacing:1.5px;
-  color:var(--text-dim);margin-bottom:16px;
-}
-.setting-row{
-  display:flex;justify-content:space-between;align-items:center;
-  padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);
-}
-.setting-row:last-child{border:none}
-.setting-label{font-size:.85rem;color:var(--text)}
-.setting-input{
-  width:80px;padding:6px 10px;border-radius:8px;
-  background:var(--bg);border:1px solid rgba(255,255,255,.1);
-  color:var(--text);font-size:.85rem;text-align:center;
-  font-weight:600;
-}
-.setting-input:focus{outline:none;border-color:var(--accent)}
-.save-btn{
-  margin-top:16px;width:100%;padding:10px;
-  border:none;border-radius:10px;
-  background:linear-gradient(135deg,var(--work),var(--accent2));
-  color:#fff;font-weight:700;font-size:.85rem;
-  cursor:pointer;letter-spacing:1px;text-transform:uppercase;
-  transition:opacity .2s;
-}
-.save-btn:hover{opacity:.9}
-.save-btn:active{opacity:.7}
-
-.auto-switch-toggle{
-  display:flex;align-items:center;gap:10px;
-  font-size:.85rem;color:var(--text);margin-top:4px;
-}
-.switch{
-  position:relative;width:42px;height:22px;
-  background:var(--bg);border-radius:11px;
-  cursor:pointer;transition:background .3s;
-  border:1px solid rgba(255,255,255,.1);
-}
-.switch.on{background:var(--break)}
-.switch-knob{
-  position:absolute;top:2px;left:2px;
-  width:16px;height:16px;background:#fff;
-  border-radius:50%;transition:transform .3s;
-}
-.switch.on .switch-knob{transform:translateX(20px)}
-
-.pulse{animation:pulse 1s ease-in-out infinite}
-@keyframes pulse{
-  0%,100%{opacity:1}
-  50%{opacity:.5}
-}
-
-@media(max-width:400px){
-  .timer-wrapper{width:250px;height:250px}
-  .time{font-size:2.5rem}
-  .mode-btn{padding:6px 12px;font-size:.75rem}
-}
-</style>
 </head>
 <body>
-<div class="container">
-  <h1>🍅 Pomodoro</h1>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0d1117;--surface:#161b22;--surface2:#21262d;--border:#30363d;
+    --text:#e6edf3;--text2:#8b949e;--accent:#f0883e;--accent2:#ffa657;
+    --work:#f0883e;--short-break:#3fb950;--long-break:#58a6ff;
+    --ring-bg:#21262d;--radius:50%;
+  }
+  body{
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:var(--bg);color:var(--text);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-height:100vh;overflow-x:hidden;
+  }
+  h1{font-size:1.4rem;margin-bottom:1.5rem;letter-spacing:0.05em;color:var(--text2);font-weight:500}
+  h1 span{color:var(--accent)}
 
-  <div class="modes">
-    <button class="mode-btn active" data-mode="work" onclick="switchMode('work')">Work</button>
-    <button class="mode-btn" data-mode="shortBreak" onclick="switchMode('shortBreak')">Short Break</button>
-    <button class="mode-btn" data-mode="longBreak" onclick="switchMode('longBreak')">Long Break</button>
+  .container{
+    display:flex;flex-direction:column;align-items:center;gap:1.5rem;
+    max-width:480px;width:100%;padding:1.5rem;
+  }
+
+  /* Mode Tabs */
+  .mode-tabs{display:flex;gap:0.5rem;width:100%;justify-content:center}
+  .mode-tab{
+    padding:0.5rem 1.2rem;border-radius:999px;border:1px solid var(--border);
+    background:transparent;color:var(--text2);cursor:pointer;font-size:0.85rem;
+    transition:all 0.3s ease;font-weight:500;
+  }
+  .mode-tab:hover{border-color:var(--text2);color:var(--text)}
+  .mode-tab.active-work{background:var(--work);color:#000;border-color:var(--work)}
+  .mode-tab.active-short{background:var(--short-break);color:#000;border-color:var(--short-break)}
+  .mode-tab.active-long{background:var(--long-break);color:#000;border-color:var(--long-break)}
+
+  /* Timer Ring */
+  .timer-wrapper{position:relative;width:280px;height:280px}
+  .timer-ring{
+    width:100%;height:100%;transform:rotate(-90deg);
+  }
+  .ring-bg{fill:none;stroke:var(--ring-bg);stroke-width:8}
+  .ring-progress{
+    fill:none;stroke:var(--accent);stroke-width:8;
+    stroke-linecap:round;
+    transition:stroke-dashoffset 0.5s linear, stroke 0.5s ease;
+  }
+  .ring-glow{
+    fill:none;stroke:var(--accent);stroke-width:12;
+    stroke-linecap:round;opacity:0.15;
+    filter:blur(4px);
+    transition:stroke-dashoffset 0.5s linear, stroke 0.5s ease;
+  }
+
+  .timer-display{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    text-align:center;
+  }
+  .time-text{font-size:3.2rem;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:0.02em}
+  .mode-label{font-size:0.8rem;color:var(--text2);margin-top:0.25rem;text-transform:uppercase;letter-spacing:0.1em}
+
+  /* Controls */
+  .controls{display:flex;gap:0.75rem;align-items:center}
+  .btn{
+    border:none;border-radius:12px;cursor:pointer;font-size:0.9rem;
+    font-weight:600;transition:all 0.2s ease;display:flex;align-items:center;gap:0.4rem;
+  }
+  .btn-primary{
+    padding:0.75rem 2rem;background:var(--accent);color:#000;
+    font-size:1rem;border-radius:999px;
+  }
+  .btn-primary:hover{background:var(--accent2);transform:scale(1.05)}
+  .btn-primary:active{transform:scale(0.97)}
+  .btn-secondary{
+    padding:0.75rem 1.2rem;background:var(--surface2);color:var(--text);
+    border:1px solid var(--border);
+  }
+  .btn-secondary:hover{background:var(--border);border-color:var(--text2)}
+
+  /* Session Counter */
+  .session-info{
+    display:flex;gap:2rem;align-items:center;
+    padding:0.75rem 1.5rem;background:var(--surface);
+    border-radius:12px;border:1px solid var(--border);
+  }
+  .session-item{text-align:center}
+  .session-value{font-size:1.3rem;font-weight:700;color:var(--accent)}
+  .session-label{font-size:0.7rem;color:var(--text2);text-transform:uppercase;letter-spacing:0.08em;margin-top:0.15rem}
+
+  /* Pomodoro dots */
+  .pomodoro-dots{display:flex;gap:0.4rem;justify-content:center;margin-top:0.5rem}
+  .dot{
+    width:10px;height:10px;border-radius:50%;
+    background:var(--surface2);border:1px solid var(--border);
+    transition:all 0.3s ease;
+  }
+  .dot.filled{background:var(--accent);border-color:var(--accent);box-shadow:0 0 6px var(--accent)}
+  .dot.current{border-color:var(--accent);animation:pulse 1.5s ease infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+  /* Settings */
+  .settings-toggle{
+    background:none;border:none;color:var(--text2);cursor:pointer;
+    font-size:0.85rem;display:flex;align-items:center;gap:0.3rem;
+    transition:color 0.2s;
+  }
+  .settings-toggle:hover{color:var(--text)}
+  .settings-panel{
+    width:100%;background:var(--surface);border:1px solid var(--border);
+    border-radius:12px;padding:1.25rem;display:none;
+  }
+  .settings-panel.open{display:block;animation:fadeIn 0.3s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+  .settings-title{font-size:0.95rem;font-weight:600;margin-bottom:1rem;color:var(--text)}
+  .setting-row{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-bottom:0.75rem;
+  }
+  .setting-label{font-size:0.85rem;color:var(--text2)}
+  .setting-input{
+    width:70px;padding:0.4rem 0.6rem;background:var(--bg);border:1px solid var(--border);
+    border-radius:8px;color:var(--text);font-size:0.85rem;text-align:center;
+  }
+  .setting-input:focus{outline:none;border-color:var(--accent)}
+  .setting-unit{font-size:0.75rem;color:var(--text2);margin-left:0.25rem}
+  .settings-actions{display:flex;gap:0.5rem;margin-top:1rem;justify-content:flex-end}
+
+  /* Responsive */
+  @media(max-width:400px){
+    .timer-wrapper{width:240px;height:240px}
+    .time-text{font-size:2.6rem}
+    .mode-tab{padding:0.4rem 0.8rem;font-size:0.75rem}
+  }
+</style>
+
+<div class="container">
+  <h1><span>🍅</span> Pomodoro Timer</h1>
+
+  <div class="mode-tabs">
+    <button class="mode-tab active-work" data-mode="work" onclick="switchMode('work')">Work</button>
+    <button class="mode-tab" data-mode="short" onclick="switchMode('short')">Short Break</button>
+    <button class="mode-tab" data-mode="long" onclick="switchMode('long')">Long Break</button>
   </div>
 
   <div class="timer-wrapper">
-    <svg class="progress-ring" viewBox="0 0 300 300">
-      <circle class="ring-bg" cx="150" cy="150" r="136"/>
-      <circle class="ring-progress work" id="progressRing" cx="150" cy="150" r="136"
-        stroke-dasharray="854.513" stroke-dashoffset="0"/>
+    <svg class="timer-ring" viewBox="0 0 200 200">
+      <circle class="ring-bg" cx="100" cy="100" r="90"/>
+      <circle class="ring-glow" cx="100" cy="100" r="90" id="ringGlow"/>
+      <circle class="ring-progress" cx="100" cy="100" r="90" id="ringProgress"/>
     </svg>
     <div class="timer-display">
-      <div class="time" id="timeDisplay">25:00</div>
-      <div class="label" id="modeLabel">Focus Time</div>
+      <div class="time-text" id="timeDisplay">25:00</div>
+      <div class="mode-label" id="modeLabel">Work Session</div>
     </div>
   </div>
 
+  <div class="pomodoro-dots" id="pomodoroDots">
+    <div class="dot current"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+  </div>
+
   <div class="controls">
-    <button class="ctrl-btn secondary-btn" onclick="resetTimer()" title="Reset">↺</button>
-    <button class="ctrl-btn main-btn" id="mainBtn" onclick="toggleTimer()">▶</button>
-    <button class="ctrl-btn secondary-btn" onclick="skipTimer()" title="Skip">⏭</button>
+    <button class="btn btn-secondary" id="resetBtn" onclick="resetTimer()">↺ Reset</button>
+    <button class="btn btn-primary" id="startBtn" onclick="toggleTimer()">▶ Start</button>
+    <button class="btn btn-secondary" id="skipBtn" onclick="skipSession()">⏭ Skip</button>
   </div>
 
-  <div class="session-counter">
-    <div class="session-dots" id="sessionDots"></div>
-    <span class="session-label" id="sessionLabel">0 / 4</span>
-  </div>
-
-  <div class="auto-switch-toggle">
-    <span>Auto-switch modes</span>
-    <div class="switch on" id="autoSwitch" onclick="toggleAutoSwitch()">
-      <div class="switch-knob"></div>
+  <div class="session-info">
+    <div class="session-item">
+      <div class="session-value" id="completedCount">0</div>
+      <div class="session-label">Completed</div>
+    </div>
+    <div class="session-item">
+      <div class="session-value" id="totalTime">0m</div>
+      <div class="session-label">Focus Time</div>
+    </div>
+    <div class="session-item">
+      <div class="session-value" id="currentStreak">0</div>
+      <div class="session-label">Streak</div>
     </div>
   </div>
 
   <button class="settings-toggle" onclick="toggleSettings()">⚙ Settings</button>
-
   <div class="settings-panel" id="settingsPanel">
-    <h3>Timer Durations (minutes)</h3>
+    <div class="settings-title">Timer Durations (minutes)</div>
     <div class="setting-row">
       <span class="setting-label">Work</span>
-      <input class="setting-input" id="setWork" type="number" value="25" min="1" max="90">
+      <input type="number" class="setting-input" id="setWork" value="25" min="1" max="90" onchange="updateSettings()">
     </div>
     <div class="setting-row">
       <span class="setting-label">Short Break</span>
-      <input class="setting-input" id="setShort" type="number" value="5" min="1" max="30">
+      <input type="number" class="setting-input" id="setShort" value="5" min="1" max="30" onchange="updateSettings()">
     </div>
     <div class="setting-row">
       <span class="setting-label">Long Break</span>
-      <input class="setting-input" id="setLong" type="number" value="15" min="1" max="45">
+      <input type="number" class="setting-input" id="setLong" value="15" min="1" max="60" onchange="updateSettings()">
     </div>
     <div class="setting-row">
       <span class="setting-label">Sessions before long break</span>
-      <input class="setting-input" id="setSessions" type="number" value="4" min="2" max="10">
+      <input type="number" class="setting-input" id="setInterval" value="4" min="2" max="10" onchange="updateSettings()">
     </div>
-    <button class="save-btn" onclick="saveSettings()">Save Settings</button>
+    <div class="settings-actions">
+      <button class="btn btn-secondary" onclick="toggleSettings()">Close</button>
+    </div>
   </div>
 </div>
 
 <script>
-const CIRCUMFERENCE = 2 * Math.PI * 136;
-const ring = document.getElementById('progressRing');
-const timeDisplay = document.getElementById('timeDisplay');
-const modeLabel = document.getElementById('modeLabel');
-const mainBtn = document.getElementById('mainBtn');
-const sessionDots = document.getElementById('sessionDots');
-const sessionLabel = document.getElementById('sessionLabel');
+  const CIRCUMFERENCE = 2 * Math.PI * 90;
+  const ringProgress = document.getElementById('ringProgress');
+  const ringGlow = document.getElementById('ringGlow');
+  ringProgress.style.strokeDasharray = CIRCUMFERENCE;
+  ringGlow.style.strokeDasharray = CIRCUMFERENCE;
 
-let config = { work: 25, shortBreak: 5, longBreak: 15, sessionsBeforeLong: 4 };
-let currentMode = 'work';
-let timeLeft = config.work * 60;
-let totalTime = config.work * 60;
-let running = false;
-let interval = null;
-let sessionsCompleted = 0;
-let autoSwitch = true;
-let audioCtx = null;
+  let durations = { work: 25, short: 5, long: 15 };
+  let sessionsBeforeLong = 4;
+  let currentMode = 'work';
+  let timeRemaining = durations.work * 60;
+  let totalTimeInSession = durations.work * 60;
+  let isRunning = false;
+  let intervalId = null;
+  let completedPomodoros = 0;
+  let totalFocusSeconds = 0;
+  let streak = 0;
 
-function initAudio() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-}
+  function updateDisplay() {
+    const mins = Math.floor(timeRemaining / 60);
+    const secs = timeRemaining % 60;
+    document.getElementById('timeDisplay').textContent =
+      String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
 
-function playBeep() {
-  initAudio();
-  const now = audioCtx.currentTime;
-  const frequencies = [880, 880, 660, 880];
-  const durations = [0.15, 0.1, 0.15, 0.4];
-  let offset = now;
-  frequencies.forEach((freq, i) => {
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    osc.type = 'sine';
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.3, offset);
-    gain.gain.exponentialRampToValueAtTime(0.01, offset + durations[i]);
-    osc.start(offset);
-    osc.stop(offset + durations[i] + 0.05);
-    offset += durations[i] + 0.1;
-  });
-}
+    const progress = 1 - (timeRemaining / totalTimeInSession);
+    const offset = CIRCUMFERENCE * (1 - progress);
+    ringProgress.style.strokeDashoffset = offset;
+    ringGlow.style.strokeDashoffset = offset;
 
-function playTick() {
-  initAudio();
-  const now = audioCtx.currentTime;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.type = 'sine';
-  osc.frequency.value = 1200;
-  gain.gain.setValueAtTime(0.1, now);
-  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-  osc.start(now);
-  osc.stop(now + 0.06);
-}
+    const colors = { work: 'var(--work)', short: 'var(--short-break)', long: 'var(--long-break)' };
+    const color = colors[currentMode];
+    ringProgress.style.stroke = color;
+    ringGlow.style.stroke = color;
 
-function updateDisplay() {
-  const min = Math.floor(timeLeft / 60);
-  const sec = timeLeft % 60;
-  timeDisplay.textContent = `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-  const progress = 1 - (timeLeft / totalTime);
-  ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - progress);
-  document.title = `${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')} - Pomodoro`;
-}
+    const labels = { work: 'Work Session', short: 'Short Break', long: 'Long Break' };
+    document.getElementById('modeLabel').textContent = labels[currentMode];
 
-function updateRingClass() {
-  ring.classList.remove('work', 'shortBreak', 'longBreak');
-  ring.classList.add(currentMode);
-}
-
-function updateLabels() {
-  const labels = { work: 'Focus Time', shortBreak: 'Short Break', longBreak: 'Long Break' };
-  modeLabel.textContent = labels[currentMode];
-  updateRingClass();
-}
-
-function updateSessionDots() {
-  sessionDots.innerHTML = '';
-  for (let i = 0; i < config.sessionsBeforeLong; i++) {
-    const dot = document.createElement('div');
-    dot.className = 'dot';
-    if (i < sessionsCompleted) {
-      dot.classList.add('filled');
-      if (currentMode !== 'work') dot.classList.add('break-dot');
-    }
-    sessionDots.appendChild(dot);
+    document.title = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0') + ' — Pomodoro';
   }
-  sessionLabel.textContent = `${sessionsCompleted} / ${config.sessionsBeforeLong}`;
-}
 
-function switchMode(mode) {
-  if (running) { clearInterval(interval); running = false; mainBtn.textContent = '▶'; }
-  currentMode = mode;
-  document.querySelectorAll('.mode-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.mode === mode);
-  });
-  const durations = { work: config.work, shortBreak: config.shortBreak, longBreak: config.longBreak };
-  timeLeft = durations[mode] * 60;
-  totalTime = timeLeft;
-  updateLabels();
-  updateDisplay();
-}
-
-function toggleTimer() {
-  if (running) {
-    clearInterval(interval);
-    running = false;
-    mainBtn.textContent = '▶';
-    timeDisplay.classList.remove('pulse');
-  } else {
-    initAudio();
-    running = true;
-    mainBtn.textContent = '⏸';
-    timeDisplay.classList.add('pulse');
-    interval = setInterval(() => {
-      timeLeft--;
-      if (timeLeft < 0) timeLeft = 0;
-      updateDisplay();
-      if (timeLeft <= 3 && timeLeft > 0 && running) playTick();
-      if (timeLeft === 0) {
-        clearInterval(interval);
-        running = false;
-        mainBtn.textContent = '▶';
-        timeDisplay.classList.remove('pulse');
-        onTimerEnd();
+  function updateDots() {
+    const dots = document.querySelectorAll('.dot');
+    dots.forEach((dot, i) => {
+      dot.classList.remove('filled', 'current');
+      if (i < completedPomodoros % sessionsBeforeLong) {
+        dot.classList.add('filled');
+      } else if (i === completedPomodoros % sessionsBeforeLong) {
+        dot.classList.add('current');
       }
+    });
+  }
+
+  function updateSessionInfo() {
+    document.getElementById('completedCount').textContent = completedPomodoros;
+    const focusMins = Math.floor(totalFocusSeconds / 60);
+    document.getElementById('totalTime').textContent =
+      focusMins >= 60 ? Math.floor(focusMins / 60) + 'h ' + (focusMins % 60) + 'm' : focusMins + 'm';
+    document.getElementById('currentStreak').textContent = streak;
+  }
+
+  function playBeep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const playTone = (freq, startTime, duration) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = freq;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.3, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      };
+      const now = ctx.currentTime;
+      playTone(880, now, 0.15);
+      playTone(880, now + 0.2, 0.15);
+      playTone(1100, now + 0.45, 0.3);
+    } catch (e) { console.log('Audio not available'); }
+  }
+
+  function toggleTimer() {
+    if (isRunning) {
+      pauseTimer();
+    } else {
+      startTimer();
+    }
+  }
+
+  function startTimer() {
+    isRunning = true;
+    document.getElementById('startBtn').innerHTML = '⏸ Pause';
+    intervalId = setInterval(() => {
+      timeRemaining--;
+      if (currentMode === 'work') totalFocusSeconds++;
+      if (timeRemaining <= 0) {
+        clearInterval(intervalId);
+        isRunning = false;
+        intervalId = null;
+        onSessionEnd();
+      }
+      updateDisplay();
+      updateSessionInfo();
     }, 1000);
   }
-}
 
-function resetTimer() {
-  clearInterval(interval);
-  running = false;
-  mainBtn.textContent = '▶';
-  timeDisplay.classList.remove('pulse');
-  const durations = { work: config.work, shortBreak: config.shortBreak, longBreak: config.longBreak };
-  timeLeft = durations[currentMode] * 60;
-  totalTime = timeLeft;
-  updateDisplay();
-}
+  function pauseTimer() {
+    isRunning = false;
+    clearInterval(intervalId);
+    intervalId = null;
+    document.getElementById('startBtn').innerHTML = '▶ Start';
+  }
 
-function skipTimer() {
-  onTimerEnd();
-}
+  function resetTimer() {
+    pauseTimer();
+    currentMode = 'work';
+    timeRemaining = durations.work * 60;
+    totalTimeInSession = durations.work * 60;
+    completedPomodoros = 0;
+    totalFocusSeconds = 0;
+    streak = 0;
+    updateDisplay();
+    updateDots();
+    updateSessionInfo();
+    updateModeTabs();
+  }
 
-function onTimerEnd() {
-  playBeep();
-  if (currentMode === 'work') {
-    sessionsCompleted++;
-    updateSessionDots();
-    if (sessionsCompleted >= config.sessionsBeforeLong) {
-      switchMode('longBreak');
-      sessionsCompleted = 0;
-      updateSessionDots();
+  function skipSession() {
+    pauseTimer();
+    onSessionEnd();
+  }
+
+  function onSessionEnd() {
+    playBeep();
+    if (currentMode === 'work') {
+      completedPomodoros++;
+      streak++;
+      if (completedPomodoros % sessionsBeforeLong === 0) {
+        switchMode('long');
+      } else {
+        switchMode('short');
+      }
     } else {
-      switchMode('shortBreak');
+      switchMode('work');
     }
-  } else {
-    switchMode('work');
+    updateDots();
+    updateSessionInfo();
   }
-  if (autoSwitch && timeLeft === 0) {
-    // Timer already switched, optionally auto-start
+
+  function switchMode(mode) {
+    pauseTimer();
+    currentMode = mode;
+    timeRemaining = durations[mode] * 60;
+    totalTimeInSession = durations[mode] * 60;
+    updateDisplay();
+    updateModeTabs();
+    updateDots();
   }
-}
 
-function toggleSettings() {
-  document.getElementById('settingsPanel').classList.toggle('open');
-}
+  function updateModeTabs() {
+    document.querySelectorAll('.mode-tab').forEach(tab => {
+      tab.className = 'mode-tab';
+      const m = tab.dataset.mode;
+      if (m === currentMode) {
+        tab.classList.add('active-' + (m === 'work' ? 'work' : m === 'short' ? 'short' : 'long'));
+      }
+    });
+  }
 
-function saveSettings() {
-  const w = parseInt(document.getElementById('setWork').value) || 25;
-  const s = parseInt(document.getElementById('setShort').value) || 5;
-  const l = parseInt(document.getElementById('setLong').value) || 15;
-  const n = parseInt(document.getElementById('setSessions').value) || 4;
-  config.work = Math.max(1, Math.min(90, w));
-  config.shortBreak = Math.max(1, Math.min(30, s));
-  config.longBreak = Math.max(1, Math.min(45, l));
-  config.sessionsBeforeLong = Math.max(2, Math.min(10, n));
-  if (!running) switchMode(currentMode);
-  updateSessionDots();
-  document.getElementById('settingsPanel').classList.remove('open');
-}
+  function toggleSettings() {
+    const panel = document.getElementById('settingsPanel');
+    panel.classList.toggle('open');
+  }
 
-function toggleAutoSwitch() {
-  autoSwitch = !autoSwitch;
-  document.getElementById('autoSwitch').classList.toggle('on', autoSwitch);
-}
+  function updateSettings() {
+    const w = parseInt(document.getElementById('setWork').value) || 25;
+    const s = parseInt(document.getElementById('setShort').value) || 5;
+    const l = parseInt(document.getElementById('setLong').value) || 15;
+    const si = parseInt(document.getElementById('setInterval').value) || 4;
+    durations = { work: w, short: s, long: l };
+    sessionsBeforeLong = si;
+    if (!isRunning) {
+      timeRemaining = durations[currentMode] * 60;
+      totalTimeInSession = durations[currentMode] * 60;
+      updateDisplay();
+    }
+  }
 
-// Init
-updateDisplay();
-updateSessionDots();
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.code === 'Space') { e.preventDefault(); toggleTimer(); }
+    if (e.code === 'KeyR') resetTimer();
+    if (e.code === 'KeyS') skipSession();
+    if (e.code === 'Digit1') switchMode('work');
+    if (e.code === 'Digit2') switchMode('short');
+    if (e.code === 'Digit3') switchMode('long');
+  });
+
+  updateDisplay();
+  updateDots();
+  updateSessionInfo();
 </script>
 </body>
 </html>

@@ -2,416 +2,72 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Kanban Board — AI Model Bake-Off (Fair Rerun)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kanban Board — AI Bake-Off</title>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg: #0d1117; --bg2: #161b22; --bg3: #21262d; --border: #30363d;
-  --text: #e6edf3; --text2: #8b949e; --accent: #58a6ff;
-  --purple: #6366f1; --green: #22c55e; --amber: #f59e0b; --red: #ef4444;
-  --sonnet:#f59e0b; --opus:#ef4444; --glm:#22c55e; --glm52:#3b82f6;
-  --qwen:#6366f1; --ornith:#f97316;
+  --bg: #0a0a0f; --card: #13131a; --border: #2a2a35;
+  --text: #e4e4e7; --dim: #71717a; --accent: #6366f1;
 }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
-a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
-.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
-
-.hero { text-align: center; padding: 60px 24px 40px; position: relative; overflow: hidden; }
-.hero::before { content:''; position:absolute; top:-50%; left:-50%; width:200%; height:200%;
-  background: radial-gradient(ellipse at center, rgba(99,102,241,0.15) 0%, transparent 70%); }
-.hero h1 { font-size: 3rem; font-weight: 800; position:relative;
-  background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text; margin-bottom: 8px; }
-.hero .subtitle { color: var(--text2); font-size: 1.1rem; position:relative; }
-.hero .meta { color: var(--text2); font-size: 0.85rem; margin-top: 6px; position:relative; }
-.badge-old { display:inline-block; background: var(--bg3); border:1px solid var(--border);
-  color: var(--text2); padding: 3px 10px; border-radius: 999px; font-size: 0.75rem;
-  margin-top: 10px; position: relative; }
-
-.card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
-  padding: 20px; transition: border-color 0.2s, transform 0.2s; }
-.card:hover { border-color: var(--accent); transform: translateY(-2px); }
-
-.section { padding: 40px 0; }
-.section-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
-.section-desc { color: var(--text2); font-size: 0.9rem; margin-bottom: 20px; }
-
-.grid-2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; }
-.grid-3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-
-.tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
-.tab-btn { padding: 8px 18px; border-radius: 999px; border: 1px solid var(--border);
-  background: var(--bg2); color: var(--text2); cursor: pointer; font-size: 0.9rem;
-  transition: all 0.2s; font-weight: 500; }
-.tab-btn:hover { border-color: var(--text2); color: var(--text); }
-.tab-btn.active { color: #fff; border-color: transparent; }
-
-.stats-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
-.stat { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
-  padding: 8px 14px; display: flex; flex-direction: column; min-width: 90px; }
-.stat-label { font-size: 0.7rem; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
-.stat-value { font-size: 1.1rem; font-weight: 700; }
-
-.iframe-wrap { border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
-  background: #fff; height: 560px; }
-.iframe-wrap iframe { width: 100%; height: 100%; border: none; }
-
-.winner-badge { display: inline-block; background: linear-gradient(135deg, #f59e0b, #ef4444);
-  color: #fff; padding: 3px 12px; border-radius: 999px; font-weight: 700; font-size: 0.8rem; }
-.fail-badge { display: inline-block; background: rgba(239,68,68,0.15); color: #ef4444;
-  border: 1px solid rgba(239,68,68,0.4); padding: 3px 12px; border-radius: 999px;
-  font-weight: 700; font-size: 0.8rem; }
-.rank-num { font-size: 1.5rem; font-weight: 800; }
-
-.cmp-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-.cmp-table th, .cmp-table td { padding: 10px 12px; text-align: left;
-  border-bottom: 1px solid var(--border); }
-.cmp-table th { color: var(--text2); font-weight: 600; text-transform: uppercase;
-  font-size: 0.7rem; letter-spacing: 0.5px; }
-.cmp-table tr:hover td { background: var(--bg3); }
-.score-bar { height: 5px; border-radius: 3px; background: var(--bg3); min-width: 60px; margin-top: 3px; }
-.score-bar-fill { height: 100%; border-radius: 3px; }
-.best { color: #22c55e; font-weight: 700; }
-.fail { color: #ef4444; font-weight: 700; }
-
-/* Dimension breakdown bars */
-.dim-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
-.dim-row { display: grid; grid-template-columns: 130px 1fr 50px; gap: 10px; align-items: center; font-size: 0.78rem; }
-.dim-label { color: var(--text2); }
-.dim-track { height: 7px; border-radius: 4px; background: var(--bg3); overflow: hidden; }
-.dim-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
-.dim-val { font-weight: 700; text-align: right; font-size: 0.78rem; }
-
-/* Methodology */
-.method-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
-.method-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
-  padding: 16px; }
-.method-item h4 { font-size: 0.95rem; margin-bottom: 6px; display:flex; gap:8px; align-items:center; }
-.method-item .pts { margin-left:auto; color: var(--accent); font-size: 0.8rem; font-weight: 700;
-  background: rgba(88,166,255,0.1); padding: 2px 8px; border-radius: 999px; }
-.method-item p { color: var(--text2); font-size: 0.82rem; }
-.method-item ul { color: var(--text2); font-size: 0.78rem; margin-top: 6px; padding-left: 18px; }
-
-.back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text2);
-  font-size: 0.9rem; padding: 10px 0; }
-.back-link:hover { color: var(--accent); }
-
-footer { text-align: center; padding: 28px 0; border-top: 1px solid var(--border);
-  color: var(--text2); font-size: 0.82rem; margin-top: 40px; }
-
-.dim-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
-  padding: 16px; margin-bottom: 14px; }
-.dim-panel h4 { font-size: 0.85rem; color: var(--text2); text-transform: uppercase;
-  letter-spacing: 0.5px; margin-bottom: 4px; }
-
-@media (max-width: 760px) {
-  .hero h1 { font-size: 2rem; }
-  .grid-2, .grid-3 { grid-template-columns: 1fr; }
-  .iframe-wrap { height: 420px; }
-  .cmp-table { font-size: 0.78rem; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  line-height: 1.6; padding: 20px; max-width: 1200px; margin: 0 auto;
+}
+h1 { font-size: 1.8em; margin: 20px 0 8px; }
+h2 { font-size: 1.3em; margin: 24px 0 12px; }
+.back { color: var(--accent); text-decoration: none; font-size: 0.9em; }
+.back:hover { text-decoration: underline; }
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px; margin-bottom: 16px;
+}
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px 14px; text-align: left; }
+th { color: var(--dim); font-size: 0.85em; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+td { border-bottom: 1px solid #1e1e28; }
+.badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:0.75em; font-weight:600; }
+.badge-fail { background: #2a1212; color: #ef4444; }
+.badge-ok { background: #122a12; color: #22c55e; }
+.app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-top: 16px; }
+.app-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden; transition: border-color 0.2s;
+}
+.app-card:hover { border-color: var(--accent); }
+.app-card iframe { width: 100%; height: 300px; border: none; pointer-events: none; }
+.app-info { padding: 14px; }
+.app-info h3 { font-size: 1em; margin-bottom: 4px; }
+.score-big { font-size: 1.5em; font-weight: 700; }
+.dims-mini { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.dim-pill {
+  padding: 2px 8px; border-radius: 4px; font-size: 0.75em;
+  background: #1a1a22;
 }
 </style>
 </head>
 <body>
-
-<div class="hero">
-  <h1>📋 Kanban Board</h1>
-  <p class="subtitle">🏆 Winner: 🔵 GLM-5.2 — 88/100 (func 100 · qual 76 · speed 86)</p>
-  <p class="meta">Combined score = Functional (45%) + Quality (40%) + Speed (15%) · 4 succeeded · 1 failed</p>
-  <span class="badge-old">One-shot generation · Playwright browser tested · 5 models</span>
-</div>
-
-<div class="container">
-  <a href="../" class="back-link">← Back to all tests</a>
-
-  <div class="section">
-    <h2 class="section-title">📊 Score Breakdown</h2>
-    <p class="section-desc">All 5 models ranked by final combined score. FAILED = generation failure (scores 0 across the board).</p>
-<div style="overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--bg2)">
-      <table class="cmp-table">
-        <thead><tr>
-          <th>Rank</th><th>Model</th><th style="text-align:center">Functional</th><th style="text-align:center">Quality</th><th style="text-align:center">Speed</th><th style="text-align:center">Final</th><th>Notes</th>
-        </tr></thead>
-        <tbody>
-      <tr><td><span class="rank-num" style="color:#3b82f6;font-size:1.1rem">🥇</span></td><td><span style="color:#3b82f6;font-weight:700">🔵 GLM-5.2</span><div style="color:var(--text2);font-size:0.7rem">ZAI / z.ai</div></td><td style="text-align:center"><strong style="color:#22c55e">100</strong></td><td style="text-align:center"><strong style="color:#22c55e">76</strong></td><td style="text-align:center"><strong style="color:#22c55e">86</strong></td><td style="text-align:center"><strong style="color:#22c55e;font-size:1.05rem">88</strong></td><td style="color:var(--text2);font-size:0.75rem">10/10 browser checks · 134s gen · 41.2 KB</td></tr>
-      <tr><td><span class="rank-num" style="color:#22c55e;font-size:1.1rem">🥈</span></td><td><span style="color:#22c55e;font-weight:700">🟢 GLM 5.1</span><div style="color:var(--text2);font-size:0.7rem">ZAI</div></td><td style="text-align:center"><strong style="color:#a3e635">70</strong></td><td style="text-align:center"><strong style="color:#22c55e">75</strong></td><td style="text-align:center"><strong style="color:#22c55e">100</strong></td><td style="text-align:center"><strong style="color:#22c55e;font-size:1.05rem">76</strong></td><td style="color:var(--text2);font-size:0.75rem">7/10 browser checks · 114s gen · 34.7 KB</td></tr>
-      <tr><td><span class="rank-num" style="color:#f97316;font-size:1.1rem">🥉</span></td><td><span style="color:#f97316;font-weight:700">🟠 Ornith 35B</span><div style="color:var(--text2);font-size:0.7rem">Local llama.cpp</div></td><td style="text-align:center"><strong style="color:#a3e635">70</strong></td><td style="text-align:center"><strong style="color:#a3e635">72</strong></td><td style="text-align:center"><strong style="color:#a3e635">71</strong></td><td style="text-align:center"><strong style="color:#a3e635;font-size:1.05rem">71</strong></td><td style="color:var(--text2);font-size:0.75rem">7/10 browser checks · 154s gen · 34.0 KB</td></tr>
-      <tr><td><span class="rank-num" style="color:#ef4444;font-size:1.1rem">4️⃣</span></td><td><span style="color:#ef4444;font-weight:700">🔴 Opus 4.7</span><div style="color:var(--text2);font-size:0.7rem">Anthropic</div></td><td style="text-align:center"><strong style="color:#a3e635">60</strong></td><td style="text-align:center"><strong style="color:#a3e635">74</strong></td><td style="text-align:center"><strong style="color:#6b7280">0</strong></td><td style="text-align:center"><strong style="color:#f59e0b;font-size:1.05rem">57</strong></td><td style="color:var(--text2);font-size:0.75rem">6/10 browser checks · 2 console errors · 252s gen · 28.6 KB</td></tr>
-      <tr><td><span class="rank-num" style="color:#6b7280;font-size:1.1rem">5️⃣</span></td><td><span style="color:#f59e0b;font-weight:700">🟡 Sonnet 4.6</span><div style="color:var(--text2);font-size:0.7rem">Anthropic</div></td><td style="text-align:center" class="fail">—</td><td style="text-align:center" class="fail">—</td><td style="text-align:center" class="fail">—</td><td style="text-align:center"><strong style="color:#ef4444">0</strong></td><td><span class="fail-badge">Generation Failed</span><div style="color:var(--text2);font-size:0.72rem;margin-top:2px">no HTML after strip</div></td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="section">
-    <h2 class="section-title">🔍 Per-Model Detail &amp; Dimension Breakdown</h2>
-    <p class="section-desc">For each successful entry: functional / quality / speed / final, the 6 quality dimensions, and the live rendered app.</p>
-
-    <div class="dim-panel" style="border-left:4px solid #3b82f6">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div>
-          <span style="font-size:1.05rem;font-weight:700">🔵 GLM-5.2</span>
-          <span style="color:var(--text2);margin-left:6px;font-size:0.8rem">ZAI / z.ai</span>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <span class="rank-num" style="color:#3b82f6">#1</span>
-          <span class="winner-badge">🏆 WINNER</span>
-        </div>
-      </div>
-      <div class="stats-bar">
-        <div class="stat"><span class="stat-label">Functional</span><span class="stat-value" style="color:#22c55e">100/100</span></div>
-        <div class="stat"><span class="stat-label">Quality</span><span class="stat-value" style="color:#22c55e">76/100</span></div>
-        <div class="stat"><span class="stat-label">Speed</span><span class="stat-value" style="color:#22c55e">86</span></div>
-        <div class="stat"><span class="stat-label">Final</span><span class="stat-value" style="color:#22c55e">88/100</span></div>
-        <div class="stat"><span class="stat-label">File Size</span><span class="stat-value">41.2 KB</span></div>
-        <div class="stat"><span class="stat-label">Gen Time</span><span class="stat-value">134s</span></div>
-      </div>
-      <div style="font-size:0.78rem;color:var(--text2);margin-bottom:2px">Browser checks: <strong>10/10</strong> · Console errors: <strong>0</strong></div>
-      <div class="dim-list">
-      <div class="dim-row">
-        <span class="dim-label">Functionality</span>
-        <div class="dim-track"><div class="dim-fill" style="width:79%;background:#3b82f6"></div></div>
-        <span class="dim-val">23.8/30</span>
-      </div>
-      <div class="dim-row">
-        <span class="dim-label">Code Quality</span>
-        <div class="dim-track"><div class="dim-fill" style="width:72%;background:#3b82f6"></div></div>
-        <span class="dim-val">14.5/20</span>
-      </div>
-      <div class="dim-row">
-        <span class="dim-label">UX Polish</span>
-        <div class="dim-track"><div class="dim-fill" style="width:71%;background:#3b82f6"></div></div>
-        <span class="dim-val">14.2/20</span>
-      </div>
-      <div class="dim-row">
-        <span class="dim-label">Visual Design</span>
-        <div class="dim-track"><div class="dim-fill" style="width:90%;background:#3b82f6"></div></div>
-        <span class="dim-val">13.5/15</span>
-      </div>
-      <div class="dim-row">
-        <span class="dim-label">Accessibility</span>
-        <div class="dim-track"><div class="dim-fill" style="width:90%;background:#3b82f6"></div></div>
-        <span class="dim-val">9.0/10</span>
-      </div>
-      <div class="dim-row">
-        <span class="dim-label">Performance</span>
-        <div class="dim-track"><div class="dim-fill" style="width:30%;background:#3b82f6"></div></div>
-        <span class="dim-val">1.5/5</span>
-      </div>
-      </div>
-      <div style="margin-top:14px">
-        <div class="iframe-wrap"><iframe src="glm52.html" loading="lazy" title="GLM-5.2 output"></iframe></div>
-      </div>
-    </div>
-
-    <div class="dim-panel" style="border-left:4px solid #22c55e">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div>
-          <span style="font-size:1.05rem;font-weight:700">🟢 GLM 5.1</span>
-          <span style="color:var(--text2);margin-left:6px;font-size:0.8rem">ZAI</span>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <span class="rank-num" style="color:#22c55e">#2</span>
-          
-        </div>
-      </div>
-      <div class="stats-bar">
-        <div class="stat"><span class="stat-label">Functional</span><span class="stat-value" style="color:#a3e635">70/100</span></div>
-        <div class="stat"><span class="stat-label">Quality</span><span class="stat-value" style="color:#22c55e">75/100</span></div>
-        <div class="stat"><span class="stat-label">Speed</span><span class="stat-value" style="color:#22c55e">100</span></div>
-        <div class="stat"><span class="stat-label">Final</span><span class="stat-value" style="color:#22c55e">76/100</span></div>
-        <div class="stat"><span class="stat-label">File Size</span><span class="stat-value">34.7 KB</span></div>
-        <div class="stat"><span class="stat-label">Gen Time</span><span class="stat-value">114s</span></div>
-      </div>
-      <div style="font-size:0.78rem;color:var(--text2);margin-bottom:2px">Browser checks: <strong>7/10</strong> · Console errors: <strong>0</strong></div>
-      <div class="dim-list">
-      <div class="dim-row">
-        <span class="dim-label">Functionality</span>
-        <div class="dim-track"><div class="dim-fill" style="width:76%;background:#22c55e"></div></div>
-        <span class="dim-val">22.9/30</span>
-      </div>
-      <div class="dim-row">
-        <span class="dim-label">Code Quality</span>
-        <div class="dim-track"><div class="dim-fill" style="width:72%;background:#22c55e"></div></div>
-        <span class="dim-val">14.3/20</span>
-      </div>
-      <div class="dim-row">
-        <span class="dim-label">UX Polish</span>
-        <div class="dim-track"><div class="dim-fill" style="width:71%;background:#22c55e"></div></div>
-        <span class="dim-val">14.2/20</span>
-      </div>
-      <div class="dim-row">
-        <span class="dim-label">Visual Design</span>
-        <div class="dim-track"><div class="dim-fill" style="width:90%;background:#22c55e"></div></div>
-        <span class="dim-val">13.5/15</span>
-      </div>
-      <div class="dim-row">
-        <span class="dim-label">Accessibility</span>
-        <div class="dim-track"><div class="dim-fill" style="width:81%;background:#22c55e"></div></div>
-        <span class="dim-val">8.1/10</span>
-      </div>
-      <div class="dim-row">
-        <span class="dim-label">Performance</span>
-        <div class="dim-track"><div class="dim-fill" style="width:40%;background:#22c55e"></div></div>
-        <span class="dim-val">2.0/5</span>
-      </div>
-      </div>
-      <div style="margin-top:14px">
-        <div class="iframe-wrap"><iframe src="glm.html" loading="lazy" title="GLM 5.1 output"></iframe></div>
-      </div>
-    </div>
-
-    <div class="dim-panel" style="border-left:4px solid #f97316">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div>
-          <span style="font-size:1.05rem;font-weight:700">🟠 Ornith 35B</span>
-          <span style="color:var(--text2);margin-left:6px;font-size:0.8rem">Local llama.cpp</span>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <span class="rank-num" style="color:#f97316">#3</span>
-          
-        </div>
-      </div>
-      <div class="stats-bar">
-        <div class="stat"><span class="stat-label">Functional</span><span class="stat-value" style="color:#a3e635">70/100</span></div>
-        <div class="stat"><span class="stat-label">Quality</span><span class="stat-value" style="color:#a3e635">72/100</span></div>
-        <div class="stat"><span class="stat-label">Speed</span><span class="stat-value" style="color:#a3e635">71</span></div>
-        <div class="stat"><span class="stat-label">Final</span><span class="stat-value" style="color:#a3e635">71/100</span></div>
-        <div class="stat"><span class="stat-label">File Size</span><span class="stat-value">34.0 KB</span></div>
-        <div class="stat"><span class="stat-label">Gen Time</span><span class="stat-value">154s</span></div>
-      </div>
-      <div style="font-size:0.78rem;color:var(--text2);margin-bottom:2px">Browser checks: <strong>7/10</strong> · Console errors: <strong>0</strong></div>
-      <div class="dim-list">
-      <div class="dim-row">
-        <span class="dim-label">Functionality</span>
-        <div class="dim-track"><div class="dim-fill" style="width:77%;background:#f97316"></div></div>
-        <span class="dim-val">23.2/30</span>
-      </div>
-      <div class="dim-row">
-        <span class="dim-label">Code Quality</span>
-        <div class="dim-track"><div class="dim-fill" style="width:75%;background:#f97316"></div></div>
-        <span class="dim-val">15.0/20</span>
-      </div>
-      <div class="dim-row">
-        <span class="dim-label">UX Polish</span>
-        <div class="dim-track"><div class="dim-fill" style="width:66%;background:#f97316"></div></div>
-        <span class="dim-val">13.2/20</span>
-      </div>
-      <div class="dim-row">
-        <span class="dim-label">Visual Design</span>
-        <div class="dim-track"><div class="dim-fill" style="width:100%;background:#f97316"></div></div>
-        <span class="dim-val">15.0/15</span>
-      </div>
-      <div class="dim-row">
-        <span class="dim-label">Accessibility</span>
-        <div class="dim-track"><div class="dim-fill" style="width:40%;background:#f97316"></div></div>
-        <span class="dim-val">4.0/10</span>
-      </div>
-      <div class="dim-row">
-        <span class="dim-label">Performance</span>
-        <div class="dim-track"><div class="dim-fill" style="width:40%;background:#f97316"></div></div>
-        <span class="dim-val">2.0/5</span>
-      </div>
-      </div>
-      <div style="margin-top:14px">
-        <div class="iframe-wrap"><iframe src="ornith.html" loading="lazy" title="Ornith 35B output"></iframe></div>
-      </div>
-    </div>
-
-    <div class="dim-panel" style="border-left:4px solid #ef4444">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div>
-          <span style="font-size:1.05rem;font-weight:700">🔴 Opus 4.7</span>
-          <span style="color:var(--text2);margin-left:6px;font-size:0.8rem">Anthropic</span>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <span class="rank-num" style="color:#ef4444">#4</span>
-          
-        </div>
-      </div>
-      <div class="stats-bar">
-        <div class="stat"><span class="stat-label">Functional</span><span class="stat-value" style="color:#a3e635">60/100</span></div>
-        <div class="stat"><span class="stat-label">Quality</span><span class="stat-value" style="color:#a3e635">74/100</span></div>
-        <div class="stat"><span class="stat-label">Speed</span><span class="stat-value" style="color:#6b7280">0</span></div>
-        <div class="stat"><span class="stat-label">Final</span><span class="stat-value" style="color:#f59e0b">57/100</span></div>
-        <div class="stat"><span class="stat-label">File Size</span><span class="stat-value">28.6 KB</span></div>
-        <div class="stat"><span class="stat-label">Gen Time</span><span class="stat-value">252s</span></div>
-      </div>
-      <div style="font-size:0.78rem;color:var(--text2);margin-bottom:2px">Browser checks: <strong>6/10</strong> · Console errors: <strong>2</strong></div>
-      <div class="dim-list">
-      <div class="dim-row">
-        <span class="dim-label">Functionality</span>
-        <div class="dim-track"><div class="dim-fill" style="width:76%;background:#ef4444"></div></div>
-        <span class="dim-val">22.8/30</span>
-      </div>
-      <div class="dim-row">
-        <span class="dim-label">Code Quality</span>
-        <div class="dim-track"><div class="dim-fill" style="width:72%;background:#ef4444"></div></div>
-        <span class="dim-val">14.4/20</span>
-      </div>
-      <div class="dim-row">
-        <span class="dim-label">UX Polish</span>
-        <div class="dim-track"><div class="dim-fill" style="width:70%;background:#ef4444"></div></div>
-        <span class="dim-val">14.0/20</span>
-      </div>
-      <div class="dim-row">
-        <span class="dim-label">Visual Design</span>
-        <div class="dim-track"><div class="dim-fill" style="width:90%;background:#ef4444"></div></div>
-        <span class="dim-val">13.5/15</span>
-      </div>
-      <div class="dim-row">
-        <span class="dim-label">Accessibility</span>
-        <div class="dim-track"><div class="dim-fill" style="width:71%;background:#ef4444"></div></div>
-        <span class="dim-val">7.1/10</span>
-      </div>
-      <div class="dim-row">
-        <span class="dim-label">Performance</span>
-        <div class="dim-track"><div class="dim-fill" style="width:40%;background:#ef4444"></div></div>
-        <span class="dim-val">2.0/5</span>
-      </div>
-      </div>
-      <div style="margin-top:14px">
-        <div class="iframe-wrap"><iframe src="opus.html" loading="lazy" title="Opus 4.7 output"></iframe></div>
-      </div>
-    </div>
-
-    <div class="dim-panel" style="border-left:4px solid #ef4444;opacity:0.92">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div>
-          <span style="font-size:1.05rem;font-weight:700">🟡 Sonnet 4.6</span>
-          <span style="color:var(--text2);margin-left:6px;font-size:0.8rem">Anthropic</span>
-        </div>
-        <span class="fail-badge">⚠ Generation Failed</span>
-      </div>
-      <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:12px 14px;margin-top:6px">
-        <div style="color:#ef4444;font-weight:700;font-size:0.9rem;margin-bottom:4px">No app produced — scored 0 on all axes</div>
-        <div style="color:var(--text2);font-size:0.82rem"><strong>Error:</strong> no HTML after strip</div>
-        <div style="color:var(--text2);font-size:0.78rem;margin-top:4px">This model did not produce valid HTML within the 600s single-shot limit, so it receives no functional, quality, or speed credit for this test. No retry attempted.</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="section">
-    <h2 class="section-title">⚖️ Side-by-Side Comparison</h2>
-    <p class="section-desc">All 5 outputs rendered together (where generation succeeded).</p>
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px">
-      <div><div style="font-size:0.85rem;font-weight:600;margin-bottom:4px;color:#3b82f6">🔵 GLM-5.2 — 88/100</div><div class="iframe-wrap" style="height:380px"><iframe src="glm52.html" loading="lazy" title="GLM-5.2"></iframe></div></div>
-      <div><div style="font-size:0.85rem;font-weight:600;margin-bottom:4px;color:#22c55e">🟢 GLM 5.1 — 76/100</div><div class="iframe-wrap" style="height:380px"><iframe src="glm.html" loading="lazy" title="GLM 5.1"></iframe></div></div>
-      <div><div style="font-size:0.85rem;font-weight:600;margin-bottom:4px;color:#f97316">🟠 Ornith 35B — 71/100</div><div class="iframe-wrap" style="height:380px"><iframe src="ornith.html" loading="lazy" title="Ornith 35B"></iframe></div></div>
-      <div><div style="font-size:0.85rem;font-weight:600;margin-bottom:4px;color:#ef4444">🔴 Opus 4.7 — 57/100</div><div class="iframe-wrap" style="height:380px"><iframe src="opus.html" loading="lazy" title="Opus 4.7"></iframe></div></div>
-      <div><div style="font-size:0.85rem;font-weight:600;margin-bottom:4px;color:#ef4444">🟡 Sonnet 4.6 — FAILED</div><div class="iframe-wrap" style="height:380px;display:flex;align-items:center;justify-content:center;background:var(--bg2);color:var(--text2);font-size:0.85rem;text-align:center;padding:20px">⚠ Generation failed<br><span style="font-size:0.78rem">no HTML after strip</span></div></div>
-    </div>
-  </div>
-
-</div>
-
-<footer>
-  <p>AI Model Bake-Off · Kanban Board · Fair rerun · combined functional + quality + speed scoring</p>
-</footer>
-
-</body>
-</html>
+<a class="back" href="../index.html">← Back to Leaderboard</a>
+<h1>📋 Kanban Board</h1>
+<div class="card"><table><thead><tr><th>Rank</th><th>Model</th><th style="text-align:right">Score /1000</th><th style="text-align:right">Functional<br><span style="font-weight:400">/400</span></th><th style="text-align:right">Code Quality<br><span style="font-weight:400">/200</span></th><th style="text-align:right">Visual Design<br><span style="font-weight:400">/200</span></th><th style="text-align:right">Features<br><span style="font-weight:400">/100</span></th><th style="text-align:right">Performance<br><span style="font-weight:400">/50</span></th><th style="text-align:right">Innovation<br><span style="font-weight:400">/50</span></th><th>Status</th></tr></thead><tbody><tr><td><span style="font-size:1.2em">🥇</span></td><td><strong>🔵 GLM-5.2</strong></td><td style="text-align:right"><span class="score-big" style="color:#3b82f6">742</span></td><td style="text-align:right;color:#ef4444aa">257</td><td style="text-align:right;color:#3b82f6aa">151</td><td style="text-align:right;color:#a855f7aa">187</td><td style="text-align:right;color:#22c55eaa">100</td><td style="text-align:right;color:#f59e0baa">37</td><td style="text-align:right;color:#06b6d4aa">10</td><td><span class="badge badge-ok">OK</span></td></tr><tr><td><span style="font-size:1.2em">🥈</span></td><td><strong>🟢 GLM 5.1</strong></td><td style="text-align:right"><span class="score-big" style="color:#22c55e">739</span></td><td style="text-align:right;color:#ef4444aa">257</td><td style="text-align:right;color:#3b82f6aa">149</td><td style="text-align:right;color:#a855f7aa">187</td><td style="text-align:right;color:#22c55eaa">90</td><td style="text-align:right;color:#f59e0baa">36</td><td style="text-align:right;color:#06b6d4aa">20</td><td><span class="badge badge-ok">OK</span></td></tr><tr><td><span style="font-size:1.2em">🥉</span></td><td><strong>🟡 Sonnet 4.6</strong></td><td style="text-align:right"><span class="score-big" style="color:#f59e0b">709</span></td><td style="text-align:right;color:#ef4444aa">257</td><td style="text-align:right;color:#3b82f6aa">144</td><td style="text-align:right;color:#a855f7aa">177</td><td style="text-align:right;color:#22c55eaa">90</td><td style="text-align:right;color:#f59e0baa">42</td><td style="text-align:right;color:#06b6d4aa">0</td><td><span class="badge badge-ok">OK</span></td></tr><tr><td><span style="font-size:1.2em">4️⃣</span></td><td><strong>🟠 Ornith 35B</strong></td><td style="text-align:right"><span class="score-big" style="color:#f97316">615</span></td><td style="text-align:right;color:#ef4444aa">157</td><td style="text-align:right;color:#3b82f6aa">144</td><td style="text-align:right;color:#a855f7aa">177</td><td style="text-align:right;color:#22c55eaa">90</td><td style="text-align:right;color:#f59e0baa">37</td><td style="text-align:right;color:#06b6d4aa">10</td><td><span class="badge badge-ok">OK</span></td></tr><tr><td><span style="font-size:1.2em">5️⃣</span></td><td><strong>🔴 Opus 4.7</strong></td><td style="text-align:right"><span class="score-big" style="color:#ef4444">0</span></td><td style="text-align:right;color:#ef4444aa">0</td><td style="text-align:right;color:#3b82f6aa">0</td><td style="text-align:right;color:#a855f7aa">0</td><td style="text-align:right;color:#22c55eaa">0</td><td style="text-align:right;color:#f59e0baa">0</td><td style="text-align:right;color:#06b6d4aa">0</td><td><span class="badge badge-fail">FAILED</span></td></tr></tbody></table></div><h2>👁️ Live Previews</h2><div class="app-grid">
+            <div class="app-card">
+                <iframe src="glm52.html" loading="lazy" sandbox="allow-scripts"></iframe>
+                <div class="app-info">
+                    <h3>🔵 GLM-5.2 — 742 pts</h3>
+                    <div class="dims-mini"><span class="dim-pill" style="color:#ef4444">Functional: 257</span><span class="dim-pill" style="color:#3b82f6">Code Quality: 151</span><span class="dim-pill" style="color:#a855f7">Visual Design: 187</span><span class="dim-pill" style="color:#22c55e">Features: 100</span><span class="dim-pill" style="color:#f59e0b">Performance: 37</span><span class="dim-pill" style="color:#06b6d4">Innovation: 10</span></div></div></div>
+            <div class="app-card">
+                <iframe src="glm.html" loading="lazy" sandbox="allow-scripts"></iframe>
+                <div class="app-info">
+                    <h3>🟢 GLM 5.1 — 739 pts</h3>
+                    <div class="dims-mini"><span class="dim-pill" style="color:#ef4444">Functional: 257</span><span class="dim-pill" style="color:#3b82f6">Code Quality: 149</span><span class="dim-pill" style="color:#a855f7">Visual Design: 187</span><span class="dim-pill" style="color:#22c55e">Features: 90</span><span class="dim-pill" style="color:#f59e0b">Performance: 36</span><span class="dim-pill" style="color:#06b6d4">Innovation: 20</span></div></div></div>
+            <div class="app-card">
+                <iframe src="sonnet.html" loading="lazy" sandbox="allow-scripts"></iframe>
+                <div class="app-info">
+                    <h3>🟡 Sonnet 4.6 — 709 pts</h3>
+                    <div class="dims-mini"><span class="dim-pill" style="color:#ef4444">Functional: 257</span><span class="dim-pill" style="color:#3b82f6">Code Quality: 144</span><span class="dim-pill" style="color:#a855f7">Visual Design: 177</span><span class="dim-pill" style="color:#22c55e">Features: 90</span><span class="dim-pill" style="color:#f59e0b">Performance: 42</span><span class="dim-pill" style="color:#06b6d4">Innovation: 0</span></div></div></div>
+            <div class="app-card">
+                <iframe src="ornith.html" loading="lazy" sandbox="allow-scripts"></iframe>
+                <div class="app-info">
+                    <h3>🟠 Ornith 35B — 615 pts</h3>
+                    <div class="dims-mini"><span class="dim-pill" style="color:#ef4444">Functional: 157</span><span class="dim-pill" style="color:#3b82f6">Code Quality: 144</span><span class="dim-pill" style="color:#a855f7">Visual Design: 177</span><span class="dim-pill" style="color:#22c55e">Features: 90</span><span class="dim-pill" style="color:#f59e0b">Performance: 37</span><span class="dim-pill" style="color:#06b6d4">Innovation: 10</span></div></div></div></div></body></html>

@@ -3,1158 +3,1329 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Markdown Studio — Live Editor</title>
+<title>Markdown Studio — Live Preview Editor</title>
 <style>
-  :root {
-    --bg: #0a0b0f;
-    --bg-elev: #12141c;
-    --bg-elev-2: #181b25;
-    --border: #252937;
-    --border-strong: #353a4d;
-    --fg: #e8e9ee;
-    --fg-muted: #8b8fa3;
-    --fg-dim: #5a5e72;
-    --accent: #ff6b35;
-    --accent-glow: rgba(255, 107, 53, 0.35);
-    --accent-2: #ffd166;
-    --success: #4ade80;
-    --danger: #f43f5e;
-    --mono: 'SF Mono', 'JetBrains Mono', Menlo, Monaco, Consolas, monospace;
-    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  }
+:root {
+  --bg: #0a0b0f;
+  --bg-deep: #06070a;
+  --bg-elev: #11131a;
+  --bg-panel: #14161d;
+  --bg-input: #0c0e13;
+  --border: rgba(255, 255, 255, 0.06);
+  --border-mid: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --fg: #ebe8e1;
+  --fg-mid: #aaa49a;
+  --fg-muted: #6a6760;
+  --fg-dim: #3d3b37;
+  --accent: #ff6b4a;
+  --accent-hot: #ff8866;
+  --accent-deep: #d94a2c;
+  --accent-glow: rgba(255, 107, 74, 0.4);
+  --accent-soft: rgba(255, 107, 74, 0.1);
+  --code-bg: #08090d;
+  --green: #8fd3a6;
+  --split: 50%;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-  html, body {
-    height: 100%;
-    overflow: hidden;
-    font-family: var(--sans);
-    background: var(--bg);
-    color: var(--fg);
-    -webkit-font-smoothing: antialiased;
-  }
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background:
-      radial-gradient(900px 600px at 12% 8%, rgba(255, 107, 53, 0.08), transparent 60%),
-      radial-gradient(700px 500px at 92% 92%, rgba(255, 209, 102, 0.06), transparent 60%);
-    pointer-events: none;
-    z-index: 0;
-  }
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 1000px 600px at 15% -10%, rgba(255, 107, 74, 0.08), transparent 50%),
+    radial-gradient(ellipse 800px 600px at 90% 110%, rgba(132, 182, 232, 0.05), transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
 
-  .app {
-    position: relative;
-    z-index: 1;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+  -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+}
 
-  /* ========== HEADER ========== */
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 22px;
-    background: rgba(18, 20, 28, 0.85);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
-    gap: 16px;
-    flex-shrink: 0;
-  }
+.app {
+  position: relative;
+  z-index: 1;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+}
 
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
+/* ====== TOPBAR ====== */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  background: rgba(15, 17, 23, 0.65);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  z-index: 10;
+}
 
-  .logo {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 900;
-    font-size: 18px;
-    color: #0a0b0f;
-    box-shadow: 0 0 24px var(--accent-glow);
-    position: relative;
-    overflow: hidden;
-  }
-  .logo::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.3) 50%, transparent 60%);
-    animation: shine 3s infinite;
-  }
-  @keyframes shine {
-    0% { transform: translateX(-100%); }
-    50%, 100% { transform: translateX(100%); }
-  }
+.brand { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 
-  .brand-text h1 {
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: -0.3px;
-  }
-  .brand-text p {
-    font-size: 11px;
-    color: var(--fg-muted);
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-  }
+.logo {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  display: grid;
+  place-items: center;
+  box-shadow:
+    0 6px 20px var(--accent-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+.logo::after {
+  content: '';
+  position: absolute; inset: -2px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent), transparent);
+  opacity: 0.4;
+  filter: blur(8px);
+  z-index: -1;
+}
+.logo svg { width: 20px; height: 20px; stroke: white; }
 
-  .stats {
-    display: flex;
-    gap: 18px;
-    align-items: center;
-    font-size: 12px;
-    color: var(--fg-muted);
-  }
-  .stat {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    line-height: 1.2;
-  }
-  .stat-value {
-    color: var(--fg);
-    font-weight: 700;
-    font-size: 15px;
-    font-variant-numeric: tabular-nums;
-  }
-  .stat-label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: var(--fg-dim);
-  }
+.brand-text { display: flex; flex-direction: column; line-height: 1.1; gap: 2px; }
+.brand-name { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; color: var(--fg); }
+.brand-sub {
+  font-size: 10.5px; color: var(--fg-muted);
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
 
-  .actions {
-    display: flex;
-    gap: 8px;
-  }
+.topbar-right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
 
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    background: var(--bg-elev-2);
-    border: 1px solid var(--border);
-    color: var(--fg);
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.18s ease;
-    font-family: inherit;
-  }
-  .btn:hover {
-    background: var(--border);
-    border-color: var(--border-strong);
-    transform: translateY(-1px);
-  }
-  .btn:active { transform: translateY(0); }
-  .btn-primary {
-    background: linear-gradient(135deg, var(--accent), #ff8559);
-    border-color: transparent;
-    color: #0a0b0f;
-    font-weight: 600;
-  }
-  .btn-primary:hover {
-    box-shadow: 0 4px 16px var(--accent-glow);
-  }
-  .btn svg { width: 14px; height: 14px; }
+.stat-group {
+  display: flex; align-items: center; gap: 18px;
+  padding: 6px 16px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+.stat { display: flex; flex-direction: column; align-items: center; line-height: 1.1; gap: 2px; }
+.stat-label { font-size: 9px; color: var(--fg-muted); letter-spacing: 0.1em; font-weight: 600; }
+.stat-value {
+  font-size: 13px; color: var(--fg); font-weight: 600;
+  font-feature-settings: "tnum";
+  font-family: var(--font-mono);
+}
 
-  /* ========== TOOLBAR ========== */
-  .toolbar {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 8px 16px;
-    background: var(--bg-elev);
-    border-bottom: 1px solid var(--border);
-    overflow-x: auto;
-    flex-shrink: 0;
-  }
-  .toolbar::-webkit-scrollbar { height: 4px; }
-  .toolbar::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
+.live-badge {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px;
+  background: rgba(143, 211, 166, 0.08);
+  border: 1px solid rgba(143, 211, 166, 0.2);
+  border-radius: 999px;
+  font-size: 11px; font-weight: 600;
+  color: var(--green); letter-spacing: 0.08em;
+}
+.live-dot {
+  width: 6px; height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 var(--green);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(143, 211, 166, 0.5); }
+  70% { box-shadow: 0 0 0 6px rgba(143, 211, 166, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(143, 211, 166, 0); }
+}
 
-  .tool-btn {
-    width: 34px;
-    height: 34px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border: 1px solid transparent;
-    color: var(--fg-muted);
-    border-radius: 7px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    flex-shrink: 0;
-    font-family: inherit;
-  }
-  .tool-btn:hover {
-    background: var(--bg-elev-2);
-    color: var(--accent);
-    border-color: var(--border);
-  }
-  .tool-btn:active { transform: scale(0.94); }
-  .tool-btn svg { width: 16px; height: 16px; }
-  .tool-divider {
-    width: 1px;
-    height: 20px;
-    background: var(--border);
-    margin: 0 4px;
-    flex-shrink: 0;
-  }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--border-mid);
+  background: var(--bg-elev);
+  color: var(--fg);
+  font-size: 13px; font-weight: 500;
+  font-family: inherit;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.btn:hover { background: var(--bg-panel); border-color: var(--border-strong); transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn svg { width: 15px; height: 15px; }
 
-  /* ========== WORKSPACE ========== */
-  .workspace {
-    flex: 1;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    overflow: hidden;
-    min-height: 0;
-  }
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 4px 14px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--accent-hot), var(--accent));
+  box-shadow: 0 6px 20px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
 
-  .pane {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    min-width: 0;
-    min-height: 0;
-  }
+.btn:focus-visible, .tool:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 
-  .pane-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 16px;
-    background: var(--bg-elev);
-    border-bottom: 1px solid var(--border);
-    font-size: 11px;
-    color: var(--fg-muted);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 600;
-    flex-shrink: 0;
-  }
-  .pane-header .dot {
-    display: inline-block;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    margin-right: 8px;
-    background: var(--accent);
-    box-shadow: 0 0 8px var(--accent-glow);
-    animation: pulse 2s infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-  .pane-header .right { display: flex; gap: 10px; align-items: center; }
-  .pane-tag {
-    background: var(--bg-elev-2);
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-size: 10px;
-    color: var(--fg-dim);
-  }
+/* ====== TOOLBAR ====== */
+.toolbar {
+  display: flex; align-items: center; gap: 4px;
+  padding: 8px 16px;
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.toolbar::-webkit-scrollbar { display: none; }
 
-  .editor-pane { border-right: 1px solid var(--border); }
+.tool-group { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
 
-  .editor-wrap {
-    flex: 1;
-    position: relative;
-    overflow: hidden;
-  }
-  .editor {
-    width: 100%;
-    height: 100%;
-    background: transparent;
-    border: none;
-    outline: none;
-    resize: none;
-    padding: 24px 28px;
-    color: var(--fg);
-    font-family: var(--mono);
-    font-size: 14px;
-    line-height: 1.75;
-    tab-size: 2;
-    caret-color: var(--accent);
-  }
-  .editor::-webkit-scrollbar { width: 10px; }
-  .editor::-webkit-scrollbar-track { background: transparent; }
-  .editor::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 5px;
-    border: 2px solid var(--bg);
-  }
-  .editor::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+.tool-divider {
+  width: 1px; height: 22px;
+  background: var(--border);
+  margin: 0 6px; flex-shrink: 0;
+}
 
-  /* Preview */
-  .preview-pane { background: var(--bg); }
-  .preview {
-    flex: 1;
-    overflow-y: auto;
-    padding: 32px 40px 80px;
-    line-height: 1.7;
-  }
-  .preview::-webkit-scrollbar { width: 10px; }
-  .preview::-webkit-scrollbar-track { background: transparent; }
-  .preview::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 5px;
-    border: 2px solid var(--bg);
-  }
+.tool {
+  display: inline-grid; place-items: center;
+  width: 32px; height: 32px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--fg-mid);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+.tool:hover { background: var(--bg-elev); color: var(--fg); border-color: var(--border-mid); }
+.tool:active { transform: scale(0.92); }
+.tool svg { width: 17px; height: 17px; stroke-width: 2; }
 
-  /* ========== PREVIEW STYLES ========== */
-  .preview h1, .preview h2, .preview h3, .preview h4 {
-    color: var(--fg);
-    font-weight: 700;
-    line-height: 1.25;
-    margin: 28px 0 14px;
-    scroll-margin-top: 20px;
-  }
-  .preview h1:first-child, .preview h2:first-child, .preview h3:first-child { margin-top: 0; }
+.tool-text {
+  font-size: 12px; font-weight: 700;
+  font-family: var(--font-mono);
+}
 
-  .preview h1 {
-    font-size: 32px;
-    letter-spacing: -0.8px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid var(--border);
-    position: relative;
-  }
-  .preview h1::before {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    width: 60px;
-    height: 2px;
-    background: linear-gradient(90deg, var(--accent), var(--accent-2));
-  }
-  .preview h2 {
-    font-size: 24px;
-    letter-spacing: -0.4px;
-    padding-left: 14px;
-    border-left: 4px solid var(--accent);
-  }
-  .preview h3 {
-    font-size: 19px;
-    color: var(--accent-2);
-  }
-  .preview h4 {
-    font-size: 16px;
-    color: var(--fg-muted);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
+.toolbar-spacer { flex: 1; }
 
-  .preview p {
-    margin: 12px 0;
-    color: #d4d6e0;
-  }
+.toolbar-hint {
+  font-size: 11px; color: var(--fg-muted);
+  display: flex; align-items: center; gap: 6px;
+  flex-shrink: 0; padding-left: 10px;
+}
+.toolbar-hint kbd {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 5px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border-mid);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  color: var(--fg-mid);
+  line-height: 1;
+}
 
-  .preview strong {
-    color: var(--fg);
-    font-weight: 700;
-  }
-  .preview em {
-    color: var(--accent-2);
-    font-style: italic;
-  }
+/* ====== SPLIT ====== */
+.split {
+  display: grid;
+  grid-template-columns: var(--split) 1px 1fr;
+  overflow: hidden;
+  position: relative;
+  min-height: 0;
+}
 
-  .preview a {
-    color: var(--accent);
-    text-decoration: none;
-    border-bottom: 1px dashed var(--accent);
-    transition: all 0.15s;
-  }
-  .preview a:hover {
-    color: var(--accent-2);
-    border-bottom-color: var(--accent-2);
-    border-bottom-style: solid;
-  }
+.pane {
+  display: flex; flex-direction: column;
+  min-width: 0; min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
 
-  .preview code {
-    font-family: var(--mono);
-    font-size: 0.88em;
-    background: var(--bg-elev-2);
-    color: var(--accent-2);
-    padding: 2px 7px;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-  }
+.pane-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  flex-shrink: 0;
+}
 
-  .preview pre {
-    background: var(--bg-elev);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 18px 20px;
-    overflow-x: auto;
-    margin: 16px 0;
-    position: relative;
-  }
-  .preview pre::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 18px;
-    right: 18px;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--accent), transparent);
-    opacity: 0.4;
-  }
-  .preview pre code {
-    background: transparent;
-    border: none;
-    padding: 0;
-    color: #d4d6e0;
-    font-size: 13px;
-    line-height: 1.6;
-    display: block;
-  }
+.pane-label {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--fg-muted);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
 
-  .preview blockquote {
-    margin: 16px 0;
-    padding: 12px 18px;
-    background: linear-gradient(90deg, rgba(255, 107, 53, 0.08), transparent);
-    border-left: 3px solid var(--accent);
-    border-radius: 0 8px 8px 0;
-    color: var(--fg-muted);
-    font-style: italic;
-  }
-  .preview blockquote p { margin: 4px 0; }
+.pane-dot {
+  width: 6px; height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+.pane-dot.preview-dot {
+  background: var(--green);
+  box-shadow: 0 0 8px rgba(143, 211, 166, 0.4);
+}
 
-  .preview ul, .preview ol {
-    margin: 12px 0;
-    padding-left: 24px;
-    color: #d4d6e0;
-  }
-  .preview li { margin: 5px 0; }
-  .preview ul li::marker { color: var(--accent); }
-  .preview ol li::marker { color: var(--accent-2); font-weight: 700; }
+.pane-info {
+  font-size: 11px; color: var(--fg-muted);
+  font-family: var(--font-mono);
+}
 
-  .preview hr {
-    border: none;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
-    margin: 24px 0;
-  }
+.editor-pane { background: var(--bg); }
 
-  .preview table {
-    border-collapse: collapse;
-    width: 100%;
-    margin: 16px 0;
-    font-size: 14px;
-  }
-  .preview th, .preview td {
-    border: 1px solid var(--border);
-    padding: 8px 12px;
-    text-align: left;
-  }
-  .preview th {
-    background: var(--bg-elev-2);
-    color: var(--accent-2);
-    font-weight: 600;
-  }
+#editor {
+  flex: 1;
+  width: 100%;
+  background: transparent;
+  border: none; outline: none; resize: none;
+  padding: 28px 32px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--fg);
+  caret-color: var(--accent);
+  tab-size: 2;
+}
+#editor::placeholder { color: var(--fg-dim); }
+#editor::selection { background: var(--accent-soft); }
 
-  /* Toast */
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    background: var(--bg-elev-2);
-    border: 1px solid var(--border-strong);
-    color: var(--fg);
-    padding: 12px 20px;
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 500;
-    box-shadow: 0 12px 32px rgba(0,0,0,0.5);
-    opacity: 0;
-    pointer-events: none;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-  .toast .toast-icon {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--success);
-    color: #0a0b0f;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    font-weight: 700;
-  }
+.divider {
+  background: var(--border);
+  cursor: col-resize;
+  position: relative;
+  transition: background 0.15s ease;
+  z-index: 5;
+}
+.divider::before { content: ''; position: absolute; inset: 0 -4px; }
+.divider:hover, .divider.active { background: var(--accent); }
+.divider-grip {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px; height: 32px;
+  background: var(--fg-muted);
+  border-radius: 2px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.divider:hover .divider-grip { opacity: 0.6; }
 
-  /* Mobile */
-  .mobile-tabs {
-    display: none;
-    background: var(--bg-elev);
-    border-bottom: 1px solid var(--border);
-    padding: 6px;
-    gap: 4px;
-    flex-shrink: 0;
-  }
-  .mobile-tab {
-    flex: 1;
-    padding: 8px;
-    text-align: center;
-    background: transparent;
-    border: none;
-    color: var(--fg-muted);
-    font-size: 12px;
-    font-weight: 600;
-    border-radius: 6px;
-    cursor: pointer;
-    font-family: inherit;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-  .mobile-tab.active {
-    background: var(--bg-elev-2);
-    color: var(--accent);
-  }
+body.dragging { cursor: col-resize !important; user-select: none; }
+body.dragging * { cursor: col-resize !important; user-select: none !important; }
 
-  @media (max-width: 820px) {
-    .stats { display: none; }
-    .brand-text p { display: none; }
-    header { padding: 12px 16px; }
-    .mobile-tabs { display: flex; }
-    .workspace {
-      grid-template-columns: 1fr;
-    }
-    .editor-pane {
-      display: none;
-    }
-    .preview-pane {
-      display: none;
-    }
-    .workspace[data-view="edit"] .editor-pane { display: flex; }
-    .workspace[data-view="preview"] .preview-pane { display: flex; }
-    .preview { padding: 22px; }
-    .editor { padding: 18px; font-size: 13px; }
-  }
+.preview-pane {
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border);
+}
 
-  /* Empty state subtle hint */
-  .scroll-fade {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 40px;
-    background: linear-gradient(to top, var(--bg), transparent);
-    pointer-events: none;
+.preview-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.markdown-body {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 36px 40px 80px;
+  color: var(--fg);
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+/* ====== MARKDOWN CONTENT ====== */
+.markdown-body > *:first-child { margin-top: 0; }
+
+.markdown-body h1, .markdown-body h2, .markdown-body h3,
+.markdown-body h4, .markdown-body h5, .markdown-body h6 {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  margin: 1.8em 0 0.6em;
+  color: var(--fg);
+}
+
+.markdown-body h1 {
+  font-size: 2.4em;
+  font-weight: 800;
+  margin-top: 0;
+  padding-bottom: 0.4em;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, var(--fg) 0%, var(--accent-hot) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.025em;
+}
+
+.markdown-body h2 {
+  font-size: 1.65em;
+  display: flex; align-items: center; gap: 14px;
+}
+.markdown-body h2::before {
+  content: '';
+  display: inline-block;
+  width: 4px; height: 0.75em;
+  background: linear-gradient(180deg, var(--accent), var(--accent-deep));
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.markdown-body h3 { font-size: 1.32em; color: var(--fg); }
+.markdown-body h4 { font-size: 1.1em; color: var(--fg-mid); }
+
+.markdown-body p { margin: 0 0 1.15em; color: var(--fg); }
+
+.markdown-body a {
+  color: var(--accent-hot);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 107, 74, 0.25);
+  transition: all 0.15s ease;
+  padding-bottom: 1px;
+}
+.markdown-body a:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.markdown-body strong { color: var(--fg); font-weight: 700; }
+.markdown-body em { font-style: italic; }
+.markdown-body del {
+  color: var(--fg-muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--accent);
+}
+
+.markdown-body ul, .markdown-body ol {
+  margin: 0 0 1.2em;
+  padding-left: 1.5em;
+}
+.markdown-body li { margin: 0.35em 0; }
+.markdown-body li::marker { color: var(--accent); font-weight: 700; }
+.markdown-body ul li::marker { content: '◆ '; font-size: 0.7em; }
+
+.markdown-body blockquote {
+  margin: 1.4em 0;
+  padding: 14px 20px 14px 24px;
+  background: linear-gradient(135deg, var(--accent-soft), transparent);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 10px 10px 0;
+  color: var(--fg-mid);
+  font-style: italic;
+  position: relative;
+}
+.markdown-body blockquote::before {
+  content: '"';
+  position: absolute;
+  top: -2px; left: 10px;
+  font-size: 56px;
+  font-family: Georgia, serif;
+  color: var(--accent);
+  opacity: 0.2;
+  line-height: 1;
+}
+.markdown-body blockquote p { margin: 0; position: relative; }
+
+.markdown-body hr {
+  border: none; height: 1px;
+  background: linear-gradient(to right, transparent, var(--border-strong), transparent);
+  margin: 2.2em 0;
+  position: relative;
+}
+.markdown-body hr::after {
+  content: '◆';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-panel);
+  padding: 0 12px;
+  color: var(--fg-muted);
+  font-size: 8px;
+}
+
+.markdown-body code.inline-code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: rgba(255, 107, 74, 0.1);
+  color: var(--accent-hot);
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 107, 74, 0.18);
+  font-weight: 500;
+}
+
+.markdown-body .code-block {
+  margin: 1.4em 0;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+}
+.markdown-body .code-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.025);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+.code-header-left { display: flex; align-items: center; gap: 12px; }
+.code-dots { display: flex; gap: 5px; }
+.code-dots span { width: 9px; height: 9px; border-radius: 50%; }
+.code-dots span:nth-child(1) { background: #ff5f57; }
+.code-dots span:nth-child(2) { background: #febc2e; }
+.code-dots span:nth-child(3) { background: #28c840; }
+
+.markdown-body .code-block code {
+  display: block;
+  padding: 16px 18px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.65;
+  color: #d8d4cc;
+  white-space: pre;
+  overflow-x: auto;
+  background: transparent;
+}
+
+/* ====== STATUSBAR ====== */
+.statusbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 20px;
+  background: var(--bg-deep);
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--fg-muted);
+  flex-shrink: 0;
+}
+.status-left, .status-right { display: flex; align-items: center; gap: 8px; }
+.status-item {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+.status-dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; }
+.status-sep { color: var(--fg-dim); }
+
+/* ====== TOAST ====== */
+.toast {
+  position: fixed;
+  bottom: 50px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--bg-elev);
+  border: 1px solid var(--accent);
+  color: var(--fg);
+  padding: 12px 20px;
+  border-radius: 10px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; font-weight: 500;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 4px var(--accent-soft);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 1000;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast svg { width: 18px; height: 18px; color: var(--accent); stroke-width: 2.5; }
+
+/* ====== SCROLLBAR ====== */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+/* ====== RESPONSIVE ====== */
+@media (max-width: 900px) {
+  .stat-group { display: none; }
+  .toolbar-hint { display: none; }
+  .brand-sub { display: none; }
+  .markdown-body { padding: 24px 20px 60px; }
+  #editor { padding: 20px; }
+}
+
+@media (max-width: 700px) {
+  .split {
+    grid-template-columns: 1fr;
+    grid-template-rows: var(--split) 1px 1fr;
   }
+  .divider { cursor: row-resize; width: 100%; height: 1px; }
+  .divider-grip { width: 32px; height: 2px; }
+  .topbar { padding: 10px 14px; gap: 8px; }
+  .brand-text { display: none; }
+  .live-badge { padding: 6px 10px; font-size: 10px; }
+  .btn { padding: 6px 10px; font-size: 12px; }
+  .btn span { display: none; }
+  .toolbar { padding: 6px 10px; }
+  .pane-header { padding: 6px 12px; }
+  .statusbar { padding: 5px 12px; font-size: 10px; }
+  .status-left .status-item:nth-child(n+3),
+  .status-right .status-item:nth-child(n+2) { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 </style>
 </head>
 <body>
+
 <div class="app">
-
-  <header>
+  <header class="topbar">
     <div class="brand">
-      <div class="logo">M</div>
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 6h18M3 12h18M3 18h12"/>
+          <path d="M17 15l4 4M21 15l-4 4" stroke-width="2"/>
+        </svg>
+      </div>
       <div class="brand-text">
-        <h1>Markdown Studio</h1>
-        <p>Live Editor · Pure HTML</p>
+        <div class="brand-name">Markdown Studio</div>
+        <div class="brand-sub">Local · Private · Live</div>
       </div>
     </div>
 
-    <div class="stats">
-      <div class="stat">
-        <span class="stat-value" id="wordCount">0</span>
-        <span class="stat-label">Words</span>
+    <div class="topbar-right">
+      <div class="stat-group" aria-label="Document statistics">
+        <div class="stat">
+          <span class="stat-label">WORDS</span>
+          <span class="stat-value" id="stat-words">0</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">CHARS</span>
+          <span class="stat-value" id="stat-chars">0</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">READ</span>
+          <span class="stat-value" id="stat-time">0m</span>
+        </div>
       </div>
-      <div class="stat">
-        <span class="stat-value" id="charCount">0</span>
-        <span class="stat-label">Chars</span>
-      </div>
-      <div class="stat">
-        <span class="stat-value" id="lineCount">0</span>
-        <span class="stat-label">Lines</span>
-      </div>
-      <div class="stat">
-        <span class="stat-value" id="readTime">0</span>
-        <span class="stat-label">Min read</span>
-      </div>
-    </div>
 
-    <div class="actions">
-      <button class="btn" id="clearBtn" title="Clear content">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-        Clear
-      </button>
-      <button class="btn btn-primary" id="copyBtn" title="Copy markdown">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-        Copy Markdown
+      <div class="live-badge" aria-label="Live preview active">
+        <span class="live-dot"></span>
+        LIVE
+      </div>
+
+      <button class="btn btn-primary" id="btn-copy" aria-label="Copy markdown to clipboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2"/>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+        </svg>
+        <span>Copy Markdown</span>
       </button>
     </div>
   </header>
 
-  <div class="toolbar" id="toolbar">
-    <button class="tool-btn" data-md="heading1" title="Heading 1">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h8M4 18V6M12 18V6M17 12l3-2v8"/></svg>
-    </button>
-    <button class="tool-btn" data-md="heading2" title="Heading 2">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h8M4 18V6M12 18V6M21 18h-4c0-4 4-3 4-6 0-1.5-2-2.5-4-1"/></svg>
-    </button>
-    <div class="tool-divider"></div>
-    <button class="tool-btn" data-md="bold" title="Bold (Ctrl+B)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
-    </button>
-    <button class="tool-btn" data-md="italic" title="Italic (Ctrl+I)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>
-    </button>
-    <button class="tool-btn" data-md="code" title="Inline code">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-    </button>
-    <div class="tool-divider"></div>
-    <button class="tool-btn" data-md="link" title="Link (Ctrl+K)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-    </button>
-    <button class="tool-btn" data-md="quote" title="Blockquote">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2-2-2H4c-1.25 0-2 .75-2 2v8c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2zm12 0c3 0 7-1 7-8V5c0-1.25-.757-2-2-2h-4c-1.25 0-2 .75-2 2v8c0 1.25.75 2 2 2h.75c0 2 .25 2-1.75 2v1c0 1-1 2-2 2z"/></svg>
-    </button>
-    <div class="tool-divider"></div>
-    <button class="tool-btn" data-md="ul" title="Bullet list">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-    </button>
-    <button class="tool-btn" data-md="ol" title="Numbered list">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4M4 10h2M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
-    </button>
-    <button class="tool-btn" data-md="codeblock" title="Code block">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M9 9l-2 3 2 3M15 9l2 3-2 3"/></svg>
-    </button>
-    <div class="tool-divider"></div>
-    <button class="tool-btn" data-md="hr" title="Divider">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="20" y2="6" opacity="0.4"/><line x1="4" y1="18" x2="20" y2="18" opacity="0.4"/></svg>
-    </button>
-  </div>
-
-  <div class="mobile-tabs">
-    <button class="mobile-tab active" data-tab="edit">Editor</button>
-    <button class="mobile-tab" data-tab="preview">Preview</button>
-  </div>
-
-  <div class="workspace" id="workspace" data-view="edit">
-
-    <div class="pane editor-pane">
-      <div class="pane-header">
-        <span><span class="dot"></span>Markdown Input</span>
-        <div class="right">
-          <span class="pane-tag">.md</span>
-        </div>
-      </div>
-      <div class="editor-wrap">
-        <textarea class="editor" id="editor" spellcheck="false" placeholder="Start writing markdown..."></textarea>
-      </div>
+  <div class="toolbar" role="toolbar" aria-label="Formatting">
+    <div class="tool-group">
+      <button class="tool" data-action="bold" title="Bold (Ctrl+B)" aria-label="Bold">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/>
+          <path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/>
+        </svg>
+      </button>
+      <button class="tool" data-action="italic" title="Italic (Ctrl+I)" aria-label="Italic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="4" x2="10" y2="4"/>
+          <line x1="14" y1="20" x2="5" y2="20"/>
+          <line x1="15" y1="4" x2="9" y2="20"/>
+        </svg>
+      </button>
+      <button class="tool" data-action="strike" title="Strikethrough" aria-label="Strikethrough">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="12" x2="20" y2="12"/>
+          <path d="M16 6a4 4 0 0 0-4-3h-2.5a3.5 3.5 0 0 0 0 7"/>
+          <path d="M16 18a4 4 0 0 1-4 3h-2.5a3.5 3.5 0 0 1 0-7"/>
+        </svg>
+      </button>
     </div>
 
-    <div class="pane preview-pane">
-      <div class="pane-header">
-        <span><span class="dot" style="background:var(--accent-2); box-shadow:0 0 8px rgba(255,209,102,0.4);"></span>Live Preview</span>
-        <div class="right">
-          <span class="pane-tag" id="syncTag">synced</span>
-        </div>
-      </div>
-      <div class="preview" id="preview"></div>
+    <div class="tool-divider"></div>
+
+    <div class="tool-group">
+      <button class="tool" data-action="h1" title="Heading 1" aria-label="Heading 1"><span class="tool-text">H1</span></button>
+      <button class="tool" data-action="h2" title="Heading 2" aria-label="Heading 2"><span class="tool-text">H2</span></button>
+      <button class="tool" data-action="h3" title="Heading 3" aria-label="Heading 3"><span class="tool-text">H3</span></button>
     </div>
 
+    <div class="tool-divider"></div>
+
+    <div class="tool-group">
+      <button class="tool" data-action="ul" title="Bullet List" aria-label="Bullet list">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="9" y1="6" x2="20" y2="6"/>
+          <line x1="9" y1="12" x2="20" y2="12"/>
+          <line x1="9" y1="18" x2="20" y2="18"/>
+          <circle cx="4" cy="6" r="1.2" fill="currentColor"/>
+          <circle cx="4" cy="12" r="1.2" fill="currentColor"/>
+          <circle cx="4" cy="18" r="1.2" fill="currentColor"/>
+        </svg>
+      </button>
+      <button class="tool" data-action="ol" title="Numbered List" aria-label="Numbered list">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="10" y1="6" x2="20" y2="6"/>
+          <line x1="10" y1="12" x2="20" y2="12"/>
+          <line x1="10" y1="18" x2="20" y2="18"/>
+          <path d="M4 5h2v1l-1.5 2H6"/>
+          <path d="M4 12h2l-2 2h2"/>
+          <path d="M4 18.5A1.5 1.5 0 0 1 5.5 17H6v4H4"/>
+        </svg>
+      </button>
+      <button class="tool" data-action="quote" title="Blockquote" aria-label="Blockquote">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 7h4v6c0 2-1.5 3.5-3.5 4"/>
+          <path d="M14 7h4v6c0 2-1.5 3.5-3.5 4"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="tool-divider"></div>
+
+    <div class="tool-group">
+      <button class="tool" data-action="link" title="Link (Ctrl+K)" aria-label="Insert link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+      </button>
+      <button class="tool" data-action="code" title="Inline Code" aria-label="Inline code">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 18 22 12 16 6"/>
+          <polyline points="8 6 2 12 8 18"/>
+        </svg>
+      </button>
+      <button class="tool" data-action="codeblock" title="Code Block" aria-label="Code block">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="16" rx="2"/>
+          <polyline points="9 9 7 12 9 15"/>
+          <polyline points="15 9 17 12 15 15"/>
+        </svg>
+      </button>
+      <button class="tool" data-action="hr" title="Horizontal Rule" aria-label="Horizontal rule">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="12" x2="20" y2="12"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="toolbar-spacer"></div>
+
+    <div class="toolbar-hint">
+      <kbd class="kbd-mod">Ctrl</kbd>+<kbd>B</kbd>
+      <span>·</span>
+      <kbd class="kbd-mod">Ctrl</kbd>+<kbd>I</kbd>
+      <span>·</span>
+      <kbd>Tab</kbd>
+    </div>
   </div>
+
+  <main class="split" id="split">
+    <section class="pane editor-pane" aria-label="Editor">
+      <div class="pane-header">
+        <span class="pane-label">
+          <span class="pane-dot"></span>
+          EDITOR
+        </span>
+        <span class="pane-info" id="cursor-pos">Ln 1, Col 1</span>
+      </div>
+      <textarea id="editor" spellcheck="false" placeholder="# Start writing in Markdown..."></textarea>
+    </section>
+
+    <div class="divider" id="divider" role="separator" aria-label="Resize panes">
+      <div class="divider-grip"></div>
+    </div>
+
+    <section class="pane preview-pane" aria-label="Preview">
+      <div class="pane-header">
+        <span class="pane-label">
+          <span class="pane-dot preview-dot"></span>
+          PREVIEW
+        </span>
+        <span class="pane-info">Live render</span>
+      </div>
+      <div class="preview-scroll">
+        <article id="preview" class="markdown-body"></article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="statusbar">
+    <div class="status-left">
+      <span class="status-item"><span class="status-dot"></span>Ready</span>
+      <span class="status-sep">·</span>
+      <span class="status-item" id="status-lines">0 lines</span>
+      <span class="status-sep">·</span>
+      <span class="status-item" id="status-selection">0 selected</span>
+    </div>
+    <div class="status-right">
+      <span class="status-item">UTF-8</span>
+      <span class="status-sep">·</span>
+      <span class="status-item">Markdown</span>
+      <span class="status-sep">·</span>
+      <span class="status-item">100% local</span>
+    </div>
+  </footer>
 </div>
 
-<div class="toast" id="toast">
-  <span class="toast-icon">✓</span>
-  <span id="toastMsg">Copied to clipboard</span>
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+  <span id="toast-text">Copied to clipboard</span>
 </div>
+
+<script type="text/markdown" id="sample">
+# Welcome to Markdown Studio
+
+A **distraction-free** editor with *live* preview. Type plain text on the left, watch it transform into richly formatted HTML on the right — instantly, with zero network calls.
+
+## Why you'll love it
+
+- Real-time rendering as you type
+- Clean, focused writing environment
+- All the formatting you actually need
+- Stays entirely in your browser — no tracking, no accounts
+
+> Good writing is rewriting. Good tools disappear.
+> — adapted from Ernest Hemingway
+
+### Inline formatting
+
+Mix **bold**, *italics*, ~~strikethrough~~, and `inline code` freely within a single paragraph. Even [links to anywhere](https://example.com) fit naturally.
+
+### Code blocks
+
+Fence larger snippets with triple backticks:
+
+```javascript
+function fibonacci(n) {
+  if (n < 2) return n;
+  return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+// Try the toolbar above, or hit Ctrl+B / Ctrl+I
+const greeting = `Hello, ${name}!`;
+```
+
+### Lists, ordered & otherwise
+
+1. Plan your idea
+2. Write the first draft
+3. Refine until it sings
+4. Ship it
+
+Or unordered:
+
+- Tea
+- Coffee
+- Something stronger
+
+---
+
+Replace this text with your own. The preview updates with every keystroke.
+</script>
 
 <script>
 (function() {
   'use strict';
 
+  // ============ Element refs ============
   const editor = document.getElementById('editor');
   const preview = document.getElementById('preview');
-  const wordCountEl = document.getElementById('wordCount');
-  const charCountEl = document.getElementById('charCount');
-  const lineCountEl = document.getElementById('lineCount');
-  const readTimeEl = document.getElementById('readTime');
-  const copyBtn = document.getElementById('copyBtn');
-  const clearBtn = document.getElementById('clearBtn');
+  const btnCopy = document.getElementById('btn-copy');
+  const divider = document.getElementById('divider');
+  const split = document.getElementById('split');
   const toast = document.getElementById('toast');
-  const toastMsg = document.getElementById('toastMsg');
-  const syncTag = document.getElementById('syncTag');
+  const toastText = document.getElementById('toast-text');
+  const cursorPos = document.getElementById('cursor-pos');
+  const statusLines = document.getElementById('status-lines');
+  const statusSelection = document.getElementById('status-selection');
+  const statWords = document.getElementById('stat-words');
+  const statChars = document.getElementById('stat-chars');
+  const statTime = document.getElementById('stat-time');
 
-  // ============== DEFAULT CONTENT ==============
-  const defaultContent = `# Welcome to Markdown Studio
+  // ============ Platform-aware shortcuts ============
+  const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+  const modKey = isMac ? '⌘' : 'Ctrl';
+  document.querySelectorAll('.kbd-mod').forEach(function(k) { k.textContent = modKey; });
 
-A **distraction-free** markdown editor with *live preview*, built as a single HTML file — no frameworks, no build step, no dependencies.
-
-> Great writing tools disappear, leaving you alone with your thoughts.
-
-## Why you'll love it
-
-- **Real-time rendering** — every keystroke is reflected instantly
-- *Zero latency* — everything runs locally in your browser
-- Works completely \`offline\`
-- Thoughtful keyboard shortcuts for power users
-
-## Quick demo
-
-Inline code looks like \`const hello = "world"\`. You can also create [clickable links](https://example.com) that respect your theme.
-
-### A code block
-
-\`\`\`javascript
-function greet(name) {
-  // Greet the user warmly
-  return \`Hello, \${name}! Welcome.\`;
-}
-
-console.log(greet('developer'));
-\`\`\`
-
-### A numbered checklist
-
-1. Write your first heading
-2. Add some **bold** and *italic* text
-3. Drop in a blockquote for emphasis
-4. Share your masterpiece
-
----
-
-## Keyboard shortcuts
-
-| Action | Shortcut |
-| --- | --- |
-| Bold | Ctrl/Cmd + B |
-| Italic | Ctrl/Cmd + I |
-| Link | Ctrl/Cmd + K |
-
-Press the toolbar buttons or use shortcuts — then hit **Copy Markdown** when you're done. Happy writing!`;
-
-  // ============== MARKDOWN PARSER ==============
-  function escapeHtml(text) {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+  // ============ Markdown Parser ============
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
   function parseInline(text) {
-    // Inline code first to protect content
-    const codeStash = [];
-    text = text.replace(/`([^`]+)`/g, (m, c) => {
-      codeStash.push(c);
-      return `\u0000CODE${codeStash.length - 1}\u0000`;
+    // Extract inline code first to protect from other transformations
+    const codes = [];
+    text = text.replace(/`([^`]+)`/g, function(m, code) {
+      codes.push(code);
+      return '\u0000IC' + (codes.length - 1) + '\u0000';
     });
 
-    // Escape remaining HTML
-    text = escapeHtml(text);
-
-    // Images
-    text = text.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g,
-      (m, alt, url, title) => `<img src="${url}" alt="${alt}"${title ? ` title="${title}"` : ''}>`);
-
-    // Links
-    text = text.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g,
-      (m, label, url, title) => `<a href="${url}" target="_blank" rel="noopener noreferrer"${title ? ` title="${title}"` : ''}>${label}</a>`);
-
-    // Bold (must come before italic)
-    text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    text = text.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+    // Bold (must precede italic to avoid partial matches)
+    text = text.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/__([^_]+?)__/g, '<strong>$1</strong>');
 
     // Italic
-    text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-    text = text.replace(/(?<!\w)_([^_]+)_(?!\w)/g, '<em>$1</em>');
+    text = text.replace(/\*([^*\s][^*]*?)\*/g, '<em>$1</em>');
+    text = text.replace(/_([^_\s][^_]*?)_/g, '<em>$1</em>');
 
     // Strikethrough
-    text = text.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+    text = text.replace(/~~([^~]+?)~~/g, '<del>$1</del>');
 
-    // Restore code
-    text = text.replace(/\u0000CODE(\d+)\u0000/g, (m, i) => `<code>${escapeHtml(codeStash[+i])}</code>`);
+    // Links
+    text = text.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+    // Restore inline code
+    text = text.replace(/\u0000IC(\d+)\u0000/g, function(m, i) {
+      return '<code class="inline-code">' + codes[parseInt(i)] + '</code>';
+    });
 
     return text;
   }
 
   function parseMarkdown(md) {
-    if (!md.trim()) return '<p style="color:var(--fg-dim); text-align:center; padding:40px 0;">Nothing to preview yet. Start typing in the editor.</p>';
-
-    const lines = md.split('\n');
-    const html = [];
-    let i = 0;
-    let inList = null; // 'ul' | 'ol' | null
-    let inBlockquote = false;
-
-    function closeList() {
-      if (inList) {
-        html.push(`</${inList}>`);
-        inList = null;
-      }
-    }
-    function closeBlockquote() {
-      if (inBlockquote) {
-        html.push('</blockquote>');
-        inBlockquote = false;
-      }
+    if (!md || !md.trim()) {
+      return '<p style="color: var(--fg-dim); text-align: center; padding: 60px 0; font-style: italic;">Nothing to preview yet — start writing on the left.</p>';
     }
 
-    while (i < lines.length) {
-      let line = lines[i];
+    let src = escapeHtml(md);
+    src = src.replace(/\r\n?/g, '\n');
 
-      // Code block
-      const fence = line.match(/^```(\w*)/);
-      if (fence) {
-        closeList();
-        closeBlockquote();
-        const lang = fence[1] || '';
-        const codeLines = [];
-        i++;
-        while (i < lines.length && !/^```/.test(lines[i])) {
-          codeLines.push(lines[i]);
-          i++;
-        }
-        i++; // skip closing fence
-        const code = escapeHtml(codeLines.join('\n'));
-        html.push(`<pre><code${lang ? ` class="language-${lang}"` : ''}>${code}</code></pre>`);
-        continue;
-      }
+    // Extract fenced code blocks
+    const codeBlocks = [];
+    src = src.replace(/```([a-zA-Z0-9_+-]*)\n?([\s\S]*?)```/g, function(m, lang, code) {
+      const idx = codeBlocks.length;
+      codeBlocks.push({ lang: lang || '', code: code.replace(/\n$/, '') });
+      return '\n\n\u0000CB' + idx + '\u0000\n\n';
+    });
 
-      // Horizontal rule
-      if (/^(\s*[-*_]\s*){3,}$/.test(line) || /^---+$/.test(line.trim())) {
-        closeList();
-        closeBlockquote();
-        html.push('<hr>');
-        i++;
+    const blocks = src.split(/\n{2,}/);
+    const out = [];
+
+    for (let i = 0; i < blocks.length; i++) {
+      let block = blocks[i].trim();
+      if (!block) continue;
+
+      // Code block placeholder
+      const cbMatch = block.match(/^\u0000CB(\d+)\u0000$/);
+      if (cbMatch) {
+        const cb = codeBlocks[parseInt(cbMatch[1])];
+        const lang = cb.lang || 'text';
+        out.push(
+          '<pre class="code-block">' +
+            '<div class="code-header">' +
+              '<div class="code-header-left">' +
+                '<div class="code-dots"><span></span><span></span><span></span></div>' +
+                '<span>' + lang + '</span>' +
+              '</div>' +
+            '</div>' +
+            '<code>' + cb.code + '</code>' +
+          '</pre>'
+        );
         continue;
       }
 
       // Heading
-      const heading = line.match(/^(#{1,6})\s+(.+?)\s*#*\s*$/);
-      if (heading) {
-        closeList();
-        closeBlockquote();
-        const level = heading[1].length;
-        html.push(`<h${level}>${parseInline(heading[2])}</h${level}>`);
-        i++;
+      const hMatch = block.match(/^(#{1,6})\s+(.+?)(?:\s+#{1,6})?$/);
+      if (hMatch) {
+        const lvl = hMatch[1].length;
+        out.push('<h' + lvl + '>' + parseInline(hMatch[2]) + '</h' + lvl + '>');
         continue;
       }
 
-      // Blockquote
-      const quote = line.match(/^>\s?(.*)/);
-      if (quote) {
-        closeList();
-        if (!inBlockquote) {
-          html.push('<blockquote>');
-          inBlockquote = true;
-        }
-        html.push(`<p>${parseInline(quote[1])}</p>`);
-        i++;
+      // Horizontal rule
+      if (/^(-{3,}|\*{3,}|_{3,})$/.test(block)) {
+        out.push('<hr/>');
         continue;
-      } else {
-        closeBlockquote();
+      }
+
+      const lines = block.split('\n');
+
+      // Blockquote
+      if (lines.every(function(l) { return /^>/.test(l); })) {
+        const content = lines.map(function(l) { return l.replace(/^>\s?/, ''); }).join('<br>');
+        out.push('<blockquote>' + parseInline(content) + '</blockquote>');
+        continue;
       }
 
       // Unordered list
-      const ulItem = line.match(/^[\s]*[-*+]\s+(.+)$/);
-      if (ulItem) {
-        if (inList !== 'ul') {
-          closeList();
-          html.push('<ul>');
-          inList = 'ul';
-        }
-        html.push(`<li>${parseInline(ulItem[1])}</li>`);
-        i++;
+      const isUl = lines.some(function(l) { return /^\s*[-*+]\s+/.test(l); }) &&
+                   lines.every(function(l) { return /^\s*[-*+]\s+/.test(l) || /^\s*$/.test(l); });
+      if (isUl) {
+        const items = lines.filter(function(l) { return /^\s*[-*+]\s+/.test(l); }).map(function(l) {
+          return '<li>' + parseInline(l.replace(/^\s*[-*+]\s+/, '')) + '</li>';
+        }).join('');
+        out.push('<ul>' + items + '</ul>');
         continue;
       }
 
       // Ordered list
-      const olItem = line.match(/^[\s]*\d+\.\s+(.+)$/);
-      if (olItem) {
-        if (inList !== 'ol') {
-          closeList();
-          html.push('<ol>');
-          inList = 'ol';
-        }
-        html.push(`<li>${parseInline(olItem[1])}</li>`);
-        i++;
+      const isOl = lines.some(function(l) { return /^\s*\d+\.\s+/.test(l); }) &&
+                   lines.every(function(l) { return /^\s*\d+\.\s+/.test(l) || /^\s*$/.test(l); });
+      if (isOl) {
+        const items = lines.filter(function(l) { return /^\s*\d+\.\s+/.test(l); }).map(function(l) {
+          return '<li>' + parseInline(l.replace(/^\s*\d+\.\s+/, '')) + '</li>';
+        }).join('');
+        out.push('<ol>' + items + '</ol>');
         continue;
       }
 
-      // Table (basic support)
-      if (line.includes('|') && i + 1 < lines.length && /^\s*\|?[\s\-:|]+\|?\s*$/.test(lines[i + 1])) {
-        closeList();
-        closeBlockquote();
-        const headers = line.split('|').map(s => s.trim()).filter(s => s !== '' || true).slice(
-          line.startsWith('|') ? 1 : 0,
-          line.endsWith('|') ? -1 : undefined
-        );
-        i += 2; // skip header + separator
-        const rows = [];
-        while (i < lines.length && lines[i].includes('|') && lines[i].trim()) {
-          const cells = lines[i].split('|').map(s => s.trim());
-          if (lines[i].startsWith('|')) cells.shift();
-          if (lines[i].endsWith('|')) cells.pop();
-          rows.push(cells);
-          i++;
-        }
-        let table = '<table><thead><tr>';
-        headers.forEach(h => table += `<th>${parseInline(h)}</th>`);
-        table += '</tr></thead><tbody>';
-        rows.forEach(row => {
-          table += '<tr>';
-          row.forEach(cell => table += `<td>${parseInline(cell)}</td>`);
-          table += '</tr>';
-        });
-        table += '</tbody></table>';
-        html.push(table);
-        continue;
-      }
-
-      // Empty line
-      if (line.trim() === '') {
-        closeList();
-        i++;
-        continue;
-      }
-
-      // Paragraph
-      closeList();
-      const paraLines = [line];
-      i++;
-      while (i < lines.length && lines[i].trim() !== '' &&
-             !/^(#{1,6})\s/.test(lines[i]) &&
-             !/^```/.test(lines[i]) &&
-             !/^>\s?/.test(lines[i]) &&
-             !/^[\s]*[-*+]\s/.test(lines[i]) &&
-             !/^[\s]*\d+\.\s/.test(lines[i]) &&
-             !/^(\s*[-*_]\s*){3,}$/.test(lines[i]) &&
-             !/^---+$/.test(lines[i].trim())) {
-        paraLines.push(lines[i]);
-        i++;
-      }
-      html.push(`<p>${parseInline(paraLines.join(' '))}</p>`);
+      // Paragraph (preserve single newlines as <br>)
+      const para = lines.map(function(l) { return parseInline(l); }).join('<br>');
+      out.push('<p>' + para + '</p>');
     }
 
-    closeList();
-    closeBlockquote();
-    return html.join('\n');
+    return out.join('\n');
   }
 
-  // ============== RENDER ==============
-  let syncTimer;
-  function render() {
-    const md = editor.value;
-    preview.innerHTML = parseMarkdown(md);
-
-    // Stats
-    const text = md.trim();
-    const words = text ? text.split(/\s+/).filter(w => w.length > 0).length : 0;
-    const chars = md.length;
-    const lines = md ? md.split('\n').length : 0;
-    const readTime = Math.max(1, Math.ceil(words / 200));
-
-    wordCountEl.textContent = words.toLocaleString();
-    charCountEl.textContent = chars.toLocaleString();
-    lineCountEl.textContent = lines.toLocaleString();
-    readTimeEl.textContent = words === 0 ? 0 : readTime;
-
-    // Sync indicator pulse
-    syncTag.style.color = 'var(--success)';
-    syncTag.textContent = 'synced';
-    clearTimeout(syncTimer);
-    syncTimer = setTimeout(() => { syncTag.style.color = ''; }, 600);
+  // ============ State updates ============
+  function updatePreview() {
+    preview.innerHTML = parseMarkdown(editor.value);
   }
 
-  editor.addEventListener('input', render);
+  function updateStats() {
+    const text = editor.value;
+    const chars = text.length;
+    const trimmed = text.trim();
+    const words = trimmed ? trimmed.split(/\s+/).length : 0;
+    const lines = text ? text.split('\n').length : 0;
+    const readMins = Math.max(1, Math.ceil(words / 220));
 
-  // ============== TOOLBAR ACTIONS ==============
-  function getSelection() {
-    return {
-      start: editor.selectionStart,
-      end: editor.selectionEnd,
-      selected: editor.value.substring(editor.selectionStart, editor.selectionEnd)
+    statWords.textContent = words.toLocaleString();
+    statChars.textContent = chars.toLocaleString();
+    statTime.textContent = words === 0 ? '0m' : readMins + 'm';
+    statusLines.textContent = lines + ' line' + (lines === 1 ? '' : 's');
+  }
+
+  function updateCursor() {
+    const text = editor.value;
+    const pos = editor.selectionStart;
+    const before = text.substring(0, pos);
+    const line = before.split('\n').length;
+    const col = pos - before.lastIndexOf('\n');
+    cursorPos.textContent = 'Ln ' + line + ', Col ' + col;
+
+    const selLen = editor.selectionEnd - editor.selectionStart;
+    statusSelection.textContent = selLen > 0 ? selLen + ' selected' : '0 selected';
+  }
+
+  // ============ Format actions ============
+  function applyFormat(action) {
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    const value = editor.value;
+    const selected = value.substring(start, end);
+    const before = value.substring(0, start);
+    const after = value.substring(end);
+
+    let inserted;
+    let selStart = 0, selEnd = 0;
+
+    switch (action) {
+      case 'bold':
+        inserted = '**' + (selected || 'bold text') + '**';
+        if (selected) { selStart = start; selEnd = start + inserted.length; }
+        else { selStart = start + 2; selEnd = start + 2 + 8; }
+        break;
+      case 'italic':
+        inserted = '*' + (selected || 'italic text') + '*';
+        if (selected) { selStart = start; selEnd = start + inserted.length; }
+        else { selStart = start + 1; selEnd = start + 1 + 10; }
+        break;
+      case 'strike':
+        inserted = '~~' + (selected || 'strikethrough') + '~~';
+        if (selected) { selStart = start; selEnd = start + inserted.length; }
+        else { selStart = start + 2; selEnd = start + 2 + 13; }
+        break;
+      case 'h1':
+        inserted = '# ' + (selected || 'Heading 1');
+        selStart = selEnd = start + inserted.length;
+        break;
+      case 'h2':
+        inserted = '## ' + (selected || 'Heading 2');
+        selStart = selEnd = start + inserted.length;
+        break;
+      case 'h3':
+        inserted = '### ' + (selected || 'Heading 3');
+        selStart = selEnd = start + inserted.length;
+        break;
+      case 'ul':
+        inserted = '- ' + (selected || 'list item');
+        selStart = selEnd = start + inserted.length;
+        break;
+      case 'ol':
+        inserted = '1. ' + (selected || 'list item');
+        selStart = selEnd = start + inserted.length;
+        break;
+      case 'quote':
+        inserted = '> ' + (selected || 'quote');
+        selStart = selEnd = start + inserted.length;
+        break;
+      case 'link': {
+        const linkText = selected || 'link text';
+        inserted = '[' + linkText + '](https://example.com)';
+        const urlStart = start + linkText.length + 3;
+        selStart = urlStart;
+        selEnd = urlStart + 'https://example.com'.length;
+        break;
+      }
+      case 'code':
+        inserted = '`' + (selected || 'code') + '`';
+        if (selected) { selStart = start; selEnd = start + inserted.length; }
+        else { selStart = start + 1; selEnd = start + 5; }
+        break;
+      case 'codeblock':
+        inserted = '\n```\n' + (selected || 'code here') + '\n```\n';
+        selStart = selEnd = start + inserted.length;
+        break;
+      case 'hr':
+        inserted = '\n\n---\n\n';
+        selStart = selEnd = start + inserted.length;
+        break;
+      default:
+        return;
+    }
+
+    editor.value = before + inserted + after;
+    editor.focus();
+    editor.setSelectionRange(selStart, selEnd);
+    updatePreview();
+    updateStats();
+    updateCursor();
+  }
+
+  // ============ Toast ============
+  let toastTimer;
+  function showToast(message) {
+    toastText.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 2200);
+  }
+
+  // ============ Copy ============
+  function copyMarkdown() {
+    const text = editor.value;
+    if (!text.trim()) { showToast('Nothing to copy yet'); return; }
+
+    const done = function() {
+      const label = btnCopy.querySelector('span');
+      const originalText = label.textContent;
+      label.textContent = 'Copied!';
+      btnCopy.style.background = 'linear-gradient(135deg, #8fd3a6, #5fb87f)';
+      showToast('Markdown copied to clipboard');
+      setTimeout(function() {
+        label.textContent = originalText;
+        btnCopy.style.background = '';
+      }, 1800);
     };
-  }
 
-  function insertText(before, after = '', placeholder = '') {
-    const { start, end, selected } = getSelection();
-    const text = selected || placeholder;
-    const newText = before + text + after;
-    editor.setRangeText(newText, start, end, 'end');
-    const cursorPos = selected ? start + newText.length : start + before.length + text.length + after.length;
-    editor.setSelectionRange(selected ? start + before.length : start + before.length,
-                              selected ? start + before.length + text.length : start + before.length + text.length);
-    editor.focus();
-    render();
-  }
-
-  function insertLinePrefix(prefix) {
-    const { start } = getSelection();
-    const lineStart = editor.value.lastIndexOf('\n', start - 1) + 1;
-    const lineEndIndex = editor.value.indexOf('\n', start);
-    const lineEnd = lineEndIndex === -1 ? editor.value.length : lineEndIndex;
-    const currentLine = editor.value.substring(lineStart, lineEnd);
-
-    // Toggle: if line already starts with prefix, remove it
-    if (currentLine.startsWith(prefix)) {
-      const newLine = currentLine.substring(prefix.length);
-      editor.setRangeText(newLine, lineStart, lineEnd, 'end');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(function() {
+        fallbackCopy(text, done);
+      });
     } else {
-      editor.setRangeText(prefix + currentLine, lineStart, lineEnd, 'end');
+      fallbackCopy(text, done);
     }
-    editor.setSelectionRange(lineStart + prefix.length, lineStart + prefix.length);
-    editor.focus();
-    render();
   }
 
-  function insertBlock(template) {
-    const { start } = getSelection();
-    editor.setRangeText('\n' + template + '\n', start, start, 'end');
-    const newPos = start + 1 + template.indexOf('\n\n') >= 0 ? start + template.indexOf('\n\n') + 1 : start + template.length;
-    editor.setSelectionRange(newPos, newPos);
-    editor.focus();
-    render();
+  function fallbackCopy(text, cb) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); cb(); }
+    catch (e) { showToast('Copy failed — select text manually'); }
+    document.body.removeChild(ta);
   }
 
-  const actions = {
-    heading1: () => insertLinePrefix('# '),
-    heading2: () => insertLinePrefix('## '),
-    bold: () => insertText('**', '**', 'bold text'),
-    italic: () => insertText('*', '*', 'italic text'),
-    code: () => insertText('`', '`', 'code'),
-    link: () => insertText('[', '](https://)', 'link text'),
-    quote: () => insertLinePrefix('> '),
-    ul: () => insertLinePrefix('- '),
-    ol: () => insertLinePrefix('1. '),
-    codeblock: () => {
-      const sel = getSelection();
-      const inner = sel.selected || 'console.log("hello world");';
-      const block = '```\n' + inner + '\n```';
-      editor.setRangeText(block, sel.start, sel.end, 'end');
-      editor.setSelectionRange(sel.start + 4, sel.start + 4 + inner.length);
-      editor.focus();
-      render();
-    },
-    hr: () => {
-      const sel = getSelection();
-      const block = '\n---\n';
-      editor.setRangeText(block, sel.start, sel.end, 'end');
-      editor.setSelectionRange(sel.start + block.length, sel.start + block.length);
-      editor.focus();
-      render();
-    }
-  };
+  // ============ Divider drag ============
+  let isDragging = false;
 
-  document.getElementById('toolbar').addEventListener('click', e => {
-    const btn = e.target.closest('[data-md]');
-    if (!btn) return;
-    const action = btn.getAttribute('data-md');
-    if (actions[action]) actions[action]();
+  function startDrag(e) {
+    isDragging = true;
+    document.body.classList.add('dragging');
+    divider.classList.add('active');
+    e.preventDefault();
+  }
+
+  function onDrag(e) {
+    if (!isDragging) return;
+    const rect = split.getBoundingClientRect();
+    const isMobile = window.matchMedia('(max-width: 700px)').matches;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    if (isMobile) {
+      const pct = ((clientY - rect.top) / rect.height) * 100;
+      if (pct >= 15 && pct <= 85) {
+        document.documentElement.style.setProperty('--split', pct + '%');
+      }
+    } else {
+      const pct = ((clientX - rect.left) / rect.width) * 100;
+      if (pct >= 20 && pct <= 80) {
+        document.documentElement.style.setProperty('--split', pct + '%');
+      }
+    }
+  }
+
+  function endDrag() {
+    isDragging = false;
+    document.body.classList.remove('dragging');
+    divider.classList.remove('active');
+  }
+
+  divider.addEventListener('mousedown', startDrag);
+  document.addEventListener('mousemove', onDrag);
+  document.addEventListener('mouseup', endDrag);
+  divider.addEventListener('touchstart', startDrag, { passive: false });
+  document.addEventListener('touchmove', onDrag, { passive: false });
+  document.addEventListener('touchend', endDrag);
+
+  // ============ Bindings ============
+  document.querySelectorAll('.tool').forEach(function(btn) {
+    btn.addEventListener('click', function() { applyFormat(btn.dataset.action); });
   });
 
-  // ============== KEYBOARD SHORTCUTS ==============
-  editor.addEventListener('keydown', e => {
-    if ((e.ctrlKey || e.metaKey) && !e.altKey) {
-      const key = e.key.toLowerCase();
-      if (key === 'b') { e.preventDefault(); actions.bold(); }
-      else if (key === 'i') { e.preventDefault(); actions.italic(); }
-      else if (key === 'k') { e.preventDefault(); actions.link(); }
-    }
+  btnCopy.addEventListener('click', copyMarkdown);
+
+  editor.addEventListener('input', function() {
+    updatePreview();
+    updateStats();
+  });
+  editor.addEventListener('keyup', updateCursor);
+  editor.addEventListener('click', updateCursor);
+  editor.addEventListener('select', updateCursor);
+
+  editor.addEventListener('keydown', function(e) {
+    // Tab → 2 spaces
     if (e.key === 'Tab') {
       e.preventDefault();
-      const { start, end } = getSelection();
-      editor.setRangeText('  ', start, end, 'end');
-      render();
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      const value = editor.value;
+      editor.value = value.substring(0, start) + '  ' + value.substring(end);
+      editor.selectionStart = editor.selectionEnd = start + 2;
+      updatePreview();
+      updateStats();
+      return;
     }
-  });
 
-  // ============== COPY ==============
-  function showToast(msg) {
-    toastMsg.textContent = msg;
-    toast.classList.add('show');
-    clearTimeout(showToast.t);
-    showToast.t = setTimeout(() => toast.classList.remove('show'), 2200);
-  }
+    // Enter → continue lists
+    if (e.key === 'Enter' && !e.shiftKey) {
+      const start = editor.selectionStart;
+      const value = editor.value;
+      const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+      const currentLine = value.substring(lineStart, start);
 
-  copyBtn.addEventListener('click', async () => {
-    const text = editor.value;
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        // Fallback
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.position = 'fixed';
-        ta.style.opacity = '0';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
+      const ulMatch = currentLine.match(/^(\s*)([-*+])\s+(\[[ x]\]\s+)?(.*)$/);
+      const olMatch = currentLine.match(/^(\s*)(\d+)\.\s+(.*)$/);
+
+      if (ulMatch) {
+        if (ulMatch[4] === '') {
+          e.preventDefault();
+          editor.value = value.substring(0, lineStart) + value.substring(start);
+          editor.selectionStart = editor.selectionEnd = lineStart;
+          updatePreview(); updateStats();
+          return;
+        }
+        e.preventDefault();
+        const insert = '\n' + ulMatch[1] + ulMatch[2] + ' ' + (ulMatch[3] || '');
+        editor.value = value.substring(0, start) + insert + value.substring(start);
+        editor.selectionStart = editor.selectionEnd = start + insert.length;
+        updatePreview(); updateStats();
+        return;
       }
-      showToast('Markdown copied to clipboard');
-    } catch (err) {
-      showToast('Copy failed — select manually');
+
+      if (olMatch) {
+        if (olMatch[3] === '') {
+          e.preventDefault();
+          editor.value = value.substring(0, lineStart) + value.substring(start);
+          editor.selectionStart = editor.selectionEnd = lineStart;
+          updatePreview(); updateStats();
+          return;
+        }
+        e.preventDefault();
+        const nextNum = parseInt(olMatch[2], 10) + 1;
+        const insert = '\n' + olMatch[1] + nextNum + '. ';
+        editor.value = value.substring(0, start) + insert + value.substring(start);
+        editor.selectionStart = editor.selectionEnd = start + insert.length;
+        updatePreview(); updateStats();
+        return;
+      }
+    }
+
+    // Keyboard shortcuts
+    if (e.ctrlKey || e.metaKey) {
+      const key = e.key.toLowerCase();
+      if (key === 'b') { e.preventDefault(); applyFormat('bold'); }
+      else if (key === 'i') { e.preventDefault(); applyFormat('italic'); }
+      else if (key === 'k') { e.preventDefault(); applyFormat('link'); }
     }
   });
 
-  // ============== CLEAR ==============
-  clearBtn.addEventListener('click', () => {
-    if (editor.value.trim() === '') return;
-    editor.value = '';
-    render();
-    editor.focus();
-    showToast('Editor cleared');
-  });
-
-  // ============== MOBILE TABS ==============
-  const workspace = document.getElementById('workspace');
-  document.querySelectorAll('.mobile-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.mobile-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      workspace.dataset.view = tab.dataset.tab;
-    });
-  });
-
-  // ============== INIT ==============
-  editor.value = defaultContent;
-  render();
-
-  // Smart sync scrolling on desktop
-  let syncingScroll = false;
-  editor.addEventListener('scroll', () => {
-    if (window.innerWidth <= 820) return;
-    if (syncingScroll) return;
-    syncingScroll = true;
-    const ratio = editor.scrollTop / (editor.scrollHeight - editor.clientHeight || 1);
-    preview.scrollTop = ratio * (preview.scrollHeight - preview.clientHeight);
-    requestAnimationFrame(() => { syncingScroll = false; });
-  });
-
+  // ============ Init ============
+  const sample = document.getElementById('sample').textContent.trim();
+  editor.value = sample;
+  updatePreview();
+  updateStats();
+  updateCursor();
 })();
 </script>
 </body>

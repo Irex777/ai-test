@@ -3,1381 +3,1055 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lumen — Markdown Editor</title>
+<meta name="description" content="Inkwell — A markdown editor with live preview.">
+<title>Inkwell — Markdown Studio</title>
 <style>
-  :root {
-    --bg: #0a0c12;
-    --bg-elevated: #11141d;
-    --bg-input: #0f1219;
-    --bg-hover: #181c27;
-    --border: #1d2230;
-    --border-strong: #2a3142;
-    --fg: #e8eaed;
-    --fg-muted: #8b92a5;
-    --fg-dim: #5b6275;
-    --accent: #ff7a45;
-    --accent-glow: rgba(255, 122, 69, 0.18);
-    --accent-hover: #ff8d5e;
-    --amber: #ffd166;
-    --success: #4ade80;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  html, body { height: 100%; overflow: hidden; }
-
-  body {
-    background: var(--bg);
-    color: var(--fg);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    font-size: 15px;
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
-  /* Atmospheric background */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background:
-      radial-gradient(ellipse 800px 600px at 15% -10%, rgba(255, 122, 69, 0.08), transparent 60%),
-      radial-gradient(ellipse 600px 400px at 110% 110%, rgba(255, 209, 102, 0.04), transparent 60%);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .app {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    position: relative;
-    z-index: 1;
-  }
-
-  /* Header */
-  .header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 24px;
-    background: rgba(17, 20, 29, 0.7);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .brand-mark {
-    width: 30px;
-    height: 30px;
-    border-radius: 9px;
-    background: linear-gradient(135deg, var(--accent), var(--amber));
-    display: grid;
-    place-items: center;
-    font-weight: 900;
-    color: #1a0d05;
-    font-size: 16px;
-    box-shadow: 0 4px 18px rgba(255, 122, 69, 0.35);
-  }
-
-  .brand-text {
-    display: flex;
-    flex-direction: column;
-    line-height: 1.1;
-  }
-
-  .brand-name {
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    font-size: 15px;
-  }
-
-  .brand-tag {
-    font-size: 10px;
-    color: var(--fg-dim);
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    margin-top: 2px;
-  }
-
-  .header-actions {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-  }
-
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    border-radius: 8px;
-    border: 1px solid var(--border-strong);
-    background: var(--bg-elevated);
-    color: var(--fg);
-    font-size: 13px;
-    font-family: inherit;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    font-weight: 500;
-  }
-
-  .btn:hover {
-    border-color: var(--accent);
-    background: var(--bg-hover);
-    transform: translateY(-1px);
-  }
-
-  .btn:active { transform: translateY(0); }
-
-  .btn-primary {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #1a0d05;
-    font-weight: 600;
-  }
-
-  .btn-primary:hover {
-    background: var(--accent-hover);
-    border-color: var(--accent-hover);
-    box-shadow: 0 6px 20px var(--accent-glow);
-  }
-
-  .btn svg { width: 14px; height: 14px; }
-
-  /* Toolbar */
-  .toolbar {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 8px 20px;
-    background: rgba(15, 18, 25, 0.5);
-    border-bottom: 1px solid var(--border);
-    overflow-x: auto;
-    scrollbar-width: none;
-    flex-shrink: 0;
-  }
-
-  .toolbar::-webkit-scrollbar { display: none; }
-
-  .tool-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    border-radius: 7px;
-    background: transparent;
-    border: 1px solid transparent;
-    color: var(--fg-muted);
-    cursor: pointer;
-    transition: all 0.15s ease;
-    flex-shrink: 0;
-    position: relative;
-  }
-
-  .tool-btn:hover {
-    background: var(--bg-hover);
-    color: var(--accent);
-    border-color: var(--border-strong);
-  }
-
-  .tool-btn:active {
-    transform: scale(0.94);
-  }
-
-  .tool-btn svg { width: 16px; height: 16px; }
-
-  .tool-divider {
-    width: 1px;
-    height: 22px;
-    background: var(--border);
-    margin: 0 6px;
-    flex-shrink: 0;
-  }
-
-  /* Main split */
-  .main {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-    min-height: 0;
-  }
-
-  .pane {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    min-width: 0;
-    position: relative;
-  }
-
-  .pane-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 24px;
-    background: rgba(17, 20, 29, 0.4);
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-
-  .pane-title {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--fg-dim);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .pane-title::before {
-    content: '';
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 8px var(--accent);
-  }
-
-  .pane-meta {
-    font-size: 11px;
-    color: var(--fg-dim);
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* Editor */
-  .editor-wrap {
-    flex: 1;
-    overflow: hidden;
-    position: relative;
-  }
-
-  .editor {
-    width: 100%;
-    height: 100%;
-    background: transparent;
-    border: none;
-    color: var(--fg);
-    font-family: 'SF Mono', Menlo, Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
-    font-size: 14px;
-    line-height: 1.75;
-    padding: 28px 32px;
-    resize: none;
-    outline: none;
-    tab-size: 2;
-    caret-color: var(--accent);
-    white-space: pre-wrap;
-    word-wrap: break-word;
-  }
-
-  .editor::selection {
-    background: rgba(255, 122, 69, 0.3);
-  }
-
-  .editor::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-  }
-
-  .editor::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .editor::-webkit-scrollbar-thumb {
-    background: var(--border-strong);
-    border-radius: 10px;
-    border: 2px solid var(--bg);
-  }
-
-  .editor::-webkit-scrollbar-thumb:hover {
-    background: #3a4256;
-  }
-
-  /* Divider */
-  .divider {
-    width: 1px;
-    background: var(--border);
-    cursor: col-resize;
-    position: relative;
-    flex-shrink: 0;
-  }
-
-  .divider::before {
-    content: '';
-    position: absolute;
-    inset: 0 -4px;
-  }
-
-  .divider::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 4px;
-    height: 36px;
-    background: var(--border-strong);
-    border-radius: 4px;
-    transition: background 0.2s;
-  }
-
-  .divider:hover::after,
-  .divider.dragging::after {
-    background: var(--accent);
-  }
-
-  /* Preview */
-  .preview-wrap {
-    flex: 1;
-    overflow: auto;
-    background: var(--bg-elevated);
-  }
-
-  .preview {
-    padding: 32px 40px;
-    max-width: 800px;
-    color: var(--fg);
-    line-height: 1.7;
-  }
-
-  /* Markdown rendered styles */
-  .preview h1,
-  .preview h2,
-  .preview h3,
-  .preview h4,
-  .preview h5,
-  .preview h6 {
-    margin: 1.6em 0 0.6em;
-    font-weight: 700;
-    line-height: 1.25;
-    color: var(--fg);
-    letter-spacing: -0.01em;
-  }
-
-  .preview h1:first-child,
-  .preview h2:first-child,
-  .preview h3:first-child { margin-top: 0; }
-
-  .preview h1 {
-    font-size: 2.2em;
-    padding-bottom: 0.4em;
-    border-bottom: 1px solid var(--border);
-    background: linear-gradient(135deg, var(--fg) 0%, var(--accent) 200%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .preview h2 {
-    font-size: 1.6em;
-    padding-bottom: 0.3em;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .preview h3 { font-size: 1.3em; color: var(--amber); }
-  .preview h4 { font-size: 1.1em; }
-  .preview h5 { font-size: 1em; color: var(--fg-muted); }
-  .preview h6 { font-size: 0.9em; color: var(--fg-muted); }
-
-  .preview p {
-    margin: 0 0 1em;
-  }
-
-  .preview strong {
-    color: var(--fg);
-    font-weight: 700;
-  }
-
-  .preview em {
-    color: var(--amber);
-    font-style: italic;
-  }
-
-  .preview del {
-    color: var(--fg-dim);
-  }
-
-  .preview a {
-    color: var(--accent);
-    text-decoration: none;
-    border-bottom: 1px solid var(--accent-glow);
-    transition: border-color 0.15s, color 0.15s;
-  }
-
-  .preview a:hover {
-    color: var(--accent-hover);
-    border-bottom-color: var(--accent-hover);
-  }
-
-  .preview ul,
-  .preview ol {
-    margin: 0 0 1em;
-    padding-left: 1.6em;
-  }
-
-  .preview li {
-    margin: 0.3em 0;
-  }
-
-  .preview li::marker {
-    color: var(--accent);
-  }
-
-  .preview code {
-    background: var(--bg);
-    color: var(--accent);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
-    font-size: 0.88em;
-    border: 1px solid var(--border);
-  }
-
-  .preview pre {
-    background: var(--bg-input);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 18px 20px;
-    overflow-x: auto;
-    margin: 0 0 1em;
-    position: relative;
-  }
-
-  .preview pre::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 20px;
-    right: 20px;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--accent), transparent);
-    opacity: 0.5;
-  }
-
-  .preview pre code {
-    background: transparent;
-    color: var(--fg);
-    padding: 0;
-    border-radius: 0;
-    border: none;
-    font-size: 13px;
-    line-height: 1.6;
-    display: block;
-  }
-
-  .preview blockquote {
-    border-left: 3px solid var(--accent);
-    background: linear-gradient(90deg, var(--accent-glow), transparent 30%);
-    padding: 12px 20px;
-    margin: 0 0 1em;
-    color: var(--fg-muted);
-    font-style: italic;
-    border-radius: 0 8px 8px 0;
-  }
-
-  .preview hr {
-    border: none;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
-    margin: 2em 0;
-  }
-
-  .preview table {
-    border-collapse: collapse;
-    width: 100%;
-    margin: 0 0 1em;
-    font-size: 0.95em;
-  }
-
-  .preview th,
-  .preview td {
-    border: 1px solid var(--border);
-    padding: 8px 12px;
-    text-align: left;
-  }
-
-  .preview th {
-    background: var(--bg);
-    font-weight: 600;
-    color: var(--amber);
-  }
-
-  .preview img {
-    max-width: 100%;
-    border-radius: 8px;
-  }
-
-  /* Status bar */
-  .status-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 24px;
-    background: rgba(17, 20, 29, 0.6);
-    backdrop-filter: blur(10px);
-    border-top: 1px solid var(--border);
-    font-size: 11px;
-    color: var(--fg-dim);
-    flex-shrink: 0;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .status-group {
-    display: flex;
-    gap: 20px;
-    align-items: center;
-  }
-
-  .status-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .status-item strong {
-    color: var(--fg);
-    font-weight: 600;
-  }
-
-  .status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--success);
-    box-shadow: 0 0 6px var(--success);
-    animation: pulse 2s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-  }
-
-  /* Toast */
-  .toast {
-    position: fixed;
-    bottom: 60px;
-    left: 50%;
-    transform: translateX(-50%) translateY(100px);
-    background: var(--bg-elevated);
-    border: 1px solid var(--accent);
-    color: var(--fg);
-    padding: 12px 20px;
-    border-radius: 10px;
-    font-size: 13px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 0 1px var(--accent-glow);
-    opacity: 0;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    pointer-events: none;
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-
-  .toast svg {
-    width: 16px;
-    height: 16px;
-    color: var(--accent);
-  }
-
-  /* Mobile */
-  @media (max-width: 768px) {
-    .header { padding: 12px 16px; }
-    .brand-tag { display: none; }
-    .btn span { display: none; }
-    .btn { padding: 8px 10px; }
-    .toolbar { padding: 6px 12px; }
-    .pane-header { padding: 8px 16px; }
-    .editor { padding: 20px; font-size: 13px; }
-    .preview { padding: 20px; }
-    .status-bar { padding: 8px 16px; font-size: 10px; }
-    .status-group { gap: 12px; }
-
-    .main {
-      flex-direction: column;
-    }
-
-    .divider {
-      width: 100%;
-      height: 1px;
-      cursor: row-resize;
-    }
-
-    .divider::after {
-      width: 36px;
-      height: 4px;
-    }
-
-    .mobile-stack .editor-pane {
-      flex: 1.2;
-    }
-
-    .preview-pane {
-      flex: 1;
-    }
-  }
-
-  /* Animations */
-  .preview > * {
-    animation: fadeUp 0.4s ease;
-  }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg-0:#0a0d12;
+  --bg-1:#11151c;
+  --bg-2:#181d26;
+  --bg-3:#1f2530;
+  --bg-4:#2a313e;
+  --border:#2a3340;
+  --fg:#ebe7df;
+  --fg-mid:#a8a59c;
+  --fg-low:#6b6862;
+  --amber:#ff9e3d;
+  --amber-bright:#ffb874;
+  --amber-dim:rgba(255,158,61,0.4);
+  --amber-glow:rgba(255,158,61,0.2);
+  --rose:#f87171;
+  --sage:#86efac;
+}
+
+html,body{height:100%}
+body{
+  background:var(--bg-0);
+  color:var(--fg);
+  font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  overflow:hidden;
+  position:relative;
+}
+
+body::before,body::after{
+  content:'';
+  position:fixed;
+  border-radius:50%;
+  filter:blur(80px);
+  opacity:0.15;
+  pointer-events:none;
+  z-index:0;
+}
+body::before{
+  width:500px;height:500px;
+  background:radial-gradient(circle,var(--amber),transparent 70%);
+  top:-200px;left:-150px;
+  animation:float1 20s ease-in-out infinite;
+}
+body::after{
+  width:400px;height:400px;
+  background:radial-gradient(circle,#c2410c,transparent 70%);
+  bottom:-150px;right:-100px;
+  animation:float2 25s ease-in-out infinite;
+}
+@keyframes float1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(100px,50px) scale(1.2)}}
+@keyframes float2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-80px,-40px) scale(0.9)}}
+
+#app{
+  position:relative;z-index:1;
+  display:flex;flex-direction:column;
+  height:100vh;
+}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 24px;
+  background:rgba(17,21,28,0.7);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  z-index:10;
+  animation:fadeUp 0.4s ease-out;
+}
+
+.brand{display:flex;align-items:center;gap:12px}
+.brand-mark{
+  width:34px;height:34px;
+  border-radius:9px;
+  background:linear-gradient(135deg,var(--amber-bright),#c2410c);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 16px var(--amber-glow),inset 0 1px 0 rgba(255,255,255,0.2);
+  position:relative;
+}
+.brand-mark svg{width:18px;height:18px;color:#1a0f00;stroke-width:2.5}
+.brand-text{display:flex;flex-direction:column;line-height:1.1}
+.brand-name{font-size:18px;font-weight:800;letter-spacing:-0.02em}
+.brand-sub{font-size:10.5px;color:var(--fg-low);letter-spacing:0.12em;text-transform:uppercase;font-weight:600;margin-top:2px}
+
+.header-actions{display:flex;align-items:center;gap:8px}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 14px;
+  border-radius:8px;
+  font-size:13px;font-weight:600;
+  background:var(--bg-3);
+  color:var(--fg);
+  border:1px solid var(--border);
+  cursor:pointer;
+  transition:all 0.15s ease;
+  font-family:inherit;
+}
+.btn:hover{background:var(--bg-4);border-color:var(--amber-dim);transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn-primary{
+  background:linear-gradient(135deg,var(--amber-bright),#ea580c);
+  border-color:transparent;
+  color:#1a0f00;
+  box-shadow:0 4px 14px var(--amber-glow);
+}
+.btn-primary:hover{box-shadow:0 6px 22px var(--amber-glow);transform:translateY(-1px)}
+.btn svg{width:14px;height:14px;flex-shrink:0}
+
+.toolbar{
+  display:flex;align-items:center;gap:4px;
+  padding:8px 24px;
+  background:rgba(24,29,38,0.6);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+  overflow-x:auto;
+  scrollbar-width:none;
+  animation:fadeUp 0.5s ease-out;
+}
+.toolbar::-webkit-scrollbar{display:none}
+.toolbar-group{
+  display:flex;align-items:center;gap:2px;
+  padding-right:8px;
+  border-right:1px solid var(--border);
+  margin-right:8px;
+  flex-shrink:0;
+}
+.toolbar-group:last-child{border-right:none;margin-right:0;padding-right:0}
+
+.tool-btn{
+  min-width:32px;height:32px;
+  padding:0 8px;
+  display:flex;align-items:center;justify-content:center;
+  background:transparent;
+  border:1px solid transparent;
+  border-radius:6px;
+  color:var(--fg-mid);
+  cursor:pointer;
+  transition:all 0.15s ease;
+  font-family:inherit;
+  font-size:12.5px;font-weight:700;
+  flex-shrink:0;
+  position:relative;
+  letter-spacing:0.02em;
+}
+.tool-btn:hover{background:var(--bg-3);color:var(--amber-bright);border-color:var(--border)}
+.tool-btn:active{transform:scale(0.92)}
+.tool-btn svg{width:16px;height:16px}
+.tool-btn[data-tooltip]:hover::after{
+  content:attr(data-tooltip);
+  position:absolute;
+  bottom:-32px;left:50%;
+  transform:translateX(-50%);
+  background:var(--bg-4);
+  color:var(--fg);
+  padding:5px 9px;
+  border-radius:5px;
+  font-size:11px;
+  white-space:nowrap;
+  z-index:100;
+  border:1px solid var(--border);
+  font-weight:500;
+  pointer-events:none;
+  box-shadow:0 4px 12px rgba(0,0,0,0.4);
+}
+
+.mobile-tabs{display:none}
+
+.split-pane{
+  flex:1;display:flex;overflow:hidden;position:relative;min-height:0;
+  animation:fadeUp 0.6s ease-out;
+}
+.pane{
+  flex:1 1 0;
+  min-width:0;
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  background:var(--bg-1);
+}
+.pane-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 20px;
+  background:rgba(0,0,0,0.2);
+  border-bottom:1px solid var(--border);
+  font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--fg-low);
+  flex-shrink:0;
+}
+.pane-header .dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--amber);
+  box-shadow:0 0 8px var(--amber);
+  margin-right:8px;
+  display:inline-block;vertical-align:middle;
+}
+.preview-pane .pane-header .dot{animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 8px var(--amber)}50%{opacity:0.4;box-shadow:0 0 3px var(--amber)}}
+
+.divider{
+  flex:0 0 1px;
+  background:var(--border);
+  cursor:col-resize;
+  position:relative;
+  transition:background 0.2s;
+  flex-shrink:0;
+}
+.divider::before{
+  content:'';
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:2px;height:36px;
+  background:var(--bg-3);
+  border-radius:1px;
+  transition:background 0.2s;
+}
+.divider:hover,.divider:hover::before{background:var(--amber-dim)}
+
+.editor-wrap{flex:1;position:relative;overflow:hidden;min-height:0}
+.editor{
+  width:100%;height:100%;
+  padding:28px 32px;
+  background:transparent;
+  border:none;outline:none;
+  color:var(--fg);
+  font-family:ui-monospace,"SF Mono","Cascadia Code","JetBrains Mono",Menlo,Consolas,monospace;
+  font-size:14px;
+  line-height:1.75;
+  resize:none;
+  tab-size:2;
+  caret-color:var(--amber);
+}
+.editor::selection{background:var(--amber-glow);color:var(--fg)}
+.editor::placeholder{color:var(--fg-low)}
+
+.preview-wrap{
+  flex:1;
+  overflow-y:auto;
+  padding:36px 40px;
+  min-height:0;
+}
+.preview{
+  max-width:720px;
+  margin:0 auto;
+  font-family:'Charter','Iowan Old Style','Apple Garamond',Baskerville,Georgia,'Times New Roman',serif;
+  font-size:16px;
+  line-height:1.75;
+  color:var(--fg);
+}
+.preview :first-child{margin-top:0}
+.preview :last-child{margin-bottom:0}
+.preview h1,.preview h2,.preview h3,.preview h4,.preview h5,.preview h6{
+  font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;
+  font-weight:700;
+  line-height:1.25;
+  margin:1.8em 0 0.6em;
+  letter-spacing:-0.02em;
+  color:var(--fg);
+}
+.preview h1{
+  font-size:2.4em;font-weight:800;
+  padding-bottom:0.4em;
+  margin-bottom:0.7em;
+  border-bottom:2px solid var(--border);
+  position:relative;
+}
+.preview h1::after{
+  content:'';
+  position:absolute;
+  left:0;bottom:-2px;
+  width:80px;height:2px;
+  background:var(--amber);
+}
+.preview h2{font-size:1.7em;padding-bottom:0.3em;border-bottom:1px solid rgba(42,51,64,0.6)}
+.preview h3{font-size:1.35em;color:var(--amber-bright)}
+.preview h4{font-size:1.1em}
+.preview p{margin:0 0 1em}
+.preview a{
+  color:var(--amber-bright);
+  text-decoration:none;
+  border-bottom:1px dashed var(--amber-dim);
+  transition:all 0.15s ease;
+}
+.preview a:hover{color:var(--amber);border-bottom:1px solid var(--amber)}
+.preview strong{font-weight:700;color:#fff}
+.preview em{font-style:italic;color:var(--amber-bright)}
+.preview del{color:var(--fg-low)}
+.preview code{
+  font-family:ui-monospace,"SF Mono","Cascadia Code",monospace;
+  font-size:0.86em;
+  background:var(--bg-3);
+  color:var(--amber-bright);
+  padding:2px 6px;
+  border-radius:4px;
+  border:1px solid var(--border);
+}
+.preview pre{
+  background:var(--bg-0);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:18px 20px;
+  overflow-x:auto;
+  margin:1.4em 0;
+  position:relative;
+}
+.preview pre::before{
+  content:'';
+  position:absolute;
+  top:0;left:20px;right:20px;
+  height:1px;
+  background:linear-gradient(90deg,transparent,var(--amber-dim),transparent);
+}
+.preview pre code{
+  background:transparent;
+  border:none;
+  padding:0;
+  color:var(--fg);
+  font-size:13px;
+  line-height:1.6;
+  display:block;
+}
+.preview pre .code-lang{
+  position:absolute;
+  top:10px;right:14px;
+  font-size:10px;
+  color:var(--fg-low);
+  font-family:ui-monospace,monospace;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  font-weight:700;
+  pointer-events:none;
+}
+.preview blockquote{
+  margin:1.4em 0;
+  padding:6px 20px;
+  border-left:3px solid var(--amber);
+  background:rgba(255,158,61,0.05);
+  border-radius:0 8px 8px 0;
+  color:var(--fg-mid);
+}
+.preview blockquote p{margin:0.5em 0;font-style:italic}
+.preview ul,.preview ol{margin:1em 0;padding-left:1.6em}
+.preview li{margin:0.4em 0}
+.preview ul li::marker{color:var(--amber)}
+.preview ol li::marker{color:var(--amber);font-weight:700}
+.preview hr{
+  border:none;
+  height:1px;
+  background:linear-gradient(90deg,transparent,var(--border) 20%,var(--border) 80%,transparent);
+  margin:2.2em 0;
+}
+.preview img{max-width:100%;border-radius:8px;margin:1em 0}
+
+.status-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 24px;
+  background:rgba(17,21,28,0.85);
+  backdrop-filter:blur(10px);
+  border-top:1px solid var(--border);
+  font-size:12px;
+  color:var(--fg-mid);
+  flex-shrink:0;
+  animation:fadeUp 0.7s ease-out;
+}
+.status-group{display:flex;align-items:center;gap:18px}
+.status-item{display:flex;align-items:center;gap:6px}
+.status-item .num{
+  color:var(--amber-bright);
+  font-weight:700;
+  font-variant-numeric:tabular-nums;
+  transition:color 0.2s;
+}
+.status-item.flash .num{color:#fff}
+.status-item svg{width:12px;height:12px;color:var(--fg-low);stroke-width:2;flex-shrink:0}
+
+.toast{
+  position:fixed;
+  bottom:60px;left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:var(--bg-3);
+  color:var(--fg);
+  padding:12px 20px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  box-shadow:0 12px 32px rgba(0,0,0,0.5);
+  font-size:13px;font-weight:500;
+  display:flex;align-items:center;gap:10px;
+  opacity:0;pointer-events:none;
+  transition:all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  z-index:1000;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast svg{width:16px;height:16px;color:var(--sage);flex-shrink:0}
+
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{
+  background:var(--bg-3);
+  border-radius:5px;
+  border:2px solid transparent;
+  background-clip:padding-box;
+}
+::-webkit-scrollbar-thumb:hover{background:var(--bg-4);background-clip:padding-box;border:2px solid transparent}
+
+@media (max-width:768px){
+  .mobile-tabs{
+    display:flex;
+    background:var(--bg-2);
+    border-bottom:1px solid var(--border);
+  }
+  .mobile-tab{
+    flex:1;
+    padding:14px;
+    background:transparent;
+    border:none;
+    color:var(--fg-mid);
+    font-weight:700;font-size:12px;
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+    font-family:inherit;
+    text-transform:uppercase;
+    letter-spacing:0.12em;
+    transition:all 0.15s;
+  }
+  .mobile-tab.active{color:var(--amber-bright);border-bottom-color:var(--amber);background:rgba(255,158,61,0.04)}
+  
+  .split-pane{flex-direction:column}
+  .pane{display:none;flex:1 1 auto !important}
+  .pane.active{display:flex}
+  .divider{display:none}
+  
+  header{padding:12px 16px}
+  .brand-sub{display:none}
+  .toolbar{padding:8px 12px}
+  .preview-wrap{padding:24px 20px}
+  .editor{padding:18px;font-size:13px}
+  .preview{font-size:15px}
+  .status-bar{padding:6px 12px;font-size:11px}
+  .status-group{gap:10px}
+  .header-actions .btn span{display:none}
+  .header-actions .btn{padding:8px 10px}
+}
+
+@media (max-width:480px){
+  .status-item:nth-child(3){display:none}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:0.01ms !important;transition-duration:0.01ms !important}
+}
 </style>
 </head>
 <body>
-<div class="app">
-  <header class="header">
+<div id="app">
+  <header>
     <div class="brand">
-      <div class="brand-mark">M</div>
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5l7.74-6.76z"/>
+          <line x1="16" y1="8" x2="2" y2="22"/>
+          <line x1="17.5" y1="15" x2="9" y2="15"/>
+        </svg>
+      </div>
       <div class="brand-text">
-        <span class="brand-name">Lumen</span>
-        <span class="brand-tag">Markdown Studio</span>
+        <span class="brand-name">Inkwell</span>
+        <span class="brand-sub">Markdown Studio</span>
       </div>
     </div>
     <div class="header-actions">
-      <button class="btn" id="copyBtn" title="Copy markdown to clipboard">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-        </svg>
-        <span>Copy</span>
-      </button>
-      <button class="btn btn-primary" id="clearBtn" title="Clear editor">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-        </svg>
+      <button class="btn" id="clearBtn" title="Clear editor" aria-label="Clear editor">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
         <span>Clear</span>
+      </button>
+      <button class="btn btn-primary" id="copyBtn" aria-label="Copy markdown">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Markdown</span>
       </button>
     </div>
   </header>
 
-  <div class="toolbar" id="toolbar">
-    <button class="tool-btn" data-md="heading" title="Heading (Ctrl+H)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M6 12h12M6 4v16M18 4v16"></path>
-      </svg>
-    </button>
-    <div class="tool-divider"></div>
-    <button class="tool-btn" data-md="bold" title="Bold (Ctrl+B)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path>
-        <path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path>
-      </svg>
-    </button>
-    <button class="tool-btn" data-md="italic" title="Italic (Ctrl+I)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="19" y1="4" x2="10" y2="4"></line>
-        <line x1="14" y1="20" x2="5" y2="20"></line>
-        <line x1="15" y1="4" x2="9" y2="20"></line>
-      </svg>
-    </button>
-    <button class="tool-btn" data-md="strike" title="Strikethrough">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M16 4H9a3 3 0 0 0-2.83 4M14 12a4 4 0 0 1 0 8H6"></path>
-        <line x1="4" y1="12" x2="20" y2="12"></line>
-      </svg>
-    </button>
-    <div class="tool-divider"></div>
-    <button class="tool-btn" data-md="link" title="Link (Ctrl+K)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-      </svg>
-    </button>
-    <button class="tool-btn" data-md="code" title="Inline code">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="16 18 22 12 16 6"></polyline>
-        <polyline points="8 6 2 12 8 18"></polyline>
-      </svg>
-    </button>
-    <button class="tool-btn" data-md="codeblock" title="Code block">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-        <polyline points="9 9 7 12 9 15"></polyline>
-        <polyline points="15 9 17 12 15 15"></polyline>
-      </svg>
-    </button>
-    <div class="tool-divider"></div>
-    <button class="tool-btn" data-md="ul" title="Bulleted list">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="8" y1="6" x2="21" y2="6"></line>
-        <line x1="8" y1="12" x2="21" y2="12"></line>
-        <line x1="8" y1="18" x2="21" y2="18"></line>
-        <circle cx="3.5" cy="6" r="1.2" fill="currentColor"></circle>
-        <circle cx="3.5" cy="12" r="1.2" fill="currentColor"></circle>
-        <circle cx="3.5" cy="18" r="1.2" fill="currentColor"></circle>
-      </svg>
-    </button>
-    <button class="tool-btn" data-md="ol" title="Numbered list">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="10" y1="6" x2="21" y2="6"></line>
-        <line x1="10" y1="12" x2="21" y2="12"></line>
-        <line x1="10" y1="18" x2="21" y2="18"></line>
-        <text x="2" y="8" font-size="7" font-weight="700" fill="currentColor" stroke="none">1</text>
-        <text x="2" y="14" font-size="7" font-weight="700" fill="currentColor" stroke="none">2</text>
-        <text x="2" y="20" font-size="7" font-weight="700" fill="currentColor" stroke="none">3</text>
-      </svg>
-    </button>
-    <button class="tool-btn" data-md="quote" title="Blockquote">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2-2-2H4c-1.25 0-2 .75-2 2v6c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"></path>
-        <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2-2-2h-4c-1.25 0-2 .75-2 2v6c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"></path>
-      </svg>
-    </button>
-    <div class="tool-divider"></div>
-    <button class="tool-btn" data-md="hr" title="Horizontal rule">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="4" y1="12" x2="20" y2="12" stroke-width="3"></line>
-      </svg>
-    </button>
+  <div class="toolbar" role="toolbar" aria-label="Formatting">
+    <div class="toolbar-group">
+      <button class="tool-btn" data-action="bold" data-tooltip="Bold · Ctrl+B" aria-label="Bold">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
+      </button>
+      <button class="tool-btn" data-action="italic" data-tooltip="Italic · Ctrl+I" aria-label="Italic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>
+      </button>
+      <button class="tool-btn" data-action="strike" data-tooltip="Strikethrough" aria-label="Strikethrough">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4H9a3 3 0 0 0-2.83 4"/><path d="M14 12a4 4 0 0 1 0 8H6"/><line x1="4" y1="12" x2="20" y2="12"/></svg>
+      </button>
+    </div>
+
+    <div class="toolbar-group">
+      <button class="tool-btn" data-action="h1" data-tooltip="Heading 1" aria-label="Heading 1">H1</button>
+      <button class="tool-btn" data-action="h2" data-tooltip="Heading 2" aria-label="Heading 2">H2</button>
+      <button class="tool-btn" data-action="h3" data-tooltip="Heading 3" aria-label="Heading 3">H3</button>
+    </div>
+
+    <div class="toolbar-group">
+      <button class="tool-btn" data-action="link" data-tooltip="Insert Link · Ctrl+K" aria-label="Insert link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      </button>
+      <button class="tool-btn" data-action="code" data-tooltip="Inline Code" aria-label="Inline code">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      </button>
+      <button class="tool-btn" data-action="codeblock" data-tooltip="Code Block" aria-label="Code block">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><polyline points="9 10 7 12 9 14"/><polyline points="15 10 17 12 15 14"/></svg>
+      </button>
+      <button class="tool-btn" data-action="quote" data-tooltip="Blockquote" aria-label="Blockquote">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg>
+      </button>
+    </div>
+
+    <div class="toolbar-group">
+      <button class="tool-btn" data-action="ul" data-tooltip="Bullet List" aria-label="Bullet list">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.5" cy="6" r="1.2" fill="currentColor"/><circle cx="3.5" cy="12" r="1.2" fill="currentColor"/><circle cx="3.5" cy="18" r="1.2" fill="currentColor"/></svg>
+      </button>
+      <button class="tool-btn" data-action="ol" data-tooltip="Numbered List" aria-label="Numbered list">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4M4 10h2M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
+      </button>
+      <button class="tool-btn" data-action="hr" data-tooltip="Horizontal Rule" aria-label="Horizontal rule">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/></svg>
+      </button>
+    </div>
   </div>
 
-  <div class="main" id="main">
-    <section class="pane editor-pane">
+  <div class="mobile-tabs">
+    <button class="mobile-tab active" data-tab="editor">Write</button>
+    <button class="mobile-tab" data-tab="preview">Preview</button>
+  </div>
+
+  <div class="split-pane" id="splitPane">
+    <div class="pane editor-pane active" id="editorPane">
       <div class="pane-header">
-        <span class="pane-title">Editor</span>
-        <span class="pane-meta" id="cursorPos">Ln 1, Col 1</span>
+        <span><span class="dot"></span>Editor</span>
+        <span>Markdown</span>
       </div>
       <div class="editor-wrap">
-        <textarea class="editor" id="editor" spellcheck="false" placeholder="Start writing in markdown..."></textarea>
+        <textarea class="editor" id="editor" spellcheck="false" aria-label="Markdown editor" placeholder="Start writing in Markdown..."></textarea>
       </div>
-    </section>
+    </div>
 
-    <div class="divider" id="divider"></div>
+    <div class="divider" id="divider" aria-hidden="true"></div>
 
-    <section class="pane preview-pane">
+    <div class="pane preview-pane" id="previewPane">
       <div class="pane-header">
-        <span class="pane-title">Preview</span>
-        <span class="pane-meta">Live render</span>
-      </div>
-      <div class="preview-wrap">
-        <article class="preview" id="preview"></article>
-      </div>
-    </section>
-  </div>
-
-  <footer class="status-bar">
-    <div class="status-group">
-      <div class="status-item">
-        <span class="status-dot"></span>
+        <span><span class="dot"></span>Preview</span>
         <span>Live</span>
       </div>
-      <div class="status-item">
-        <strong id="wordCount">0</strong>
-        <span>words</span>
+      <div class="preview-wrap">
+        <div class="preview" id="preview"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <div class="status-group">
+      <div class="status-item" id="wordItem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+        <span><span class="num" id="wordCount">0</span> words</span>
       </div>
       <div class="status-item">
-        <strong id="charCount">0</strong>
-        <span>chars</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+        <span><span class="num" id="charCount">0</span> chars</span>
       </div>
       <div class="status-item">
-        <strong id="lineCount">1</strong>
-        <span>lines</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <span><span class="num" id="lineCount">1</span> lines</span>
       </div>
     </div>
     <div class="status-group">
       <div class="status-item">
-        <strong id="readTime">0</strong>
-        <span>min read</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span><span class="num" id="readTime">0</span> min read</span>
       </div>
     </div>
-  </footer>
-
-  <div class="toast" id="toast">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="20 6 9 17 4 12"></polyline>
-    </svg>
-    <span id="toastMsg">Copied to clipboard</span>
   </div>
 </div>
 
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="toastMsg">Copied to clipboard</span>
+</div>
+
 <script>
-(function() {
-  'use strict';
+// 默认示例内容
+const DEFAULT_CONTENT = `# Welcome to Inkwell
 
-  // ===================== Default Content =====================
-  const DEFAULT_CONTENT = `# Welcome to Lumen
+A **markdown studio** built for writers who think in *structured* prose. Write naturally on the left — watch your words transform into beautifully typeset content on the right, in real-time.
 
-A focused **markdown editor** with *live* preview — built as a single self-contained HTML file.
+## Why markdown?
 
-> Good tools disappear. The page should respond before you notice you've asked. — Anonymous
+Markdown gives you the power of formatted text without ever lifting your fingers from the keyboard. It's the universal language of:
 
-## Quick Reference
+- Developers and technical writers
+- Bloggers and content creators
+- Note-takers and knowledge workers
+- Anyone who values **writing speed** over mouse clicks
 
-You can write using familiar markdown syntax. Here's what works:
+> "The palest ink is better than the best memory."
+> — Chinese proverb
 
-### Text Formatting
+## Quick formatting tricks
 
-This word is **bold**, this one is *italic*, and this is ~~struck through~~. You can also use \`inline code\` for short snippets.
+Try these in the editor:
 
-### Lists
+1. Use **double asterisks** for bold emphasis
+2. Use *single asterisks* for italic text
+3. Use \`backticks\` for inline code
+4. Use [square brackets](https://example.com) for links
 
-Unordered:
-- Pure HTML, CSS, JavaScript
-- Zero dependencies
-- Instant preview
+### A code example
 
-Ordered:
-1. Write markdown on the left
-2. Watch it render on the right
-3. Copy when you're done
-
-### Links & Code
-
-Visit the [W3C spec](https://w3.org) for the source of truth. Here's a code block:
+Here's how elegant code looks rendered:
 
 \`\`\`javascript
-function fibonacci(n) {
-  if (n <= 1) return n;
-  return fibonacci(n - 1) + fibonacci(n - 2);
+function greet(name) {
+  return \`Hello, \${name}!\`;
 }
 
-console.log(fibonacci(10)); // 55
+const message = greet('World');
+console.log(message);
 \`\`\`
 
-### Tables
+### A philosophical note
 
-| Feature       | Status | Notes                     |
-| ------------- | ------ | ------------------------- |
-| Headings      | ✓      | H1 through H6 supported   |
-| Emphasis      | ✓      | Bold, italic, strikethrough |
-| Code blocks   | ✓      | With syntax preservation  |
-| Lists         | ✓      | Ordered and unordered     |
+> Good writing is clear thinking made visible.
+>
+> — Bill Wheeler
 
 ---
 
-## Keyboard Shortcuts
+Start editing on the left to see your changes reflected instantly. The toolbar above provides quick access to all formatting options. **Happy writing.**`;
 
-- **Ctrl/Cmd + B** — Bold
-- **Ctrl/Cmd + I** — Italic
-- **Ctrl/Cmd + K** — Insert link
-- **Ctrl/Cmd + H** — Toggle heading
+// DOM 引用
+const editor = document.getElementById('editor');
+const preview = document.getElementById('preview');
+const wordCountEl = document.getElementById('wordCount');
+const charCountEl = document.getElementById('charCount');
+const lineCountEl = document.getElementById('lineCount');
+const readTimeEl = document.getElementById('readTime');
+const wordItem = document.getElementById('wordItem');
+const copyBtn = document.getElementById('copyBtn');
+const clearBtn = document.getElementById('clearBtn');
+const toast = document.getElementById('toast');
+const toastMsg = document.getElementById('toastMsg');
+const divider = document.getElementById('divider');
+const splitPane = document.getElementById('splitPane');
+const editorPane = document.getElementById('editorPane');
+const previewPane = document.getElementById('previewPane');
 
-Click the **toolbar buttons** above, or just start typing. Everything updates instantly.
-`;
+// ===== Markdown 解析器 =====
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
-  // ===================== Markdown Parser =====================
-  function escapeHTML(str) {
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
+function parseInline(text) {
+  text = escapeHtml(text);
 
-  function inlineMD(text) {
-    // Inline code first (to protect from other formatting)
-    const codeStash = [];
-    text = text.replace(/`([^`]+)`/g, (m, p1) => {
-      codeStash.push(p1);
-      return `\u0000CODE${codeStash.length - 1}\u0000`;
-    });
+  // 暂存行内代码
+  const codes = [];
+  text = text.replace(/`([^`]+)`/g, (m, c) => {
+    codes.push(c);
+    return `\u0000C${codes.length - 1}\u0000`;
+  });
 
-    // Images ![alt](url)
-    text = text.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g,
-      (m, alt, url, title) => `<img src="${url}" alt="${alt}"${title ? ` title="${title}"` : ''}>`);
+  // 暂存图片
+  const imgs = [];
+  text = text.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g, (m, alt, src) => {
+    imgs.push({ alt, src });
+    return `\u0000I${imgs.length - 1}\u0000`;
+  });
 
-    // Links [text](url)
-    text = text.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g,
-      (m, txt, url, title) => `<a href="${url}"${title ? ` title="${title}"` : ''} target="_blank" rel="noopener">${txt}</a>`);
+  // 粗体
+  text = text.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+  text = text.replace(/__([^_]+?)__/g, '<strong>$1</strong>');
 
-    // Bold (**text**)
-    text = text.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
-    text = text.replace(/__([^_\n]+)__/g, '<strong>$1</strong>');
+  // 斜体
+  text = text.replace(/\*([^*\s][^*]*?)\*/g, '<em>$1</em>');
 
-    // Italic (*text* or _text_)
-    text = text.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
-    text = text.replace(/(^|[^_])_([^_\n]+)_(?!_)/g, '$1<em>$2</em>');
+  // 删除线
+  text = text.replace(/~~([^~]+?)~~/g, '<del>$1</del>');
 
-    // Strikethrough (~~text~~)
-    text = text.replace(/~~([^~\n]+)~~/g, '<del>$1</del>');
+  // 链接
+  text = text.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g, (m, txt, url, title) => {
+    const t = title ? ` title="${title}"` : '';
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer"${t}>${txt}</a>`;
+  });
 
-    // Restore inline code
-    text = text.replace(/\u0000CODE(\d+)\u0000/g, (m, i) =>
-      `<code>${escapeHTML(codeStash[+i])}</code>`);
+  // 还原图片
+  text = text.replace(/\u0000I(\d+)\u0000/g, (m, i) =>
+    `<img src="${imgs[i].src}" alt="${imgs[i].alt}">`);
 
-    return text;
-  }
+  // 还原代码
+  text = text.replace(/\u0000C(\d+)\u0000/g, (m, i) => `<code>${codes[i]}</code>`);
 
-  function parseMD(md) {
-    if (!md) return '';
-    const lines = md.replace(/\r\n/g, '\n').split('\n');
-    const out = [];
-    let i = 0;
-    let para = [];
+  return text;
+}
 
-    const flushPara = () => {
-      if (para.length) {
-        out.push(`<p>${inlineMD(para.join(' '))}</p>`);
-        para = [];
-      }
-    };
+function parseMarkdown(md) {
+  const lines = md.split('\n');
+  const out = [];
+  let i = 0;
+  let inCode = false;
+  let codeLang = '';
+  let codeBuf = [];
+  let listType = null;
+  let quoteOpen = false;
+  let para = [];
 
-    while (i < lines.length) {
-      let line = lines[i];
-
-      // Fenced code block
-      if (/^```/.test(line)) {
-        flushPara();
-        const lang = line.replace(/^```\s*/, '').trim();
-        const code = [];
-        i++;
-        while (i < lines.length && !/^```/.test(lines[i])) {
-          code.push(lines[i]);
-          i++;
-        }
-        i++;
-        out.push(`<pre><code${lang ? ` class="language-${lang}"` : ''}>${escapeHTML(code.join('\n'))}</code></pre>`);
-        continue;
-      }
-
-      // Heading
-      const hMatch = line.match(/^(#{1,6})\s+(.*)$/);
-      if (hMatch) {
-        flushPara();
-        const level = hMatch[1].length;
-        out.push(`<h${level}>${inlineMD(hMatch[2])}</h${level}>`);
-        i++;
-        continue;
-      }
-
-      // Horizontal rule
-      if (/^\s*([-*_])\s*\1\s*\1[\s\S]*$/.test(line) && line.replace(/\s/g, '').length >= 3 && /^(\s*[-*_]\s*){3,}$/.test(line)) {
-        flushPara();
-        out.push('<hr>');
-        i++;
-        continue;
-      }
-
-      // Blockquote
-      if (/^>\s?/.test(line)) {
-        flushPara();
-        const quote = [];
-        while (i < lines.length && /^>\s?/.test(lines[i])) {
-          quote.push(lines[i].replace(/^>\s?/, ''));
-          i++;
-        }
-        out.push(`<blockquote>${inlineMD(quote.join(' '))}</blockquote>`);
-        continue;
-      }
-
-      // Unordered list
-      if (/^\s*[-*+]\s+/.test(line)) {
-        flushPara();
-        const items = [];
-        while (i < lines.length && /^\s*[-*+]\s+/.test(lines[i])) {
-          items.push(lines[i].replace(/^\s*[-*+]\s+/, ''));
-          i++;
-        }
-        out.push(`<ul>${items.map(it => `<li>${inlineMD(it)}</li>`).join('')}</ul>`);
-        continue;
-      }
-
-      // Ordered list
-      if (/^\s*\d+\.\s+/.test(line)) {
-        flushPara();
-        const items = [];
-        while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
-          items.push(lines[i].replace(/^\s*\d+\.\s+/, ''));
-          i++;
-        }
-        out.push(`<ol>${items.map(it => `<li>${inlineMD(it)}</li>`).join('')}</ol>`);
-        continue;
-      }
-
-      // Table
-      if (/\|/.test(line) && i + 1 < lines.length && /^\s*\|?[\s\-:|]+\|?\s*$/.test(lines[i + 1]) && /\|/.test(lines[i + 1])) {
-        flushPara();
-        const headers = line.split('|').map(s => s.trim()).filter((s, idx, arr) => {
-          if (idx === 0 && s === '') return false;
-          if (idx === arr.length - 1 && s === '') return false;
-          return true;
-        });
-        i += 2;
-        const rows = [];
-        while (i < lines.length && /\|/.test(lines[i]) && lines[i].trim()) {
-          const cells = lines[i].split('|').map(s => s.trim()).filter((s, idx, arr) => {
-            if (idx === 0 && s === '') return false;
-            if (idx === arr.length - 1 && s === '') return false;
-            return true;
-          });
-          rows.push(cells);
-          i++;
-        }
-        let table = '<table><thead><tr>';
-        headers.forEach(h => table += `<th>${inlineMD(h)}</th>`);
-        table += '</tr></thead><tbody>';
-        rows.forEach(row => {
-          table += '<tr>';
-          row.forEach(c => table += `<td>${inlineMD(c)}</td>`);
-          table += '</tr>';
-        });
-        table += '</tbody></table>';
-        out.push(table);
-        continue;
-      }
-
-      // Empty line
-      if (/^\s*$/.test(line)) {
-        flushPara();
-        i++;
-        continue;
-      }
-
-      // Paragraph
-      para.push(line.trim());
-      i++;
+  const flushPara = () => {
+    if (para.length) {
+      out.push('<p>' + parseInline(para.join(' ')) + '</p>');
+      para = [];
     }
+  };
+  const closeList = () => {
+    if (listType) { out.push(`</${listType}>`); listType = null; }
+  };
+  const closeQuote = () => {
+    if (quoteOpen) { out.push('</blockquote>'); quoteOpen = false; }
+  };
+  const closeAll = () => { flushPara(); closeList(); closeQuote(); };
 
-    flushPara();
-    return out.join('\n');
-  }
+  while (i < lines.length) {
+    const line = lines[i];
 
-  // ===================== Elements =====================
-  const editor = document.getElementById('editor');
-  const preview = document.getElementById('preview');
-  const wordCountEl = document.getElementById('wordCount');
-  const charCountEl = document.getElementById('charCount');
-  const lineCountEl = document.getElementById('lineCount');
-  const readTimeEl = document.getElementById('readTime');
-  const cursorPosEl = document.getElementById('cursorPos');
-  const copyBtn = document.getElementById('copyBtn');
-  const clearBtn = document.getElementById('clearBtn');
-  const toast = document.getElementById('toast');
-  const toastMsg = document.getElementById('toastMsg');
-  const divider = document.getElementById('divider');
-  const main = document.getElementById('main');
-  const editorPane = document.querySelector('.editor-pane');
-  const previewPane = document.querySelector('.preview-pane');
-
-  // ===================== State =====================
-  let toastTimer = null;
-
-  // ===================== Functions =====================
-  function render() {
-    const md = editor.value;
-    preview.innerHTML = parseMD(md);
-
-    // Word count
-    const words = md.trim() ? md.trim().split(/\s+/).filter(Boolean).length : 0;
-    const chars = md.length;
-    const lines = md.split('\n').length;
-    wordCountEl.textContent = words.toLocaleString();
-    charCountEl.textContent = chars.toLocaleString();
-    lineCountEl.textContent = lines.toLocaleString();
-    readTimeEl.textContent = Math.max(1, Math.ceil(words / 200));
-  }
-
-  function showToast(msg) {
-    toastMsg.textContent = msg;
-    toast.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
-  }
-
-  function getSelection() {
-    return {
-      start: editor.selectionStart,
-      end: editor.selectionEnd
-    };
-  }
-
-  function wrapSelection(before, after, placeholder) {
-    const { start, end } = getSelection();
-    const selected = editor.value.substring(start, end);
-    const text = selected || placeholder;
-    const newText = before + text + after;
-    editor.value = editor.value.substring(0, start) + newText + editor.value.substring(end);
-    const newCursorStart = start + before.length;
-    const newCursorEnd = newCursorStart + text.length;
-    editor.focus();
-    editor.setSelectionRange(newCursorStart, newCursorEnd);
-    render();
-  }
-
-  function prefixLines(prefix, placeholder) {
-    const { start, end } = getSelection();
-    const lineStart = editor.value.lastIndexOf('\n', start - 1) + 1;
-    let lineEnd = editor.value.indexOf('\n', end);
-    if (lineEnd === -1) lineEnd = editor.value.length;
-
-    const selectedLines = editor.value.substring(lineStart, lineEnd);
-    const hasSelection = selectedLines.trim().length > 0;
-    const linesArr = selectedLines.split('\n');
-
-    const newContent = linesArr.map((l, idx) => {
-      if (l.trim() === '' && idx !== linesArr.length - 1) return l;
-      if (typeof prefix === 'function') {
-        return prefix(idx, l) + (hasSelection ? l : placeholder);
-      }
-      return prefix + (hasSelection ? l : placeholder);
-    }).join('\n');
-
-    editor.value = editor.value.substring(0, lineStart) + newContent + editor.value.substring(lineEnd);
-    editor.focus();
-    editor.setSelectionRange(lineStart, lineStart + newContent.length);
-    render();
-  }
-
-  function toggleHeading() {
-    const { start, end } = getSelection();
-    const lineStart = editor.value.lastIndexOf('\n', start - 1) + 1;
-    const lineEnd = editor.value.indexOf('\n', end);
-    const uptoLineEnd = lineEnd === -1 ? editor.value.length : lineEnd;
-    const line = editor.value.substring(lineStart, uptoLineEnd);
-
-    const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
-    let newLine;
-
-    if (headingMatch) {
-      // Increase or reset
-      const currentLevel = headingMatch[1].length;
-      if (currentLevel < 6) {
-        newLine = '#'.repeat(currentLevel + 1) + ' ' + headingMatch[2];
+    // 代码围栏
+    if (/^```/.test(line.trim())) {
+      if (!inCode) {
+        closeAll();
+        inCode = true;
+        codeLang = line.trim().slice(3).trim();
+        codeBuf = [];
       } else {
-        newLine = headingMatch[2];
+        const langLabel = codeLang ? `<span class="code-lang">${escapeHtml(codeLang)}</span>` : '';
+        out.push(`<pre>${langLabel}<code>${escapeHtml(codeBuf.join('\n'))}</code></pre>`);
+        inCode = false;
+        codeLang = '';
+        codeBuf = [];
       }
+      i++; continue;
+    }
+
+    if (inCode) { codeBuf.push(line); i++; continue; }
+
+    // 空行
+    if (line.trim() === '') { closeAll(); i++; continue; }
+
+    // 标题
+    const h = line.match(/^(#{1,6})\s+(.+?)(?:\s+#+)?$/);
+    if (h) {
+      closeAll();
+      const lvl = h[1].length;
+      out.push(`<h${lvl}>${parseInline(h[2])}</h${lvl}>`);
+      i++; continue;
+    }
+
+    // 分隔线
+    if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+      closeAll();
+      out.push('<hr>');
+      i++; continue;
+    }
+
+    // 引用块
+    if (/^>\s?/.test(line)) {
+      flushPara();
+      closeList();
+      if (!quoteOpen) { out.push('<blockquote>'); quoteOpen = true; }
+      out.push('<p>' + parseInline(line.replace(/^>\s?/, '')) + '</p>');
+      i++; continue;
+    }
+    if (quoteOpen) closeQuote();
+
+    // 无序列表
+    if (/^\s*[-*+]\s+/.test(line)) {
+      flushPara();
+      closeQuote();
+      if (listType !== 'ul') { closeList(); out.push('<ul>'); listType = 'ul'; }
+      out.push('<li>' + parseInline(line.replace(/^\s*[-*+]\s+/, '')) + '</li>');
+      i++; continue;
+    }
+
+    // 有序列表
+    if (/^\s*\d+\.\s+/.test(line)) {
+      flushPara();
+      closeQuote();
+      if (listType !== 'ol') { closeList(); out.push('<ol>'); listType = 'ol'; }
+      out.push('<li>' + parseInline(line.replace(/^\s*\d+\.\s+/, '')) + '</li>');
+      i++; continue;
+    }
+
+    closeList();
+    para.push(line.trim());
+    i++;
+  }
+
+  closeAll();
+  if (inCode) {
+    const langLabel = codeLang ? `<span class="code-lang">${escapeHtml(codeLang)}</span>` : '';
+    out.push(`<pre>${langLabel}<code>${escapeHtml(codeBuf.join('\n'))}</code></pre>`);
+  }
+
+  return out.join('\n');
+}
+
+// ===== 渲染与统计 =====
+function render() {
+  preview.innerHTML = parseMarkdown(editor.value);
+  updateStats(editor.value);
+}
+
+function updateStats(md) {
+  // 统计前剥离 markdown 语法
+  const text = md
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`[^`]+`/g, ' ')
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, ' ')
+    .replace(/\[([^\]]*)\]\([^)]+\)/g, '$1')
+    .replace(/[#>*_~\-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const words = text ? text.split(' ').filter(Boolean).length : 0;
+  const chars = md.length;
+  const lines = md ? md.split('\n').length : 1;
+  const readTime = words === 0 ? 0 : Math.max(1, Math.ceil(words / 200));
+
+  const prevWords = parseInt(wordCountEl.textContent) || 0;
+  if (prevWords !== words) {
+    wordItem.classList.add('flash');
+    setTimeout(() => wordItem.classList.remove('flash'), 250);
+  }
+  wordCountEl.textContent = words;
+  charCountEl.textContent = chars;
+  lineCountEl.textContent = lines;
+  readTimeEl.textContent = readTime;
+}
+
+// ===== 工具栏操作 =====
+function formatText(action) {
+  const start = editor.selectionStart;
+  const end = editor.selectionEnd;
+  const text = editor.value;
+  const selected = text.slice(start, end);
+
+  // 行级操作
+  if (['h1', 'h2', 'h3', 'quote', 'ul', 'ol'].includes(action)) {
+    const lineStart = text.lastIndexOf('\n', start - 1) + 1;
+    let lineEnd = text.indexOf('\n', start);
+    if (lineEnd === -1) lineEnd = text.length;
+    const curLine = text.slice(lineStart, lineEnd);
+
+    let prefix, pattern;
+    switch (action) {
+      case 'h1': prefix = '# '; pattern = /^# (?!#)/; break;
+      case 'h2': prefix = '## '; pattern = /^## (?!#)/; break;
+      case 'h3': prefix = '### '; pattern = /^### (?!#)/; break;
+      case 'quote': prefix = '> '; pattern = /^> /; break;
+      case 'ul': prefix = '- '; pattern = /^- /; break;
+      case 'ol': prefix = '1. '; pattern = /^\d+\. /; break;
+    }
+
+    let newLine;
+    if (pattern && pattern.test(curLine)) {
+      newLine = curLine.replace(pattern, '');
     } else {
-      newLine = '## ' + (line || 'Heading');
+      const cleaned = curLine.replace(/^(#{1,6}\s+|>\s+|[-*+]\s+|\d+\.\s+)/, '');
+      newLine = prefix + cleaned;
     }
 
-    editor.value = editor.value.substring(0, lineStart) + newLine + editor.value.substring(uptoLineEnd);
-    editor.focus();
-    editor.setSelectionRange(lineStart, lineStart + newLine.length);
-    render();
-  }
-
-  function insertLink() {
-    const { start, end } = getSelection();
-    const selected = editor.value.substring(start, end);
-    const text = selected || 'link text';
-    const url = 'https://';
-    const insertion = `[${text}](${url})`;
-    editor.value = editor.value.substring(0, start) + insertion + editor.value.substring(end);
-    editor.focus();
-    // Place cursor on URL
-    const urlPos = start + text.length + 3;
-    editor.setSelectionRange(urlPos, urlPos + url.length);
-    render();
-  }
-
-  function insertCodeBlock() {
-    const { start, end } = getSelection();
-    const selected = editor.value.substring(start, end);
-    const content = selected || '// your code here';
-    const before = editor.value.substring(0, start);
-    const after = editor.value.substring(end);
-
-    const needsNewlineBefore = before.length > 0 && !before.endsWith('\n');
-    const needsNewlineAfter = after.length > 0 && !after.startsWith('\n');
-
-    const insertion =
-      (needsNewlineBefore ? '\n' : '') +
-      '```\n' + content + '\n```' +
-      (needsNewlineAfter ? '\n' : '');
-
-    editor.value = before + insertion + after;
-    editor.focus();
-    const contentStart = start + (needsNewlineBefore ? 1 : 0) + 5;
-    editor.setSelectionRange(contentStart, contentStart + content.length);
-    render();
-  }
-
-  function insertHR() {
-    const { start } = getSelection();
-    const before = editor.value.substring(0, start);
-    const after = editor.value.substring(start);
-    const needsNewlineBefore = before.length > 0 && !before.endsWith('\n');
-    const needsNewlineAfter = after.length > 0 && !after.startsWith('\n');
-
-    editor.value = before +
-      (needsNewlineBefore ? '\n' : '') +
-      '\n---\n' +
-      (needsNewlineAfter ? '\n' : '') +
-      after;
+    editor.value = text.slice(0, lineStart) + newLine + text.slice(lineEnd);
+    editor.setSelectionRange(lineStart + newLine.length, lineStart + newLine.length);
     editor.focus();
     render();
+    return;
   }
 
-  function applyFormat(type) {
-    const map = {
-      bold: () => wrapSelection('**', '**', 'bold text'),
-      italic: () => wrapSelection('*', '*', 'italic text'),
-      strike: () => wrapSelection('~~', '~~', 'strikethrough'),
-      code: () => wrapSelection('`', '`', 'code'),
-      heading: () => toggleHeading(),
-      link: () => insertLink(),
-      codeblock: () => insertCodeBlock(),
-      ul: () => prefixLines('- ', 'list item'),
-      ol: () => prefixLines((i) => `${i + 1}. `, 'list item'),
-      quote: () => prefixLines('> ', 'quoted text'),
-      hr: () => insertHR()
-    };
-    if (map[type]) map[type]();
-  }
+  // 行内 / 插入操作
+  let insertion, selStart, selEnd;
 
-  function updateCursorPos() {
-    const pos = editor.selectionStart;
-    const upto = editor.value.substring(0, pos);
-    const line = upto.split('\n').length;
-    const col = pos - upto.lastIndexOf('\n');
-    cursorPosEl.textContent = `Ln ${line}, Col ${col}`;
-  }
-
-  // ===================== Event Listeners =====================
-  editor.addEventListener('input', render);
-  editor.addEventListener('keyup', updateCursorPos);
-  editor.addEventListener('click', updateCursorPos);
-  editor.addEventListener('select', updateCursorPos);
-
-  // Toolbar
-  document.getElementById('toolbar').addEventListener('click', (e) => {
-    const btn = e.target.closest('.tool-btn');
-    if (!btn) return;
-    const md = btn.dataset.md;
-    if (md) applyFormat(md);
-  });
-
-  // Keyboard shortcuts
-  editor.addEventListener('keydown', (e) => {
-    const mod = e.ctrlKey || e.metaKey;
-    if (!mod) return;
-
-    const key = e.key.toLowerCase();
-    if (key === 'b') { e.preventDefault(); applyFormat('bold'); }
-    else if (key === 'i') { e.preventDefault(); applyFormat('italic'); }
-    else if (key === 'k') { e.preventDefault(); applyFormat('link'); }
-    else if (key === 'h') { e.preventDefault(); applyFormat('heading'); }
-  });
-
-  // Tab support
-  editor.addEventListener('keydown', (e) => {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const start = editor.selectionStart;
-      const end = editor.selectionEnd;
-      editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
-      editor.selectionStart = editor.selectionEnd = start + 2;
-      render();
+  switch (action) {
+    case 'bold':
+      insertion = `**${selected || 'bold text'}**`;
+      selStart = start + 2;
+      selEnd = selStart + (selected || 'bold text').length;
+      break;
+    case 'italic':
+      insertion = `*${selected || 'italic text'}*`;
+      selStart = start + 1;
+      selEnd = selStart + (selected || 'italic text').length;
+      break;
+    case 'strike':
+      insertion = `~~${selected || 'strikethrough'}~~`;
+      selStart = start + 2;
+      selEnd = selStart + (selected || 'strikethrough').length;
+      break;
+    case 'code':
+      insertion = `\`${selected || 'code'}\``;
+      selStart = start + 1;
+      selEnd = selStart + (selected || 'code').length;
+      break;
+    case 'link': {
+      const t = selected || 'link text';
+      insertion = `[${t}](https://example.com)`;
+      selStart = start + t.length + 3;
+      selEnd = selStart + 'https://example.com'.length;
+      break;
     }
-  });
-
-  // Copy
-  copyBtn.addEventListener('click', async () => {
-    const text = editor.value;
-    try {
-      await navigator.clipboard.writeText(text);
-      showToast('Markdown copied to clipboard');
-    } catch (err) {
-      // Fallback
-      editor.select();
-      try {
-        document.execCommand('copy');
-        showToast('Markdown copied to clipboard');
-      } catch (e2) {
-        showToast('Copy failed — select manually');
-      }
+    case 'codeblock': {
+      const c = selected || '// your code here';
+      insertion = `\n\`\`\`\n${c}\n\`\`\`\n`;
+      selStart = start + 5;
+      selEnd = selStart + c.length;
+      break;
     }
-  });
+    case 'hr':
+      insertion = '\n\n---\n\n';
+      selStart = selEnd = start + insertion.length;
+      break;
+  }
 
-  // Clear
-  clearBtn.addEventListener('click', () => {
-    if (editor.value.trim() === '') {
-      editor.value = DEFAULT_CONTENT;
-      showToast('Sample content restored');
-    } else {
-      editor.value = '';
-      showToast('Editor cleared');
-    }
-    render();
-    editor.focus();
-  });
+  editor.value = text.slice(0, start) + insertion + text.slice(end);
+  editor.setSelectionRange(selStart, selEnd);
+  editor.focus();
+  render();
+}
 
-  // ===================== Resizable Divider =====================
-  let isDragging = false;
+// ===== 事件绑定 =====
+editor.addEventListener('input', render);
 
-  function startDrag(e) {
-    isDragging = true;
-    divider.classList.add('dragging');
-    document.body.style.cursor = window.innerWidth <= 768 ? 'row-resize' : 'col-resize';
-    document.body.style.userSelect = 'none';
+document.querySelectorAll('.tool-btn').forEach(btn => {
+  btn.addEventListener('click', () => formatText(btn.dataset.action));
+});
+
+editor.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey) {
+    const k = e.key.toLowerCase();
+    if (k === 'b') { e.preventDefault(); formatText('bold'); return; }
+    if (k === 'i') { e.preventDefault(); formatText('italic'); return; }
+    if (k === 'k') { e.preventDefault(); formatText('link'); return; }
+  }
+  if (e.key === 'Tab') {
     e.preventDefault();
+    const s = editor.selectionStart, en = editor.selectionEnd;
+    editor.value = editor.value.slice(0, s) + '  ' + editor.value.slice(en);
+    editor.setSelectionRange(s + 2, s + 2);
+    render();
   }
+});
 
-  function doDrag(e) {
-    if (!isDragging) return;
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    const rect = main.getBoundingClientRect();
-
-    if (window.innerWidth <= 768) {
-      const totalH = rect.height;
-      const offset = clientY - rect.top;
-      const topPct = Math.max(15, Math.min(85, (offset / totalH) * 100));
-      editorPane.style.flex = `0 0 ${topPct}%`;
-      previewPane.style.flex = `1`;
-    } else {
-      const totalW = rect.width;
-      const offset = clientX - rect.left;
-      const leftPct = Math.max(20, Math.min(80, (offset / totalW) * 100));
-      editorPane.style.flex = `0 0 ${leftPct}%`;
-      previewPane.style.flex = `1`;
-    }
+copyBtn.addEventListener('click', async () => {
+  const text = editor.value;
+  const selStart = editor.selectionStart;
+  const selEnd = editor.selectionEnd;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    editor.focus();
+    editor.select();
+    document.execCommand('copy');
+    editor.setSelectionRange(selStart, selEnd);
   }
+  showToast('Markdown copied to clipboard');
+});
 
-  function endDrag() {
-    isDragging = false;
-    divider.classList.remove('dragging');
+clearBtn.addEventListener('click', () => {
+  if (editor.value.trim() === '') {
+    showToast('Editor is already empty');
+    return;
+  }
+  editor.value = '';
+  render();
+  editor.focus();
+  showToast('Editor cleared');
+});
+
+let toastTimer;
+function showToast(msg) {
+  toastMsg.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+// 移动端 tab 切换
+document.querySelectorAll('.mobile-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.mobile-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const target = tab.dataset.tab;
+    editorPane.classList.toggle('active', target === 'editor');
+    previewPane.classList.toggle('active', target === 'preview');
+  });
+});
+
+// 分隔条拖动
+let dragging = false;
+divider.addEventListener('mousedown', e => {
+  dragging = true;
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+  e.preventDefault();
+});
+document.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const rect = splitPane.getBoundingClientRect();
+  const pct = ((e.clientX - rect.left) / rect.width) * 100;
+  const clamped = Math.max(20, Math.min(80, pct));
+  editorPane.style.flex = `${clamped} 1 0`;
+  previewPane.style.flex = `${100 - clamped} 1 0`;
+});
+document.addEventListener('mouseup', () => {
+  if (dragging) {
+    dragging = false;
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
   }
+});
 
-  divider.addEventListener('mousedown', startDrag);
-  document.addEventListener('mousemove', doDrag);
-  document.addEventListener('mouseup', endDrag);
+divider.addEventListener('touchstart', e => {
+  dragging = true;
+  e.preventDefault();
+}, { passive: false });
+document.addEventListener('touchmove', e => {
+  if (!dragging) return;
+  const touch = e.touches[0];
+  const rect = splitPane.getBoundingClientRect();
+  const pct = ((touch.clientX - rect.left) / rect.width) * 100;
+  const clamped = Math.max(20, Math.min(80, pct));
+  editorPane.style.flex = `${clamped} 1 0`;
+  previewPane.style.flex = `${100 - clamped} 1 0';
+}, { passive: true });
+document.addEventListener('touchend', () => { dragging = false; });
 
-  divider.addEventListener('touchstart', startDrag, { passive: false });
-  document.addEventListener('touchmove', doDrag, { passive: false });
-  document.addEventListener('touchend', endDrag);
-
-  // Reset flex on resize
-  window.addEventListener('resize', () => {
-    editorPane.style.flex = '';
-    previewPane.style.flex = '';
-  });
-
-  // ===================== Init =====================
-  editor.value = DEFAULT_CONTENT;
-  render();
-  updateCursorPos();
-  editor.focus();
-
-  // Place cursor at end
-  editor.setSelectionRange(editor.value.length, editor.value.length);
-})();
+// 初始化
+editor.value = DEFAULT_CONTENT;
+render();
 </script>
 </body>
 </html>

@@ -2,564 +2,110 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI Model Bake-Off — Fair Rerun</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Bake-Off — 1000-Point Scoring</title>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg: #0d1117; --bg2: #161b22; --bg3: #21262d; --border: #30363d;
-  --text: #e6edf3; --text2: #8b949e; --accent: #58a6ff;
-  --purple: #6366f1; --green: #22c55e; --amber: #f59e0b; --red: #ef4444;
-  --sonnet:#f59e0b; --opus:#ef4444; --glm:#22c55e; --glm52:#3b82f6;
-  --qwen:#6366f1; --ornith:#f97316;
+  --bg: #0a0a0f;
+  --card: #13131a;
+  --border: #2a2a35;
+  --text: #e4e4e7;
+  --dim: #71717a;
+  --accent: #6366f1;
+  --gold: #fbbf24;
+  --silver: #94a3b8;
+  --bronze: #b45309;
 }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: var(--bg); color: var(--text); line-height: 1.6; min-height: 100vh; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+  line-height: 1.6;
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+h1 { font-size: 2em; margin: 20px 0 8px; }
+h2 { font-size: 1.4em; margin: 28px 0 12px; color: var(--text); }
+.subtitle { color: var(--dim); margin-bottom: 24px; font-size: 1.05em; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px 14px; text-align: left; }
+th { color: var(--dim); font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+td { border-bottom: 1px solid #1e1e28; }
+tr:hover td { background: #1a1a22; }
+.score-bar {
+  display: inline-block;
+  height: 8px;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin-left: 8px;
+}
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  font-size: 1.1em;
+  font-weight: bold;
+}
+.total-score { font-size: 1.3em; font-weight: 700; }
+.dims-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 8px; }
+.dim-cell {
+  background: #1a1a22;
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+}
+.dim-cell .label { font-size: 0.7em; color: var(--dim); text-transform: uppercase; }
+.dim-cell .value { font-size: 1.2em; font-weight: 600; margin-top: 2px; }
+.dim-cell .max { font-size: 0.7em; color: var(--dim); }
+.methodology { color: var(--dim); font-size: 0.9em; line-height: 1.7; }
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75em;
+  font-weight: 600;
+}
+.badge-fail { background: #2a1212; color: #ef4444; }
+.badge-ok { background: #122a12; color: #22c55e; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
-.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
-
-.hero { text-align: center; padding: 60px 24px 40px; position: relative; overflow: hidden; }
-.hero::before { content:''; position:absolute; top:-50%; left:-50%; width:200%; height:200%;
-  background: radial-gradient(ellipse at center, rgba(99,102,241,0.15) 0%, transparent 70%); }
-.hero h1 { font-size: 3rem; font-weight: 800; position:relative;
-  background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  background-clip: text; margin-bottom: 8px; }
-.hero .subtitle { color: var(--text2); font-size: 1.1rem; position:relative; }
-.hero .meta { color: var(--text2); font-size: 0.85rem; margin-top: 6px; position:relative; }
-.badge-old { display:inline-block; background: var(--bg3); border:1px solid var(--border);
-  color: var(--text2); padding: 3px 10px; border-radius: 999px; font-size: 0.75rem;
-  margin-top: 10px; position: relative; }
-
-.card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
-  padding: 20px; transition: border-color 0.2s, transform 0.2s; }
-.card:hover { border-color: var(--accent); transform: translateY(-2px); }
-
-.section { padding: 40px 0; }
-.section-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
-.section-desc { color: var(--text2); font-size: 0.9rem; margin-bottom: 20px; }
-
-.grid-2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 16px; }
-.grid-3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-
-.tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
-.tab-btn { padding: 8px 18px; border-radius: 999px; border: 1px solid var(--border);
-  background: var(--bg2); color: var(--text2); cursor: pointer; font-size: 0.9rem;
-  transition: all 0.2s; font-weight: 500; }
-.tab-btn:hover { border-color: var(--text2); color: var(--text); }
-.tab-btn.active { color: #fff; border-color: transparent; }
-
-.stats-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
-.stat { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
-  padding: 8px 14px; display: flex; flex-direction: column; min-width: 90px; }
-.stat-label { font-size: 0.7rem; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
-.stat-value { font-size: 1.1rem; font-weight: 700; }
-
-.iframe-wrap { border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
-  background: #fff; height: 560px; }
-.iframe-wrap iframe { width: 100%; height: 100%; border: none; }
-
-.winner-badge { display: inline-block; background: linear-gradient(135deg, #f59e0b, #ef4444);
-  color: #fff; padding: 3px 12px; border-radius: 999px; font-weight: 700; font-size: 0.8rem; }
-.fail-badge { display: inline-block; background: rgba(239,68,68,0.15); color: #ef4444;
-  border: 1px solid rgba(239,68,68,0.4); padding: 3px 12px; border-radius: 999px;
-  font-weight: 700; font-size: 0.8rem; }
-.rank-num { font-size: 1.5rem; font-weight: 800; }
-
-.cmp-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-.cmp-table th, .cmp-table td { padding: 10px 12px; text-align: left;
-  border-bottom: 1px solid var(--border); }
-.cmp-table th { color: var(--text2); font-weight: 600; text-transform: uppercase;
-  font-size: 0.7rem; letter-spacing: 0.5px; }
-.cmp-table tr:hover td { background: var(--bg3); }
-.score-bar { height: 5px; border-radius: 3px; background: var(--bg3); min-width: 60px; margin-top: 3px; }
-.score-bar-fill { height: 100%; border-radius: 3px; }
-.best { color: #22c55e; font-weight: 700; }
-.fail { color: #ef4444; font-weight: 700; }
-
-/* Dimension breakdown bars */
-.dim-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
-.dim-row { display: grid; grid-template-columns: 130px 1fr 50px; gap: 10px; align-items: center; font-size: 0.78rem; }
-.dim-label { color: var(--text2); }
-.dim-track { height: 7px; border-radius: 4px; background: var(--bg3); overflow: hidden; }
-.dim-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
-.dim-val { font-weight: 700; text-align: right; font-size: 0.78rem; }
-
-/* Methodology */
-.method-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
-.method-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
-  padding: 16px; }
-.method-item h4 { font-size: 0.95rem; margin-bottom: 6px; display:flex; gap:8px; align-items:center; }
-.method-item .pts { margin-left:auto; color: var(--accent); font-size: 0.8rem; font-weight: 700;
-  background: rgba(88,166,255,0.1); padding: 2px 8px; border-radius: 999px; }
-.method-item p { color: var(--text2); font-size: 0.82rem; }
-.method-item ul { color: var(--text2); font-size: 0.78rem; margin-top: 6px; padding-left: 18px; }
-
-.back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text2);
-  font-size: 0.9rem; padding: 10px 0; }
-.back-link:hover { color: var(--accent); }
-
-footer { text-align: center; padding: 28px 0; border-top: 1px solid var(--border);
-  color: var(--text2); font-size: 0.82rem; margin-top: 40px; }
-
-.dim-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
-  padding: 16px; margin-bottom: 14px; }
-.dim-panel h4 { font-size: 0.85rem; color: var(--text2); text-transform: uppercase;
-  letter-spacing: 0.5px; margin-bottom: 4px; }
-
-@media (max-width: 760px) {
-  .hero h1 { font-size: 2rem; }
-  .grid-2, .grid-3 { grid-template-columns: 1fr; }
-  .iframe-wrap { height: 420px; }
-  .cmp-table { font-size: 0.78rem; }
+.test-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.9em;
+  transition: border-color 0.2s;
 }
+.test-link:hover { border-color: var(--accent); text-decoration: none; }
+.nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
 </style>
 </head>
 <body>
-
-<div class="hero">
-  <h1>🏆 AI Model Bake-Off — Fair Rerun</h1>
-  <p class="subtitle">5 models · 11 challenges · 1 shot each · Real browser testing</p>
-  <p class="meta">Combined score = Functional (45%) + Quality (40%) + Speed (15%) · Max 1100 · failures score 0</p>
-  <span class="badge-old">One-shot generation · no retries · GLM thinking disabled · Playwright browser tests</span>
-</div>
-
-<div class="container">
-
-  <div class="section">
-    <h2 class="section-title">🏅 Final Rankings</h2>
-    <p class="section-desc">Ranked by total combined score out of 1100. Champion: <strong style="color:#22c55e">🟢 GLM 5.1</strong> with <strong>816/1100</strong>.</p>
-    <div class="grid-2" style="gap:14px">
-    <div class="card" style="display:flex;gap:16px;border-left:4px solid #22c55e;padding:18px">
-      <span style="font-size:2.2rem">🥇</span>
-      <div style="flex:1">
-        <div style="font-size:1.1rem;font-weight:700">🟢 GLM 5.1 <span style="color:var(--text2);font-weight:400;font-size:0.85rem">(ZAI)</span></div>
-        <div style="color:var(--text2);font-size:0.85rem;margin:4px 0 8px">
-          Total <strong style="color:#a3e635">816/1100</strong> ·
-          Avg functional <strong>87</strong> ·
-          Avg quality <strong>64</strong> ·
-          Avg speed <strong>64</strong> ·
-          Gen success <strong style='color:#22c55e'>11/11</strong>
-        </div>
-        <div style="margin-bottom:4px"><strong style="color:#22c55e;font-size:0.78rem">STRENGTHS</strong> <span style='display:inline-block;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Won 5/11 tests</span><span style='display:inline-block;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Strong Visual Design (90%)</span><span style='display:inline-block;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Strong Functionality (68%)</span></div>
-        <div><strong style="color:#ef4444;font-size:0.78rem">WEAKNESSES</strong> <span style='display:inline-block;background:rgba(239,68,68,0.12);color:#ef4444;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Weak Accessibility (31%)</span><span style='display:inline-block;background:rgba(239,68,68,0.12);color:#ef4444;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Weak Performance (42%)</span></div>
-      </div>
-    </div>
-    <div class="card" style="display:flex;gap:16px;border-left:4px solid #3b82f6;padding:18px">
-      <span style="font-size:2.2rem">🥈</span>
-      <div style="flex:1">
-        <div style="font-size:1.1rem;font-weight:700">🔵 GLM-5.2 <span style="color:var(--text2);font-weight:400;font-size:0.85rem">(ZAI / z.ai)</span></div>
-        <div style="color:var(--text2);font-size:0.85rem;margin:4px 0 8px">
-          Total <strong style="color:#a3e635">800/1100</strong> ·
-          Avg functional <strong>86</strong> ·
-          Avg quality <strong>58</strong> ·
-          Avg speed <strong>72</strong> ·
-          Gen success <strong style='color:#22c55e'>11/11</strong>
-        </div>
-        <div style="margin-bottom:4px"><strong style="color:#22c55e;font-size:0.78rem">STRENGTHS</strong> <span style='display:inline-block;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Won 4/11 tests</span><span style='display:inline-block;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Strong Visual Design (83%)</span><span style='display:inline-block;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Strong Code Quality (64%)</span></div>
-        <div><strong style="color:#ef4444;font-size:0.78rem">WEAKNESSES</strong> <span style='display:inline-block;background:rgba(239,68,68,0.12);color:#ef4444;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Weak Accessibility (30%)</span></div>
-      </div>
-    </div>
-    <div class="card" style="display:flex;gap:16px;border-left:4px solid #f97316;padding:18px">
-      <span style="font-size:2.2rem">🥉</span>
-      <div style="flex:1">
-        <div style="font-size:1.1rem;font-weight:700">🟠 Ornith 35B <span style="color:var(--text2);font-weight:400;font-size:0.85rem">(Local llama.cpp)</span></div>
-        <div style="color:var(--text2);font-size:0.85rem;margin:4px 0 8px">
-          Total <strong style="color:#a3e635">731/1100</strong> ·
-          Avg functional <strong>86</strong> ·
-          Avg quality <strong>54</strong> ·
-          Avg speed <strong>44</strong> ·
-          Gen success <strong style='color:#22c55e'>11/11</strong>
-        </div>
-        <div style="margin-bottom:4px"><strong style="color:#22c55e;font-size:0.78rem">STRENGTHS</strong> <span style='display:inline-block;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Won 1/11 tests</span><span style='display:inline-block;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Strong Visual Design (75%)</span></div>
-        <div><strong style="color:#ef4444;font-size:0.78rem">WEAKNESSES</strong> <span style='display:inline-block;background:rgba(239,68,68,0.12);color:#ef4444;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Weak Accessibility (17%)</span></div>
-      </div>
-    </div>
-    <div class="card" style="display:flex;gap:16px;border-left:4px solid #f59e0b;padding:18px">
-      <span style="font-size:2.2rem">4️⃣</span>
-      <div style="flex:1">
-        <div style="font-size:1.1rem;font-weight:700">🟡 Sonnet 4.6 <span style="color:var(--text2);font-weight:400;font-size:0.85rem">(Anthropic)</span></div>
-        <div style="color:var(--text2);font-size:0.85rem;margin:4px 0 8px">
-          Total <strong style="color:#f59e0b">571/1100</strong> ·
-          Avg functional <strong>93</strong> ·
-          Avg quality <strong>43</strong> ·
-          Avg speed <strong>83</strong> ·
-          Gen success <strong style='color:#ef4444'>8/11</strong> <span style='color:var(--text2);font-size:0.78rem'>(3 failed)</span>
-        </div>
-        <div style="margin-bottom:4px"><strong style="color:#22c55e;font-size:0.78rem">STRENGTHS</strong> <span style='display:inline-block;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Won 1/11 tests</span></div>
-        <div><strong style="color:#ef4444;font-size:0.78rem">WEAKNESSES</strong> <span style='display:inline-block;background:rgba(239,68,68,0.12);color:#ef4444;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Weak Accessibility (8%)</span><span style='display:inline-block;background:rgba(239,68,68,0.12);color:#ef4444;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Weak UX Polish (23%)</span></div>
-      </div>
-    </div>
-    <div class="card" style="display:flex;gap:16px;border-left:4px solid #ef4444;padding:18px">
-      <span style="font-size:2.2rem">5️⃣</span>
-      <div style="flex:1">
-        <div style="font-size:1.1rem;font-weight:700">🔴 Opus 4.7 <span style="color:var(--text2);font-weight:400;font-size:0.85rem">(Anthropic)</span></div>
-        <div style="color:var(--text2);font-size:0.85rem;margin:4px 0 8px">
-          Total <strong style="color:#f59e0b">511/1100</strong> ·
-          Avg functional <strong>89</strong> ·
-          Avg quality <strong>59</strong> ·
-          Avg speed <strong>3</strong> ·
-          Gen success <strong style='color:#ef4444'>8/11</strong> <span style='color:var(--text2);font-size:0.78rem'>(3 failed)</span>
-        </div>
-        <div style="margin-bottom:4px"><strong style="color:#22c55e;font-size:0.78rem">STRENGTHS</strong> <span style='display:inline-block;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Strong Visual Design (87%)</span><span style='display:inline-block;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Strong Code Quality (71%)</span></div>
-        <div><strong style="color:#ef4444;font-size:0.78rem">WEAKNESSES</strong> <span style='display:inline-block;background:rgba(239,68,68,0.12);color:#ef4444;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Weak Accessibility (31%)</span><span style='display:inline-block;background:rgba(239,68,68,0.12);color:#ef4444;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Weak UX Polish (38%)</span></div>
-      </div>
-    </div>
-    </div>
-  </div>
-
-  <div class="section">
-    <h2 class="section-title">🏁 Per-Test Winners</h2>
-    <p class="section-desc">Who won each challenge, who came second, and what happened. 🏆 = winner by combined score. Red FAIL = generation failure (score 0).</p>
-<div style="overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--bg2)">
-      <table class="cmp-table">
-        <thead><tr>
-          <th>Test</th><th>Winner</th><th style="text-align:center">Score</th><th>Runner-up</th><th style="text-align:center">Score</th><th>Notes</th>
-        </tr></thead>
-        <tbody>
-      <tr>
-        <td><strong>📋 Kanban Board</strong></td>
-        <td><strong style='color:#3b82f6'>🔵 GLM-5.2</strong><div style='color:var(--text2);font-size:0.72rem'>88/100</div></td>
-        <td style="text-align:center"><strong style="color:#22c55e">88</strong></td>
-        <td><span style='color:#22c55e'>🟢 GLM 5.1</span><div style='color:var(--text2);font-size:0.72rem'>76/100</div></td>
-        <td style="text-align:center">76</td>
-        <td><span style='color:#ef4444;font-size:0.75rem'>⚠ Sonnet 4.6: no HTML after strip</span></td>
-      </tr>
-      <tr>
-        <td><strong>📊 Dashboard</strong></td>
-        <td><strong style='color:#f97316'>🟠 Ornith 35B</strong><div style='color:var(--text2);font-size:0.72rem'>81/100</div></td>
-        <td style="text-align:center"><strong style="color:#22c55e">81</strong></td>
-        <td><span style='color:#f59e0b'>🟡 Sonnet 4.6</span><div style='color:var(--text2);font-size:0.72rem'>80/100</div></td>
-        <td style="text-align:center">80</td>
-        <td><span style='color:var(--text2);font-size:0.75rem'>All apps functional</span></td>
-      </tr>
-      <tr>
-        <td><strong>♟️ Chess Game</strong></td>
-        <td><strong style='color:#22c55e'>🟢 GLM 5.1</strong><div style='color:var(--text2);font-size:0.72rem'>82/100</div></td>
-        <td style="text-align:center"><strong style="color:#22c55e">82</strong></td>
-        <td><span style='color:#3b82f6'>🔵 GLM-5.2</span><div style='color:var(--text2);font-size:0.72rem'>78/100</div></td>
-        <td style="text-align:center">78</td>
-        <td><span style='color:var(--text2);font-size:0.75rem'>All apps functional</span></td>
-      </tr>
-      <tr>
-        <td><strong>📝 Markdown Editor</strong></td>
-        <td><strong style='color:#22c55e'>🟢 GLM 5.1</strong><div style='color:var(--text2);font-size:0.72rem'>86/100</div></td>
-        <td style="text-align:center"><strong style="color:#22c55e">86</strong></td>
-        <td><span style='color:#3b82f6'>🔵 GLM-5.2</span><div style='color:var(--text2);font-size:0.72rem'>84/100</div></td>
-        <td style="text-align:center">84</td>
-        <td><span style='color:#ef4444;font-size:0.75rem'>⚠ Opus 4.7: TIMEOUT after 600s; Sonnet 4.6: no HTML after strip</span></td>
-      </tr>
-      <tr>
-        <td><strong>🧮 Calculator</strong></td>
-        <td><strong style='color:#22c55e'>🟢 GLM 5.1</strong><div style='color:var(--text2);font-size:0.72rem'>73/100</div></td>
-        <td style="text-align:center"><strong style="color:#a3e635">73</strong></td>
-        <td><span style='color:#3b82f6'>🔵 GLM-5.2</span><div style='color:var(--text2);font-size:0.72rem'>72/100</div></td>
-        <td style="text-align:center">72</td>
-        <td><span style='color:#ef4444;font-size:0.75rem'>⚠ Sonnet 4.6: no HTML after strip</span></td>
-      </tr>
-      <tr>
-        <td><strong>🐍 Snake Game</strong></td>
-        <td><strong style='color:#3b82f6'>🔵 GLM-5.2</strong><div style='color:var(--text2);font-size:0.72rem'>76/100</div></td>
-        <td style="text-align:center"><strong style="color:#22c55e">76</strong></td>
-        <td><span style='color:#f59e0b'>🟡 Sonnet 4.6</span><div style='color:var(--text2);font-size:0.72rem'>76/100</div></td>
-        <td style="text-align:center">76</td>
-        <td><span style='color:var(--text2);font-size:0.75rem'>All apps functional</span></td>
-      </tr>
-      <tr>
-        <td><strong>🍅 Pomodoro Timer</strong></td>
-        <td><strong style='color:#3b82f6'>🔵 GLM-5.2</strong><div style='color:var(--text2);font-size:0.72rem'>85/100</div></td>
-        <td style="text-align:center"><strong style="color:#22c55e">85</strong></td>
-        <td><span style='color:#f59e0b'>🟡 Sonnet 4.6</span><div style='color:var(--text2);font-size:0.72rem'>80/100</div></td>
-        <td style="text-align:center">80</td>
-        <td><span style='color:var(--text2);font-size:0.75rem'>All apps functional</span></td>
-      </tr>
-      <tr>
-        <td><strong>🌤️ Weather App</strong></td>
-        <td><strong style='color:#22c55e'>🟢 GLM 5.1</strong><div style='color:var(--text2);font-size:0.72rem'>76/100</div></td>
-        <td style="text-align:center"><strong style="color:#22c55e">76</strong></td>
-        <td><span style='color:#f59e0b'>🟡 Sonnet 4.6</span><div style='color:var(--text2);font-size:0.72rem'>75/100</div></td>
-        <td style="text-align:center">75</td>
-        <td><span style='color:var(--text2);font-size:0.75rem'>All apps functional</span></td>
-      </tr>
-      <tr>
-        <td><strong>🔐 Password Generator</strong></td>
-        <td><strong style='color:#3b82f6'>🔵 GLM-5.2</strong><div style='color:var(--text2);font-size:0.72rem'>83/100</div></td>
-        <td style="text-align:center"><strong style="color:#22c55e">83</strong></td>
-        <td><span style='color:#22c55e'>🟢 GLM 5.1</span><div style='color:var(--text2);font-size:0.72rem'>80/100</div></td>
-        <td style="text-align:center">80</td>
-        <td><span style='color:var(--text2);font-size:0.75rem'>All apps functional</span></td>
-      </tr>
-      <tr>
-        <td><strong>🎮 GTA-Style Game</strong></td>
-        <td><strong style='color:#f59e0b'>🟡 Sonnet 4.6</strong><div style='color:var(--text2);font-size:0.72rem'>74/100</div></td>
-        <td style="text-align:center"><strong style="color:#a3e635">74</strong></td>
-        <td><span style='color:#22c55e'>🟢 GLM 5.1</span><div style='color:var(--text2);font-size:0.72rem'>61/100</div></td>
-        <td style="text-align:center">61</td>
-        <td><span style='color:#ef4444;font-size:0.75rem'>⚠ Opus 4.7: TIMEOUT after 600s</span></td>
-      </tr>
-      <tr>
-        <td><strong>🖥️ WebOS Desktop</strong></td>
-        <td><strong style='color:#22c55e'>🟢 GLM 5.1</strong><div style='color:var(--text2);font-size:0.72rem'>67/100</div></td>
-        <td style="text-align:center"><strong style="color:#a3e635">67</strong></td>
-        <td><span style='color:#f97316'>🟠 Ornith 35B</span><div style='color:var(--text2);font-size:0.72rem'>58/100</div></td>
-        <td style="text-align:center">58</td>
-        <td><span style='color:#ef4444;font-size:0.75rem'>⚠ Opus 4.7: TIMEOUT after 600s</span></td>
-      </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="section">
-    <h2 class="section-title">📊 Cross-Test Matrix (Final Combined Score / 100)</h2>
-    <p class="section-desc">Every model · every test. 🏆 marks each test's winner. FAIL = generation failure.</p>
-<div style="overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--bg2)">
-      <table class="cmp-table">
-        <thead><tr>
-          <th>Test</th><th style='text-align:center'>🟢<br><span style='font-weight:400;text-transform:none;font-size:0.7rem'>GLM 5.1</span></th><th style='text-align:center'>🔵<br><span style='font-weight:400;text-transform:none;font-size:0.7rem'>GLM-5.2</span></th><th style='text-align:center'>🔴<br><span style='font-weight:400;text-transform:none;font-size:0.7rem'>Opus 4.7</span></th><th style='text-align:center'>🟠<br><span style='font-weight:400;text-transform:none;font-size:0.7rem'>Ornith 35B</span></th><th style='text-align:center'>🟡<br><span style='font-weight:400;text-transform:none;font-size:0.7rem'>Sonnet 4.6</span></th>
-        </tr></thead>
-        <tbody>
-<tr><td><strong>📋 Kanban Board</strong></td><td><strong style='color:#22c55e'>76</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:76%;background:#22c55e'></div></div></td><td class="best"><strong style='color:#22c55e'>88</strong>/100 🏆<div class='score-bar'><div class='score-bar-fill' style='width:88%;background:#22c55e'></div></div></td><td><strong style='color:#f59e0b'>57</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:57%;background:#f59e0b'></div></div></td><td><strong style='color:#a3e635'>71</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:71%;background:#a3e635'></div></div></td><td class='fail'><strong style='color:#ef4444'>FAIL</strong><div style='color:var(--text2);font-size:0.68rem'>gen failed</div></td></tr>
-<tr><td><strong>📊 Dashboard</strong></td><td><strong style='color:#22c55e'>75</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:75%;background:#22c55e'></div></div></td><td><strong style='color:#22c55e'>77</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:77%;background:#22c55e'></div></div></td><td><strong style='color:#a3e635'>69</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:69%;background:#a3e635'></div></div></td><td class="best"><strong style='color:#22c55e'>81</strong>/100 🏆<div class='score-bar'><div class='score-bar-fill' style='width:81%;background:#22c55e'></div></div></td><td><strong style='color:#22c55e'>80</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:80%;background:#22c55e'></div></div></td></tr>
-<tr><td><strong>♟️ Chess Game</strong></td><td class="best"><strong style='color:#22c55e'>82</strong>/100 🏆<div class='score-bar'><div class='score-bar-fill' style='width:82%;background:#22c55e'></div></div></td><td><strong style='color:#22c55e'>78</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:78%;background:#22c55e'></div></div></td><td><strong style='color:#f59e0b'>56</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:56%;background:#f59e0b'></div></div></td><td><strong style='color:#a3e635'>73</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:73%;background:#a3e635'></div></div></td><td><strong style='color:#a3e635'>71</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:71%;background:#a3e635'></div></div></td></tr>
-<tr><td><strong>📝 Markdown Editor</strong></td><td class="best"><strong style='color:#22c55e'>86</strong>/100 🏆<div class='score-bar'><div class='score-bar-fill' style='width:86%;background:#22c55e'></div></div></td><td><strong style='color:#22c55e'>84</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:84%;background:#22c55e'></div></div></td><td class='fail'><strong style='color:#ef4444'>FAIL</strong><div style='color:var(--text2);font-size:0.68rem'>gen failed</div></td><td><strong style='color:#a3e635'>67</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:67%;background:#a3e635'></div></div></td><td class='fail'><strong style='color:#ef4444'>FAIL</strong><div style='color:var(--text2);font-size:0.68rem'>gen failed</div></td></tr>
-<tr><td><strong>🧮 Calculator</strong></td><td class="best"><strong style='color:#a3e635'>73</strong>/100 🏆<div class='score-bar'><div class='score-bar-fill' style='width:73%;background:#a3e635'></div></div></td><td><strong style='color:#a3e635'>72</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:72%;background:#a3e635'></div></div></td><td><strong style='color:#a3e635'>65</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:65%;background:#a3e635'></div></div></td><td><strong style='color:#f59e0b'>55</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:55%;background:#f59e0b'></div></div></td><td class='fail'><strong style='color:#ef4444'>FAIL</strong><div style='color:var(--text2);font-size:0.68rem'>gen failed</div></td></tr>
-<tr><td><strong>🐍 Snake Game</strong></td><td><strong style='color:#a3e635'>69</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:69%;background:#a3e635'></div></div></td><td class="best"><strong style='color:#22c55e'>76</strong>/100 🏆<div class='score-bar'><div class='score-bar-fill' style='width:76%;background:#22c55e'></div></div></td><td><strong style='color:#a3e635'>65</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:65%;background:#a3e635'></div></div></td><td><strong style='color:#a3e635'>69</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:69%;background:#a3e635'></div></div></td><td><strong style='color:#22c55e'>76</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:76%;background:#22c55e'></div></div></td></tr>
-<tr><td><strong>🍅 Pomodoro Timer</strong></td><td><strong style='color:#a3e635'>71</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:71%;background:#a3e635'></div></div></td><td class="best"><strong style='color:#22c55e'>85</strong>/100 🏆<div class='score-bar'><div class='score-bar-fill' style='width:85%;background:#22c55e'></div></div></td><td><strong style='color:#a3e635'>71</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:71%;background:#a3e635'></div></div></td><td><strong style='color:#a3e635'>71</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:71%;background:#a3e635'></div></div></td><td><strong style='color:#22c55e'>80</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:80%;background:#22c55e'></div></div></td></tr>
-<tr><td><strong>🌤️ Weather App</strong></td><td class="best"><strong style='color:#22c55e'>76</strong>/100 🏆<div class='score-bar'><div class='score-bar-fill' style='width:76%;background:#22c55e'></div></div></td><td><strong style='color:#a3e635'>67</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:67%;background:#a3e635'></div></div></td><td><strong style='color:#f59e0b'>56</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:56%;background:#f59e0b'></div></div></td><td><strong style='color:#a3e635'>64</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:64%;background:#a3e635'></div></div></td><td><strong style='color:#22c55e'>75</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:75%;background:#22c55e'></div></div></td></tr>
-<tr><td><strong>🔐 Password Generator</strong></td><td><strong style='color:#22c55e'>80</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:80%;background:#22c55e'></div></div></td><td class="best"><strong style='color:#22c55e'>83</strong>/100 🏆<div class='score-bar'><div class='score-bar-fill' style='width:83%;background:#22c55e'></div></div></td><td><strong style='color:#a3e635'>72</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:72%;background:#a3e635'></div></div></td><td><strong style='color:#a3e635'>61</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:61%;background:#a3e635'></div></div></td><td><strong style='color:#22c55e'>77</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:77%;background:#22c55e'></div></div></td></tr>
-<tr><td><strong>🎮 GTA-Style Game</strong></td><td><strong style='color:#a3e635'>61</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:61%;background:#a3e635'></div></div></td><td><strong style='color:#f59e0b'>49</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:49%;background:#f59e0b'></div></div></td><td class='fail'><strong style='color:#ef4444'>FAIL</strong><div style='color:var(--text2);font-size:0.68rem'>gen failed</div></td><td><strong style='color:#a3e635'>61</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:61%;background:#a3e635'></div></div></td><td class="best"><strong style='color:#a3e635'>74</strong>/100 🏆<div class='score-bar'><div class='score-bar-fill' style='width:74%;background:#a3e635'></div></div></td></tr>
-<tr><td><strong>🖥️ WebOS Desktop</strong></td><td class="best"><strong style='color:#a3e635'>67</strong>/100 🏆<div class='score-bar'><div class='score-bar-fill' style='width:67%;background:#a3e635'></div></div></td><td><strong style='color:#ef4444'>41</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:41%;background:#ef4444'></div></div></td><td class='fail'><strong style='color:#ef4444'>FAIL</strong><div style='color:var(--text2);font-size:0.68rem'>gen failed</div></td><td><strong style='color:#f59e0b'>58</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:58%;background:#f59e0b'></div></div></td><td><strong style='color:#ef4444'>38</strong>/100<div class='score-bar'><div class='score-bar-fill' style='width:38%;background:#ef4444'></div></div></td></tr>
-        </tbody>
-        <tfoot><tr style="font-weight:700;border-top:2px solid var(--accent)"><td><strong>📊 TOTAL (out of 1100)</strong></td><td class="best"><strong style='color:#a3e635'>816</strong><div style='color:var(--text2);font-size:0.7rem'>avg 74.2</div></td><td><strong style='color:#a3e635'>800</strong><div style='color:var(--text2);font-size:0.7rem'>avg 72.7</div></td><td><strong style='color:#f59e0b'>511</strong><div style='color:var(--text2);font-size:0.7rem'>avg 46.5</div></td><td><strong style='color:#a3e635'>731</strong><div style='color:var(--text2);font-size:0.7rem'>avg 66.5</div></td><td><strong style='color:#f59e0b'>571</strong><div style='color:var(--text2);font-size:0.7rem'>avg 51.9</div></td></tr></tfoot>
-      </table>
-    </div>
-  </div>
-
-  <div class="section">
-    <h2 class="section-title">🧪 The 11 Challenges</h2>
-    <div class="grid-3">
-    <a href="kanban/" class="card" style="text-decoration:none;display:block">
-      <div style="font-size:1.8rem;margin-bottom:6px">📋</div>
-      <div style="font-size:1rem;font-weight:700;margin-bottom:6px">Kanban Board</div>
-      <div style="font-size:0.72rem;color:var(--text2);margin-bottom:8px;line-height:1.5"><span style='color:#22c55e;font-weight:600'>GLM-5.2: 88</span> <span style='color:#22c55e;font-weight:600'>GLM: 76</span> <span style='color:#a3e635;font-weight:600'>Ornith: 71</span> <span style='color:#f59e0b;font-weight:600'>Opus: 57</span> <span style='color:#ef4444;font-weight:600'>Sonnet: FAIL</span></div>
-      <div><span class="winner-badge">🏆 🔵 GLM-5.2 (88/100)</span></div>
-    </a>
-    <a href="dashboard/" class="card" style="text-decoration:none;display:block">
-      <div style="font-size:1.8rem;margin-bottom:6px">📊</div>
-      <div style="font-size:1rem;font-weight:700;margin-bottom:6px">Dashboard</div>
-      <div style="font-size:0.72rem;color:var(--text2);margin-bottom:8px;line-height:1.5"><span style='color:#22c55e;font-weight:600'>Ornith: 81</span> <span style='color:#22c55e;font-weight:600'>Sonnet: 80</span> <span style='color:#22c55e;font-weight:600'>GLM-5.2: 77</span> <span style='color:#22c55e;font-weight:600'>GLM: 75</span> <span style='color:#a3e635;font-weight:600'>Opus: 69</span></div>
-      <div><span class="winner-badge">🏆 🟠 Ornith 35B (81/100)</span></div>
-    </a>
-    <a href="chess/" class="card" style="text-decoration:none;display:block">
-      <div style="font-size:1.8rem;margin-bottom:6px">♟️</div>
-      <div style="font-size:1rem;font-weight:700;margin-bottom:6px">Chess Game</div>
-      <div style="font-size:0.72rem;color:var(--text2);margin-bottom:8px;line-height:1.5"><span style='color:#22c55e;font-weight:600'>GLM: 82</span> <span style='color:#22c55e;font-weight:600'>GLM-5.2: 78</span> <span style='color:#a3e635;font-weight:600'>Ornith: 73</span> <span style='color:#a3e635;font-weight:600'>Sonnet: 71</span> <span style='color:#f59e0b;font-weight:600'>Opus: 56</span></div>
-      <div><span class="winner-badge">🏆 🟢 GLM 5.1 (82/100)</span></div>
-    </a>
-    <a href="markdown/" class="card" style="text-decoration:none;display:block">
-      <div style="font-size:1.8rem;margin-bottom:6px">📝</div>
-      <div style="font-size:1rem;font-weight:700;margin-bottom:6px">Markdown Editor</div>
-      <div style="font-size:0.72rem;color:var(--text2);margin-bottom:8px;line-height:1.5"><span style='color:#22c55e;font-weight:600'>GLM: 86</span> <span style='color:#22c55e;font-weight:600'>GLM-5.2: 84</span> <span style='color:#a3e635;font-weight:600'>Ornith: 67</span> <span style='color:#ef4444;font-weight:600'>Opus: FAIL</span> <span style='color:#ef4444;font-weight:600'>Sonnet: FAIL</span></div>
-      <div><span class="winner-badge">🏆 🟢 GLM 5.1 (86/100)</span></div>
-    </a>
-    <a href="calculator/" class="card" style="text-decoration:none;display:block">
-      <div style="font-size:1.8rem;margin-bottom:6px">🧮</div>
-      <div style="font-size:1rem;font-weight:700;margin-bottom:6px">Calculator</div>
-      <div style="font-size:0.72rem;color:var(--text2);margin-bottom:8px;line-height:1.5"><span style='color:#a3e635;font-weight:600'>GLM: 73</span> <span style='color:#a3e635;font-weight:600'>GLM-5.2: 72</span> <span style='color:#a3e635;font-weight:600'>Opus: 65</span> <span style='color:#f59e0b;font-weight:600'>Ornith: 55</span> <span style='color:#ef4444;font-weight:600'>Sonnet: FAIL</span></div>
-      <div><span class="winner-badge">🏆 🟢 GLM 5.1 (73/100)</span></div>
-    </a>
-    <a href="snake/" class="card" style="text-decoration:none;display:block">
-      <div style="font-size:1.8rem;margin-bottom:6px">🐍</div>
-      <div style="font-size:1rem;font-weight:700;margin-bottom:6px">Snake Game</div>
-      <div style="font-size:0.72rem;color:var(--text2);margin-bottom:8px;line-height:1.5"><span style='color:#22c55e;font-weight:600'>GLM-5.2: 76</span> <span style='color:#22c55e;font-weight:600'>Sonnet: 76</span> <span style='color:#a3e635;font-weight:600'>GLM: 69</span> <span style='color:#a3e635;font-weight:600'>Ornith: 69</span> <span style='color:#a3e635;font-weight:600'>Opus: 65</span></div>
-      <div><span class="winner-badge">🏆 🔵 GLM-5.2 (76/100)</span></div>
-    </a>
-    <a href="pomodoro/" class="card" style="text-decoration:none;display:block">
-      <div style="font-size:1.8rem;margin-bottom:6px">🍅</div>
-      <div style="font-size:1rem;font-weight:700;margin-bottom:6px">Pomodoro Timer</div>
-      <div style="font-size:0.72rem;color:var(--text2);margin-bottom:8px;line-height:1.5"><span style='color:#22c55e;font-weight:600'>GLM-5.2: 85</span> <span style='color:#22c55e;font-weight:600'>Sonnet: 80</span> <span style='color:#a3e635;font-weight:600'>GLM: 71</span> <span style='color:#a3e635;font-weight:600'>Opus: 71</span> <span style='color:#a3e635;font-weight:600'>Ornith: 71</span></div>
-      <div><span class="winner-badge">🏆 🔵 GLM-5.2 (85/100)</span></div>
-    </a>
-    <a href="weather/" class="card" style="text-decoration:none;display:block">
-      <div style="font-size:1.8rem;margin-bottom:6px">🌤️</div>
-      <div style="font-size:1rem;font-weight:700;margin-bottom:6px">Weather App</div>
-      <div style="font-size:0.72rem;color:var(--text2);margin-bottom:8px;line-height:1.5"><span style='color:#22c55e;font-weight:600'>GLM: 76</span> <span style='color:#22c55e;font-weight:600'>Sonnet: 75</span> <span style='color:#a3e635;font-weight:600'>GLM-5.2: 67</span> <span style='color:#a3e635;font-weight:600'>Ornith: 64</span> <span style='color:#f59e0b;font-weight:600'>Opus: 56</span></div>
-      <div><span class="winner-badge">🏆 🟢 GLM 5.1 (76/100)</span></div>
-    </a>
-    <a href="password/" class="card" style="text-decoration:none;display:block">
-      <div style="font-size:1.8rem;margin-bottom:6px">🔐</div>
-      <div style="font-size:1rem;font-weight:700;margin-bottom:6px">Password Generator</div>
-      <div style="font-size:0.72rem;color:var(--text2);margin-bottom:8px;line-height:1.5"><span style='color:#22c55e;font-weight:600'>GLM-5.2: 83</span> <span style='color:#22c55e;font-weight:600'>GLM: 80</span> <span style='color:#22c55e;font-weight:600'>Sonnet: 77</span> <span style='color:#a3e635;font-weight:600'>Opus: 72</span> <span style='color:#a3e635;font-weight:600'>Ornith: 61</span></div>
-      <div><span class="winner-badge">🏆 🔵 GLM-5.2 (83/100)</span></div>
-    </a>
-    <a href="gta/" class="card" style="text-decoration:none;display:block">
-      <div style="font-size:1.8rem;margin-bottom:6px">🎮</div>
-      <div style="font-size:1rem;font-weight:700;margin-bottom:6px">GTA-Style Game</div>
-      <div style="font-size:0.72rem;color:var(--text2);margin-bottom:8px;line-height:1.5"><span style='color:#a3e635;font-weight:600'>Sonnet: 74</span> <span style='color:#a3e635;font-weight:600'>GLM: 61</span> <span style='color:#a3e635;font-weight:600'>Ornith: 61</span> <span style='color:#f59e0b;font-weight:600'>GLM-5.2: 49</span> <span style='color:#ef4444;font-weight:600'>Opus: FAIL</span></div>
-      <div><span class="winner-badge">🏆 🟡 Sonnet 4.6 (74/100)</span></div>
-    </a>
-    <a href="webos/" class="card" style="text-decoration:none;display:block">
-      <div style="font-size:1.8rem;margin-bottom:6px">🖥️</div>
-      <div style="font-size:1rem;font-weight:700;margin-bottom:6px">WebOS Desktop</div>
-      <div style="font-size:0.72rem;color:var(--text2);margin-bottom:8px;line-height:1.5"><span style='color:#a3e635;font-weight:600'>GLM: 67</span> <span style='color:#f59e0b;font-weight:600'>Ornith: 58</span> <span style='color:#ef4444;font-weight:600'>GLM-5.2: 41</span> <span style='color:#ef4444;font-weight:600'>Sonnet: 38</span> <span style='color:#ef4444;font-weight:600'>Opus: FAIL</span></div>
-      <div><span class="winner-badge">🏆 🟢 GLM 5.1 (67/100)</span></div>
-    </a>
-    </div>
-  </div>
-
-  <div class="section">
-    <h2 class="section-title">🔬 Scoring Methodology</h2>
-    <p class="section-desc">Each model was given an identical prompt from <code>prompts.json</code>, one shot, no retries, with a 600s timeout. GLM models had thinking disabled so reasoning tokens couldn't eat the output budget. Generated apps were then scored on three independent axes.</p>
-    <div class="method-grid">
-      <div class="method-item">
-        <h4>🌐 Functional — Real Browser Tests <span class="pts">45%</span></h4>
-        <p>Every generated app was loaded in headless Chromium via Playwright and exercised: buttons clicked, forms submitted, games played, console errors counted. Score = % of checks passed.</p>
-        <ul><li>Page loads without JS errors</li>
-            <li>Core UI elements present and interactive</li>
-            <li>Real user flows work end-to-end</li>
-            <li>App-specific behavior (move pieces, add tasks, start timers…)</li></ul>
-      </div>
-      <div class="method-item">
-        <h4>📐 Quality — Static Code Analysis <span class="pts">40%</span></h4>
-        <p>Each HTML/CSS/JS bundle parsed and graded across 6 strict dimensions. Intentionally scaled so a typical model lands 40–75/100, not 90+.</p>
-        <ul><li>Functionality &amp; correctness (30)</li>
-            <li>Code quality &amp; architecture (20)</li>
-            <li>UX &amp; interaction polish (20)</li>
-            <li>Visual design (15), Accessibility (10), Performance (5)</li></ul>
-      </div>
-      <div class="method-item">
-        <h4>⚡ Speed — Generation Time <span class="pts">15%</span></h4>
-        <p>Wall-clock time to produce the app. Per test, the fastest successful generation gets 100; the slowest gets 0; others scale linearly between.</p>
-        <ul><li>Faster code generation = higher speed score</li>
-            <li>Normalized per-test so a hard challenge doesn't punish everyone</li>
-            <li>Only successful generations are ranked by speed</li></ul>
-      </div>
-      <div class="method-item" style="border-color:rgba(239,68,68,0.4)">
-        <h4>⚠ Generation Failures <span class="pts" style="color:#ef4444;background:rgba(239,68,68,0.1)">score 0</span></h4>
-        <p>If a model failed to produce valid HTML within 600s (timeout, empty output, or no HTML after stripping), that test scores <strong>0 on every axis</strong> — functional, quality, speed. One shot, no retries.</p>
-        <ul><li><strong>Sonnet:</strong> 3/11 failed — "no HTML after strip"</li>
-            <li><strong>Opus:</strong> 3/11 failed — timeout after 600s</li>
-            <li>GLM 5.1, GLM-5.2, Ornith: 0/11 failed</li></ul>
-      </div>
-    </div>
-  </div>
-
-  <div class="section">
-    <h2 class="section-title">🔌 Generation Reliability</h2>
-    <p class="section-desc">Combined score only rewards models that actually deliver. Here's how reliably each model produced a working app on the first try.</p>
-    <div class="grid-2" style="gap:14px">
-      <div class="card" style="border-left:4px solid #22c55e;padding:14px 18px">
-        <div style="font-weight:700;margin-bottom:4px">🟢 GLM 5.1 <span style="color:var(--text2);font-weight:400;font-size:0.8rem">(ZAI)</span></div>
-        <div style="margin-bottom:4px"><span style="color:#22c55e;font-weight:700">✅ 11/11 succeeded</span></div>
-        <div><span style="color:var(--text2);font-size:0.8rem">No generation failures.</span></div>
-      </div>
-      <div class="card" style="border-left:4px solid #3b82f6;padding:14px 18px">
-        <div style="font-weight:700;margin-bottom:4px">🔵 GLM-5.2 <span style="color:var(--text2);font-weight:400;font-size:0.8rem">(ZAI / z.ai)</span></div>
-        <div style="margin-bottom:4px"><span style="color:#22c55e;font-weight:700">✅ 11/11 succeeded</span></div>
-        <div><span style="color:var(--text2);font-size:0.8rem">No generation failures.</span></div>
-      </div>
-      <div class="card" style="border-left:4px solid #f97316;padding:14px 18px">
-        <div style="font-weight:700;margin-bottom:4px">🟠 Ornith 35B <span style="color:var(--text2);font-weight:400;font-size:0.8rem">(Local llama.cpp)</span></div>
-        <div style="margin-bottom:4px"><span style="color:#22c55e;font-weight:700">✅ 11/11 succeeded</span></div>
-        <div><span style="color:var(--text2);font-size:0.8rem">No generation failures.</span></div>
-      </div>
-      <div class="card" style="border-left:4px solid #ef4444;padding:14px 18px">
-        <div style="font-weight:700;margin-bottom:4px">🔴 Opus 4.7 <span style="color:var(--text2);font-weight:400;font-size:0.8rem">(Anthropic)</span></div>
-        <div style="margin-bottom:4px"><span style="color:#ef4444;font-weight:700">❌ 8/11 succeeded (3 failed)</span></div>
-        <div><span style="color:#ef4444;font-size:0.8rem">⚠ Markdown Editor (TIMEOUT after 600s); GTA-Style Game (TIMEOUT after 600s); WebOS Desktop (TIMEOUT after 600s)</span></div>
-      </div>
-      <div class="card" style="border-left:4px solid #f59e0b;padding:14px 18px">
-        <div style="font-weight:700;margin-bottom:4px">🟡 Sonnet 4.6 <span style="color:var(--text2);font-weight:400;font-size:0.8rem">(Anthropic)</span></div>
-        <div style="margin-bottom:4px"><span style="color:#ef4444;font-weight:700">❌ 8/11 succeeded (3 failed)</span></div>
-        <div><span style="color:#ef4444;font-size:0.8rem">⚠ Kanban Board (no HTML after strip); Markdown Editor (no HTML after strip); Calculator (no HTML after strip)</span></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="section">
-    <h2 class="section-title">👥 Model Profiles</h2>
-    <p class="section-desc">Full per-model breakdown: combined total, average functional / quality / speed, generation reliability, strengths and weaknesses.</p>
-    <div class="grid-3">
-    <div class="card" style="border-top:4px solid #22c55e;text-align:center;padding:22px">
-      <div style="font-size:2.6rem;margin-bottom:6px">🟢</div>
-      <div style="font-size:1.05rem;font-weight:700">GLM 5.1</div>
-      <div style="color:var(--text2);font-size:0.8rem;margin-bottom:12px">ZAI</div>
-      <div class="stats-bar" style="justify-content:center;margin-bottom:10px">
-        <div class="stat"><span class="stat-label">Total</span><span class="stat-value" style="color:#a3e635">816</span></div>
-        <div class="stat"><span class="stat-label">Func</span><span class="stat-value">87</span></div>
-        <div class="stat"><span class="stat-label">Qual</span><span class="stat-value">64</span></div>
-        <div class="stat"><span class="stat-label">Speed</span><span class="stat-value">64</span></div>
-      </div>
-      <div style="font-size:0.78rem;color:var(--text2);margin-bottom:10px">Gen success <strong style="color:#22c55e">11/11</strong></div>
-      <div style="text-align:left"><strong style="color:#22c55e;font-size:0.72rem">STRENGTHS</strong><div><span style='display:inline-block;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Won 5/11 tests</span><span style='display:inline-block;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Strong Visual Design (90%)</span><span style='display:inline-block;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Strong Functionality (68%)</span></div></div>
-      <div style="text-align:left;margin-top:6px"><strong style="color:#ef4444;font-size:0.72rem">WEAKNESSES</strong><div><span style='display:inline-block;background:rgba(239,68,68,0.12);color:#ef4444;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Weak Accessibility (31%)</span><span style='display:inline-block;background:rgba(239,68,68,0.12);color:#ef4444;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Weak Performance (42%)</span></div></div>
-    </div>
-    <div class="card" style="border-top:4px solid #3b82f6;text-align:center;padding:22px">
-      <div style="font-size:2.6rem;margin-bottom:6px">🔵</div>
-      <div style="font-size:1.05rem;font-weight:700">GLM-5.2</div>
-      <div style="color:var(--text2);font-size:0.8rem;margin-bottom:12px">ZAI / z.ai</div>
-      <div class="stats-bar" style="justify-content:center;margin-bottom:10px">
-        <div class="stat"><span class="stat-label">Total</span><span class="stat-value" style="color:#a3e635">800</span></div>
-        <div class="stat"><span class="stat-label">Func</span><span class="stat-value">86</span></div>
-        <div class="stat"><span class="stat-label">Qual</span><span class="stat-value">58</span></div>
-        <div class="stat"><span class="stat-label">Speed</span><span class="stat-value">72</span></div>
-      </div>
-      <div style="font-size:0.78rem;color:var(--text2);margin-bottom:10px">Gen success <strong style="color:#22c55e">11/11</strong></div>
-      <div style="text-align:left"><strong style="color:#22c55e;font-size:0.72rem">STRENGTHS</strong><div><span style='display:inline-block;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Won 4/11 tests</span><span style='display:inline-block;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Strong Visual Design (83%)</span><span style='display:inline-block;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Strong Code Quality (64%)</span></div></div>
-      <div style="text-align:left;margin-top:6px"><strong style="color:#ef4444;font-size:0.72rem">WEAKNESSES</strong><div><span style='display:inline-block;background:rgba(239,68,68,0.12);color:#ef4444;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Weak Accessibility (30%)</span></div></div>
-    </div>
-    <div class="card" style="border-top:4px solid #f97316;text-align:center;padding:22px">
-      <div style="font-size:2.6rem;margin-bottom:6px">🟠</div>
-      <div style="font-size:1.05rem;font-weight:700">Ornith 35B</div>
-      <div style="color:var(--text2);font-size:0.8rem;margin-bottom:12px">Local llama.cpp</div>
-      <div class="stats-bar" style="justify-content:center;margin-bottom:10px">
-        <div class="stat"><span class="stat-label">Total</span><span class="stat-value" style="color:#a3e635">731</span></div>
-        <div class="stat"><span class="stat-label">Func</span><span class="stat-value">86</span></div>
-        <div class="stat"><span class="stat-label">Qual</span><span class="stat-value">54</span></div>
-        <div class="stat"><span class="stat-label">Speed</span><span class="stat-value">44</span></div>
-      </div>
-      <div style="font-size:0.78rem;color:var(--text2);margin-bottom:10px">Gen success <strong style="color:#22c55e">11/11</strong></div>
-      <div style="text-align:left"><strong style="color:#22c55e;font-size:0.72rem">STRENGTHS</strong><div><span style='display:inline-block;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Won 1/11 tests</span><span style='display:inline-block;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Strong Visual Design (75%)</span></div></div>
-      <div style="text-align:left;margin-top:6px"><strong style="color:#ef4444;font-size:0.72rem">WEAKNESSES</strong><div><span style='display:inline-block;background:rgba(239,68,68,0.12);color:#ef4444;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Weak Accessibility (17%)</span></div></div>
-    </div>
-    <div class="card" style="border-top:4px solid #f59e0b;text-align:center;padding:22px">
-      <div style="font-size:2.6rem;margin-bottom:6px">🟡</div>
-      <div style="font-size:1.05rem;font-weight:700">Sonnet 4.6</div>
-      <div style="color:var(--text2);font-size:0.8rem;margin-bottom:12px">Anthropic</div>
-      <div class="stats-bar" style="justify-content:center;margin-bottom:10px">
-        <div class="stat"><span class="stat-label">Total</span><span class="stat-value" style="color:#f59e0b">571</span></div>
-        <div class="stat"><span class="stat-label">Func</span><span class="stat-value">93</span></div>
-        <div class="stat"><span class="stat-label">Qual</span><span class="stat-value">43</span></div>
-        <div class="stat"><span class="stat-label">Speed</span><span class="stat-value">83</span></div>
-      </div>
-      <div style="font-size:0.78rem;color:var(--text2);margin-bottom:10px">Gen success <strong style="color:#ef4444">8/11</strong></div>
-      <div style="text-align:left"><strong style="color:#22c55e;font-size:0.72rem">STRENGTHS</strong><div><span style='display:inline-block;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Won 1/11 tests</span></div></div>
-      <div style="text-align:left;margin-top:6px"><strong style="color:#ef4444;font-size:0.72rem">WEAKNESSES</strong><div><span style='display:inline-block;background:rgba(239,68,68,0.12);color:#ef4444;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Weak Accessibility (8%)</span><span style='display:inline-block;background:rgba(239,68,68,0.12);color:#ef4444;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Weak UX Polish (23%)</span></div></div>
-    </div>
-    <div class="card" style="border-top:4px solid #ef4444;text-align:center;padding:22px">
-      <div style="font-size:2.6rem;margin-bottom:6px">🔴</div>
-      <div style="font-size:1.05rem;font-weight:700">Opus 4.7</div>
-      <div style="color:var(--text2);font-size:0.8rem;margin-bottom:12px">Anthropic</div>
-      <div class="stats-bar" style="justify-content:center;margin-bottom:10px">
-        <div class="stat"><span class="stat-label">Total</span><span class="stat-value" style="color:#f59e0b">511</span></div>
-        <div class="stat"><span class="stat-label">Func</span><span class="stat-value">89</span></div>
-        <div class="stat"><span class="stat-label">Qual</span><span class="stat-value">59</span></div>
-        <div class="stat"><span class="stat-label">Speed</span><span class="stat-value">3</span></div>
-      </div>
-      <div style="font-size:0.78rem;color:var(--text2);margin-bottom:10px">Gen success <strong style="color:#ef4444">8/11</strong></div>
-      <div style="text-align:left"><strong style="color:#22c55e;font-size:0.72rem">STRENGTHS</strong><div><span style='display:inline-block;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Strong Visual Design (87%)</span><span style='display:inline-block;background:rgba(34,197,94,0.12);color:#22c55e;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Strong Code Quality (71%)</span></div></div>
-      <div style="text-align:left;margin-top:6px"><strong style="color:#ef4444;font-size:0.72rem">WEAKNESSES</strong><div><span style='display:inline-block;background:rgba(239,68,68,0.12);color:#ef4444;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Weak Accessibility (31%)</span><span style='display:inline-block;background:rgba(239,68,68,0.12);color:#ef4444;padding:2px 8px;border-radius:6px;font-size:0.75rem;margin:2px'>Weak UX Polish (38%)</span></div></div>
-    </div>
-    </div>
-  </div>
-
-</div>
-
-<footer>
-  <p>AI Model Bake-Off · Fair Rerun · 5 models · 11 challenges · combined functional + quality + speed scoring</p>
-</footer>
-
+<h1>🏆 AI Model Bake-Off</h1>
+<p class="subtitle">1000-point multi-dimensional scoring · 11 tests · 5 models · Real browser testing with Playwright</p>
+<h2>📊 Final Leaderboard</h2><div class="card"><table><thead><tr><th>Rank</th><th>Model</th><th>Provider</th><th style="text-align:right">Total /11000</th><th style="text-align:right">Avg /1000</th><th style="text-align:center">Tests Passed</th><th style="text-align:right">Functional<br><span style="font-weight:400;font-size:0.75em">/400</span></th><th style="text-align:right">Code Quality<br><span style="font-weight:400;font-size:0.75em">/200</span></th><th style="text-align:right">Visual Design<br><span style="font-weight:400;font-size:0.75em">/200</span></th><th style="text-align:right">Features<br><span style="font-weight:400;font-size:0.75em">/100</span></th><th style="text-align:right">Performance<br><span style="font-weight:400;font-size:0.75em">/50</span></th><th style="text-align:right">Innovation<br><span style="font-weight:400;font-size:0.75em">/50</span></th></tr></thead><tbody><tr><td><span class="rank-badge" style="background:#22c55e22">🥇</span></td><td><strong>🟢 GLM 5.1</strong></td><td style="color:var(--dim)">ZAI</td><td style="text-align:right"><span class="total-score" style="color:#22c55e">7,507</span></td><td style="text-align:right">682</td><td style="text-align:center">10/11</td><td style="text-align:right">2990<span class="score-bar" style="width:40.77272727272727px;background:#ef4444"></span></td><td style="text-align:right">1376<span class="score-bar" style="width:37.527272727272724px;background:#3b82f6"></span></td><td style="text-align:right">1776<span class="score-bar" style="width:48.43636363636363px;background:#a855f7"></span></td><td style="text-align:right">852<span class="score-bar" style="width:46.47272727272727px;background:#22c55e"></span></td><td style="text-align:right">373<span class="score-bar" style="width:40.690909090909095px;background:#f59e0b"></span></td><td style="text-align:right">135<span class="score-bar" style="width:14.727272727272727px;background:#06b6d4"></span></td></tr><tr><td><span class="rank-badge" style="background:#f9731622">🥈</span></td><td><strong>🟠 Ornith 35B</strong></td><td style="color:var(--dim)">Local</td><td style="text-align:right"><span class="total-score" style="color:#f97316">7,387</span></td><td style="text-align:right">672</td><td style="text-align:center">11/11</td><td style="text-align:right">3135<span class="score-bar" style="width:42.75px;background:#ef4444"></span></td><td style="text-align:right">1380<span class="score-bar" style="width:37.63636363636364px;background:#3b82f6"></span></td><td style="text-align:right">1541<span class="score-bar" style="width:42.027272727272724px;background:#a855f7"></span></td><td style="text-align:right">814<span class="score-bar" style="width:44.4px;background:#22c55e"></span></td><td style="text-align:right">447<span class="score-bar" style="width:48.763636363636365px;background:#f59e0b"></span></td><td style="text-align:right">65<span class="score-bar" style="width:7.090909090909091px;background:#06b6d4"></span></td></tr><tr><td><span class="rank-badge" style="background:#3b82f622">🥉</span></td><td><strong>🔵 GLM-5.2</strong></td><td style="color:var(--dim)">ZAI</td><td style="text-align:right"><span class="total-score" style="color:#3b82f6">6,882</span></td><td style="text-align:right">626</td><td style="text-align:center">9/11</td><td style="text-align:right">2813<span class="score-bar" style="width:38.35909090909091px;background:#ef4444"></span></td><td style="text-align:right">1281<span class="score-bar" style="width:34.93636363636364px;background:#3b82f6"></span></td><td style="text-align:right">1621<span class="score-bar" style="width:44.20909090909091px;background:#a855f7"></span></td><td style="text-align:right">754<span class="score-bar" style="width:41.127272727272725px;background:#22c55e"></span></td><td style="text-align:right">341<span class="score-bar" style="width:37.199999999999996px;background:#f59e0b"></span></td><td style="text-align:right">70<span class="score-bar" style="width:7.636363636363636px;background:#06b6d4"></span></td></tr><tr><td><span class="rank-badge" style="background:#f59e0b22">4️⃣</span></td><td><strong>🟡 Sonnet 4.6</strong></td><td style="color:var(--dim)">Anthropic</td><td style="text-align:right"><span class="total-score" style="color:#f59e0b">5,254</span></td><td style="text-align:right">478</td><td style="text-align:center">8/11</td><td style="text-align:right">2295<span class="score-bar" style="width:31.295454545454547px;background:#ef4444"></span></td><td style="text-align:right">976<span class="score-bar" style="width:26.61818181818182px;background:#3b82f6"></span></td><td style="text-align:right">1103<span class="score-bar" style="width:30.08181818181818px;background:#a855f7"></span></td><td style="text-align:right">550<span class="score-bar" style="width:30.0px;background:#22c55e"></span></td><td style="text-align:right">309<span class="score-bar" style="width:33.709090909090904px;background:#f59e0b"></span></td><td style="text-align:right">20<span class="score-bar" style="width:2.1818181818181817px;background:#06b6d4"></span></td></tr><tr><td><span class="rank-badge" style="background:#ef444422">5️⃣</span></td><td><strong>🔴 Opus 4.7</strong></td><td style="color:var(--dim)">Anthropic</td><td style="text-align:right"><span class="total-score" style="color:#ef4444">0</span></td><td style="text-align:right">0</td><td style="text-align:center">0/11</td><td style="text-align:right">0<span class="score-bar" style="width:0.0px;background:#ef4444"></span></td><td style="text-align:right">0<span class="score-bar" style="width:0.0px;background:#3b82f6"></span></td><td style="text-align:right">0<span class="score-bar" style="width:0.0px;background:#a855f7"></span></td><td style="text-align:right">0<span class="score-bar" style="width:0.0px;background:#22c55e"></span></td><td style="text-align:right">0<span class="score-bar" style="width:0.0px;background:#f59e0b"></span></td><td style="text-align:right">0<span class="score-bar" style="width:0.0px;background:#06b6d4"></span></td></tr></tbody></table></div><h2>📋 Per-Test Results</h2><div class="card"><table><thead><tr><th>Test</th><th style="text-align:right">🟢 GLM 5.1</th><th style="text-align:right">🟠 Ornith 3</th><th style="text-align:right">🔵 GLM-5.2</th><th style="text-align:right">🟡 Sonnet 4</th><th style="text-align:right">🔴 Opus 4.7</th></tr></thead><tbody><tr><td><strong>📋 Kanban Board</strong></td><td style="text-align:right;color:var(--text);font-weight:400">739</td><td style="text-align:right;color:var(--text);font-weight:400">615</td><td style="text-align:right;color:#fbbf24;font-weight:700">742</td><td style="text-align:right;color:var(--text);font-weight:400">709</td><td style="text-align:right"><span class="badge badge-fail">FAIL</span></td></tr><tr><td><strong>📊 Dashboard</strong></td><td style="text-align:right;color:var(--text);font-weight:400">600</td><td style="text-align:right;color:#fbbf24;font-weight:700">635</td><td style="text-align:right;color:var(--text);font-weight:400">579</td><td style="text-align:right;color:var(--text);font-weight:400">605</td><td style="text-align:right"><span class="badge badge-fail">FAIL</span></td></tr><tr><td><strong>♟️ Chess Game</strong></td><td style="text-align:right;color:var(--text);font-weight:400">822</td><td style="text-align:right;color:var(--text);font-weight:400">739</td><td style="text-align:right;color:#fbbf24;font-weight:700">839</td><td style="text-align:right"><span class="badge badge-fail">FAIL</span></td><td style="text-align:right"><span class="badge badge-fail">FAIL</span></td></tr><tr><td><strong>📝 Markdown Editor</strong></td><td style="text-align:right;color:var(--text);font-weight:400">714</td><td style="text-align:right;color:var(--text);font-weight:400">666</td><td style="text-align:right;color:#fbbf24;font-weight:700">879</td><td style="text-align:right;color:var(--text);font-weight:400">369</td><td style="text-align:right"><span class="badge badge-fail">FAIL</span></td></tr><tr><td><strong>🧮 Calculator</strong></td><td style="text-align:right;color:var(--text);font-weight:400">815</td><td style="text-align:right;color:var(--text);font-weight:400">771</td><td style="text-align:right;color:#fbbf24;font-weight:700">822</td><td style="text-align:right;color:var(--text);font-weight:400">687</td><td style="text-align:right"><span class="badge badge-fail">FAIL</span></td></tr><tr><td><strong>🐍 Snake Game</strong></td><td style="text-align:right;color:#fbbf24;font-weight:700">874</td><td style="text-align:right;color:var(--text);font-weight:400">671</td><td style="text-align:right;color:var(--text);font-weight:400">865</td><td style="text-align:right;color:var(--text);font-weight:400">696</td><td style="text-align:right"><span class="badge badge-fail">FAIL</span></td></tr><tr><td><strong>🍅 Pomodoro Timer</strong></td><td style="text-align:right;color:#fbbf24;font-weight:700">883</td><td style="text-align:right;color:var(--text);font-weight:400">823</td><td style="text-align:right;color:var(--text);font-weight:400">880</td><td style="text-align:right;color:var(--text);font-weight:400">789</td><td style="text-align:right"><span class="badge badge-fail">FAIL</span></td></tr><tr><td><strong>🌤️ Weather App</strong></td><td style="text-align:right"><span class="badge badge-fail">FAIL</span></td><td style="text-align:right;color:var(--text);font-weight:400">725</td><td style="text-align:right;color:#fbbf24;font-weight:700">815</td><td style="text-align:right;color:var(--text);font-weight:400">764</td><td style="text-align:right"><span class="badge badge-fail">FAIL</span></td></tr><tr><td><strong>🔐 Password Generator</strong></td><td style="text-align:right;color:#fbbf24;font-weight:700">729</td><td style="text-align:right;color:var(--text);font-weight:400">666</td><td style="text-align:right;color:var(--text);font-weight:400">461</td><td style="text-align:right;color:var(--text);font-weight:400">635</td><td style="text-align:right"><span class="badge badge-fail">FAIL</span></td></tr><tr><td><strong>🎮 GTA-Style Game</strong></td><td style="text-align:right;color:#fbbf24;font-weight:700">828</td><td style="text-align:right;color:var(--text);font-weight:400">580</td><td style="text-align:right"><span class="badge badge-fail">FAIL</span></td><td style="text-align:right"><span class="badge badge-fail">FAIL</span></td><td style="text-align:right"><span class="badge badge-fail">FAIL</span></td></tr><tr><td><strong>🖥️ WebOS Desktop</strong></td><td style="text-align:right;color:#fbbf24;font-weight:700">503</td><td style="text-align:right;color:var(--text);font-weight:400">496</td><td style="text-align:right"><span class="badge badge-fail">FAIL</span></td><td style="text-align:right"><span class="badge badge-fail">FAIL</span></td><td style="text-align:right"><span class="badge badge-fail">FAIL</span></td></tr><tr style="border-top:2px solid var(--border)"><td><strong>TOTAL</strong></td><td style="text-align:right"><strong style="color:#22c55e">7,507</strong></td><td style="text-align:right"><strong style="color:#f97316">7,387</strong></td><td style="text-align:right"><strong style="color:#3b82f6">6,882</strong></td><td style="text-align:right"><strong style="color:#f59e0b">5,254</strong></td><td style="text-align:right"><strong style="color:#ef4444">0</strong></td></tr></tbody></table></div><h2>🥇 Test Wins</h2><div class="card"><table><thead><tr><th>Model</th><th style="text-align:right">Wins</th></tr></thead><tbody><tr><td>🟢 GLM 5.1</td><td style="text-align:right;font-size:1.2em;font-weight:700;color:#22c55e">5</td></tr><tr><td>🟠 Ornith 35B</td><td style="text-align:right;font-size:1.2em;font-weight:700;color:#f97316">1</td></tr><tr><td>🔵 GLM-5.2</td><td style="text-align:right;font-size:1.2em;font-weight:700;color:#3b82f6">5</td></tr><tr><td>🟡 Sonnet 4.6</td><td style="text-align:right;font-size:1.2em;font-weight:700;color:#f59e0b">0</td></tr><tr><td>🔴 Opus 4.7</td><td style="text-align:right;font-size:1.2em;font-weight:700;color:#ef4444">0</td></tr></tbody></table></div><h2>📁 Browse Tests</h2><div class="nav"><a class="test-link" href="kanban/index.html">📋 Kanban Board</a><a class="test-link" href="dashboard/index.html">📊 Dashboard</a><a class="test-link" href="chess/index.html">♟️ Chess Game</a><a class="test-link" href="markdown/index.html">📝 Markdown Editor</a><a class="test-link" href="calculator/index.html">🧮 Calculator</a><a class="test-link" href="snake/index.html">🐍 Snake Game</a><a class="test-link" href="pomodoro/index.html">🍅 Pomodoro Timer</a><a class="test-link" href="weather/index.html">🌤️ Weather App</a><a class="test-link" href="password/index.html">🔐 Password Generator</a><a class="test-link" href="gta/index.html">🎮 GTA-Style Game</a><a class="test-link" href="webos/index.html">🖥️ WebOS Desktop</a></div><h2>📐 Scoring Methodology</h2><div class="card methodology"><p><strong>1000-point scale per test</strong> across 6 weighted dimensions:</p><table style="margin:12px 0"><thead><tr><th>Dimension</th><th>Max</th><th>What We Measure</th></tr></thead><tbody><tr><td><strong style="color:#ef4444">Functional Correctness</strong></td><td>400</td><td>Real Playwright browser tests — clicking, typing, playing games. Critical features weighted 40pts, important 25pts, minor 10pts. Console errors penalized.</td></tr><tr><td><strong style="color:#3b82f6">Code Architecture</strong></td><td>200</td><td>8 sub-dimensions: CSS methodology, JS quality, semantic HTML, accessibility, code organization, file efficiency, modern features, self-contained (no CDN).</td></tr><tr><td><strong style="color:#a855f7">Visual Design</strong></td><td>200</td><td>7 sub-dimensions: color sophistication, typography, spacing, animations, interactive feedback, responsive design, component polish.</td></tr><tr><td><strong style="color:#22c55e">Feature Richness</strong></td><td>100</td><td>Core features implemented (60pts) + bonus features beyond spec: dark mode, animations, keyboard shortcuts, responsive (40pts).</td></tr><tr><td><strong style="color:#f59e0b">Performance</strong></td><td>50</td><td>Browser load speed (30pts) + code efficiency/file size (20pts).</td></tr><tr><td><strong style="color:#06b6d4">Innovation</strong></td><td>50</td><td>Creative patterns: sound effects, particle effects, keyboard shortcuts, loading states, toast notifications, easter eggs.</td></tr></tbody></table><p style="margin-top:12px"><strong>Test conditions:</strong> max_tokens=65536, temperature=0.7, one-shot generation (no retries), 1200s timeout. GLM-5.2 with thinking enabled. Sequential execution.</p><p style="margin-top:8px;color:#ef4444"><strong>Note:</strong> Opus 4.7 results pending — Claude Pro session rate limit. Will be added when available.</p></div>
+<script>
+// Highlight winning cells
+document.querySelectorAll('td').forEach(td => {
+    const text = td.textContent.trim();
+    if (text === 'FAIL') return;
+});
+</script>
 </body>
 </html>

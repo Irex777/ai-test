@@ -1,724 +1,301 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analytics Dashboard</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --bg-primary: #0f1419;
-            --bg-secondary: #1a1f2e;
-            --bg-tertiary: #242b3d;
-            --text-primary: #ffffff;
-            --text-secondary: #a0aec0;
-            --accent-blue: #3b82f6;
-            --accent-green: #10b981;
-            --accent-purple: #8b5cf6;
-            --accent-orange: #f59e0b;
-            --border-color: #2d3748;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .dashboard {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .header h1 {
-            font-size: 28px;
-            font-weight: 600;
-        }
-
-        .header-controls {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .date-filter {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .date-filter input {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-
-        .date-filter input:focus {
-            outline: none;
-            border-color: var(--accent-blue);
-        }
-
-        .btn {
-            background: var(--accent-blue);
-            color: white;
-            border: none;
-            padding: 10px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .btn:hover {
-            background: #2563eb;
-            transform: translateY(-1px);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        .refresh-info {
-            color: var(--text-secondary);
-            font-size: 13px;
-        }
-
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .kpi-card {
-            background: var(--bg-secondary);
-            border-radius: 12px;
-            padding: 24px;
-            border: 1px solid var(--border-color);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .kpi-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .kpi-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
-            border-color: var(--accent-blue);
-        }
-
-        .kpi-card:hover::before {
-            opacity: 1;
-        }
-
-        .kpi-title {
-            color: var(--text-secondary);
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .kpi-value {
-            font-size: 36px;
-            font-weight: 700;
-            margin-bottom: 8px;
-            background: linear-gradient(135deg, var(--text-primary), var(--accent-blue));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .kpi-change {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 14px;
-        }
-
-        .kpi-change.positive {
-            color: var(--accent-green);
-        }
-
-        .kpi-change.negative {
-            color: #ef4444;
-        }
-
-        .kpi-icon {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0.8;
-        }
-
-        .kpi-card.revenue .kpi-icon {
-            background: rgba(59, 130, 246, 0.2);
-            color: var(--accent-blue);
-        }
-
-        .kpi-card.users .kpi-icon {
-            background: rgba(16, 185, 129, 0.2);
-            color: var(--accent-green);
-        }
-
-        .kpi-card.orders .kpi-icon {
-            background: rgba(139, 92, 246, 0.2);
-            color: var(--accent-purple);
-        }
-
-        .kpi-card.growth .kpi-icon {
-            background: rgba(245, 158, 11, 0.2);
-            color: var(--accent-orange);
-        }
-
-        .content-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 20px;
-        }
-
-        @media (max-width: 1024px) {
-            .content-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .chart-card, .activity-card {
-            background: var(--bg-secondary);
-            border-radius: 12px;
-            padding: 24px;
-            border: 1px solid var(--border-color);
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .card-title {
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        .chart-container {
-            height: 300px;
-            position: relative;
-        }
-
-        #revenueChart {
-            width: 100%;
-            height: 100%;
-        }
-
-        .activity-list {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .activity-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border-color);
-            transition: background 0.2s;
-        }
-
-        .activity-item:last-child {
-            border-bottom: none;
-        }
-
-        .activity-item:hover {
-            background: var(--bg-tertiary);
-            margin: 0 -12px;
-            padding: 12px;
-            border-radius: 6px;
-        }
-
-        .activity-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .activity-icon.order {
-            background: rgba(59, 130, 246, 0.2);
-            color: var(--accent-blue);
-        }
-
-        .activity-icon.user {
-            background: rgba(16, 185, 129, 0.2);
-            color: var(--accent-green);
-        }
-
-        .activity-icon.system {
-            background: rgba(139, 92, 246, 0.2);
-            color: var(--accent-purple);
-        }
-
-        .activity-icon.alert {
-            background: rgba(245, 158, 11, 0.2);
-            color: var(--accent-orange);
-        }
-
-        .activity-content {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .activity-text {
-            font-size: 14px;
-            margin-bottom: 4px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .activity-time {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .pulse {
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .activity-list::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .activity-list::-webkit-scrollbar-track {
-            background: var(--bg-tertiary);
-            border-radius: 3px;
-        }
-
-        .activity-list::-webkit-scrollbar-thumb {
-            background: var(--accent-blue);
-            border-radius: 3px;
-        }
-
-        .chart-tooltip {
-            position: absolute;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 8px 12px;
-            font-size: 12px;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.2s;
-            z-index: 10;
-        }
-
-        .chart-tooltip.visible {
-            opacity: 1;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analytics Dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --surface2: #222636; --border: #2e3347;
+    --accent: #6c63ff; --accent2: #00d4aa; --accent3: #ff6b6b; --accent4: #ffa94d;
+    --text: #e8eaf0; --muted: #8b90a7; --radius: 12px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.5; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; z-index: 100; }
+  .logo { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; }
+  .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(.8)} }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .refresh-badge { display: flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; font-size: 12px; color: var(--muted); }
+  .refresh-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent2); animation: pulse 1.5s infinite; }
+  .btn { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 7px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity .15s, transform .1s; display: flex; align-items: center; gap: 6px; }
+  .btn:hover { opacity: .88; transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  main { max-width: 1400px; margin: 0 auto; padding: 24px; }
+  .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+  .toolbar h1 { font-size: 22px; font-weight: 700; }
+  .date-select { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; font-size: 13px; cursor: pointer; outline: none; transition: border-color .2s; }
+  .date-select:focus { border-color: var(--accent); }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; position: relative; overflow: hidden; transition: transform .2s, box-shadow .2s, border-color .2s; cursor: default; }
+  .kpi-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--card-accent, var(--accent)); border-radius: var(--radius) var(--radius) 0 0; }
+  .kpi-card::after { content:''; position:absolute; top:-40px; right:-40px; width:100px; height:100px; border-radius:50%; background:var(--card-accent,var(--accent)); opacity:.05; transition: opacity .2s, transform .2s; }
+  .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(0,0,0,.3); border-color: var(--card-accent, var(--accent)); }
+  .kpi-card:hover::after { opacity:.1; transform:scale(1.3); }
+  .kpi-label { font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); margin-bottom:10px; }
+  .kpi-value { font-size:32px; font-weight:800; letter-spacing:-1px; color:var(--text); font-variant-numeric:tabular-nums; }
+  .kpi-footer { display:flex; align-items:center; justify-content:space-between; margin-top:12px; }
+  .kpi-change { font-size:12px; font-weight:600; padding:2px 8px; border-radius:20px; }
+  .kpi-change.up { background:rgba(0,212,170,.15); color:var(--accent2); }
+  .kpi-change.down { background:rgba(255,107,107,.15); color:var(--accent3); }
+  .kpi-icon { font-size:20px; opacity:.7; }
+  .grid-2 { display:grid; grid-template-columns:2fr 1fr; gap:16px; margin-bottom:24px; }
+  @media(max-width:900px){.grid-2{grid-template-columns:1fr}}
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
+  .card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .card-title { font-size:14px; font-weight:700; }
+  .card-badge { font-size:11px; color:var(--muted); background:var(--surface2); border:1px solid var(--border); border-radius:20px; padding:2px 8px; }
+  #revenue-chart { width:100%; height:220px; display:block; }
+  .activity-list { display:flex; flex-direction:column; }
+  .activity-item { display:flex; align-items:flex-start; gap:12px; padding:10px 4px; border-bottom:1px solid var(--border); transition:background .15s; border-radius:6px; }
+  .activity-item:last-child { border-bottom:none; }
+  .activity-item:hover { background:var(--surface2); }
+  .activity-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:14px; flex-shrink:0; }
+  .activity-body { flex:1; min-width:0; }
+  .activity-text { font-size:12px; line-height:1.4; }
+  .activity-text strong { font-weight:600; }
+  .activity-time { font-size:11px; color:var(--muted); margin-top:2px; }
+  .activity-amount { font-size:12px; font-weight:700; flex-shrink:0; align-self:center; }
+  .grid-3 { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; }
+  .progress-row { margin-bottom:14px; }
+  .progress-row:last-child { margin-bottom:0; }
+  .progress-label { display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px; color:var(--muted); }
+  .progress-label span:last-child { color:var(--text); font-weight:600; }
+  .progress-bar { height:6px; background:var(--surface2); border-radius:4px; overflow:hidden; }
+  .progress-fill { height:100%; border-radius:4px; transition:width 1.5s cubic-bezier(.4,0,.2,1); width:0; }
+  .stat-table { width:100%; border-collapse:collapse; }
+  .stat-table td { padding:8px 0; font-size:12px; border-bottom:1px solid var(--border); }
+  .stat-table tr:last-child td { border-bottom:none; }
+  .stat-table td:last-child { text-align:right; font-weight:600; }
+  .stat-table td:first-child { color:var(--muted); }
+  .status-pill { display:inline-block; font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; text-transform:uppercase; letter-spacing:.5px; }
+  .pill-green { background:rgba(0,212,170,.15); color:var(--accent2); }
+  .pill-orange { background:rgba(255,169,77,.15); color:var(--accent4); }
+  .pill-red { background:rgba(255,107,107,.15); color:var(--accent3); }
+  .sparklines { display:flex; flex-direction:column; gap:14px; }
+  .spark-row { display:flex; align-items:center; gap:10px; }
+  .spark-label { font-size:12px; color:var(--muted); width:70px; flex-shrink:0; }
+  .spark-svg { flex:1; height:28px; }
+  .spark-val { font-size:12px; font-weight:700; width:45px; text-align:right; flex-shrink:0; }
+  #toast { position:fixed; bottom:24px; right:24px; background:var(--surface); border:1px solid var(--accent2); color:var(--accent2); border-radius:10px; padding:12px 20px; font-size:13px; font-weight:600; transform:translateY(80px); opacity:0; transition:transform .3s,opacity .3s; z-index:999; display:flex; align-items:center; gap:8px; }
+  #toast.show { transform:translateY(0); opacity:1; }
+</style>
 </head>
 <body>
-    <div class="dashboard">
-        <div class="header">
-            <h1>📊 Analytics Dashboard</h1>
-            <div class="header-controls">
-                <div class="date-filter">
-                    <input type="date" id="startDate">
-                    <span>to</span>
-                    <input type="date" id="endDate">
-                </div>
-                <button class="btn" onclick="exportData()">📥 Export Data</button>
-                <div class="refresh-info">
-                    <span class="pulse">🔄</span> Next refresh: <span id="countdown">30</span>s
-                </div>
-            </div>
-        </div>
-
-        <div class="kpi-grid">
-            <div class="kpi-card revenue">
-                <div class="kpi-icon">💰</div>
-                <div class="kpi-title">Total Revenue</div>
-                <div class="kpi-value" data-target="847000" data-prefix="$" data-suffix="K" data-divisor="1000">$0</div>
-                <div class="kpi-change positive">↑ 12.5% vs last month</div>
-            </div>
-
-            <div class="kpi-card users">
-                <div class="kpi-icon">👥</div>
-                <div class="kpi-title">Active Users</div>
-                <div class="kpi-value" data-target="12400" data-suffix="K" data-divisor="1000">0</div>
-                <div class="kpi-change positive">↑ 8.2% vs last month</div>
-            </div>
-
-            <div class="kpi-card orders">
-                <div class="kpi-icon">🛒</div>
-                <div class="kpi-title">Total Orders</div>
-                <div class="kpi-value" data-target="3200" data-suffix="K" data-divisor="1000">0</div>
-                <div class="kpi-change positive">↑ 15.3% vs last month</div>
-            </div>
-
-            <div class="kpi-card growth">
-                <div class="kpi-icon">📈</div>
-                <div class="kpi-title">Growth Rate</div>
-                <div class="kpi-value" data-target="24" data-prefix="+" data-suffix="%">+0%</div>
-                <div class="kpi-change positive">↑ 2.1% vs last month</div>
-            </div>
-        </div>
-
-        <div class="content-grid">
-            <div class="chart-card">
-                <div class="card-header">
-                    <h2 class="card-title">Revenue Trend</h2>
-                </div>
-                <div class="chart-container">
-                    <svg id="revenueChart"></svg>
-                    <div class="chart-tooltip" id="chartTooltip"></div>
-                </div>
-            </div>
-
-            <div class="activity-card">
-                <div class="card-header">
-                    <h2 class="card-title">Recent Activity</h2>
-                </div>
-                <div class="activity-list" id="activityList">
-                    <div class="loading">Loading activities...</div>
-                </div>
-            </div>
-        </div>
+<header>
+  <div class="logo"><div class="logo-dot"></div>Pulse Analytics</div>
+  <div class="header-right">
+    <div class="refresh-badge"><div class="refresh-dot"></div><span id="refresh-timer">Refreshing in 30s</span></div>
+    <button class="btn" onclick="exportData()">&#8595; Export</button>
+  </div>
+</header>
+<main>
+  <div class="toolbar">
+    <h1>Overview Dashboard</h1>
+    <div>
+      <select class="date-select" id="date-range" onchange="updateRange()">
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="90">Last 90 days</option>
+        <option value="365">Last 12 months</option>
+      </select>
     </div>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi-card" style="--card-accent:#6c63ff">
+      <div class="kpi-label">Total Revenue</div>
+      <div class="kpi-value" id="kpi-revenue">$0</div>
+      <div class="kpi-footer"><span class="kpi-change up">&#9650; +18.4%</span><span class="kpi-icon">&#128176;</span></div>
+    </div>
+    <div class="kpi-card" style="--card-accent:#00d4aa">
+      <div class="kpi-label">Active Users</div>
+      <div class="kpi-value" id="kpi-users">0</div>
+      <div class="kpi-footer"><span class="kpi-change up">&#9650; +11.2%</span><span class="kpi-icon">&#128100;</span></div>
+    </div>
+    <div class="kpi-card" style="--card-accent:#ffa94d">
+      <div class="kpi-label">Total Orders</div>
+      <div class="kpi-value" id="kpi-orders">0</div>
+      <div class="kpi-footer"><span class="kpi-change up">&#9650; +7.8%</span><span class="kpi-icon">&#128230;</span></div>
+    </div>
+    <div class="kpi-card" style="--card-accent:#ff6b6b">
+      <div class="kpi-label">Growth Rate</div>
+      <div class="kpi-value" id="kpi-growth">0%</div>
+      <div class="kpi-footer"><span class="kpi-change up">&#9650; +5.3pp</span><span class="kpi-icon">&#128200;</span></div>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Revenue Over Time</span><span class="card-badge" id="chart-period">Last 30 days</span></div>
+      <canvas id="revenue-chart"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Recent Activity</span><span class="card-badge">Live</span></div>
+      <div class="activity-list" id="activity-list"></div>
+    </div>
+  </div>
+  <div class="grid-3">
+    <div class="card"><div class="card-header"><span class="card-title">Top Channels</span></div><div id="channels"></div></div>
+    <div class="card"><div class="card-header"><span class="card-title">Order Status</span></div><table class="stat-table" id="order-status"></table></div>
+    <div class="card"><div class="card-header"><span class="card-title">Platform Traffic</span></div><div class="sparklines" id="sparklines"></div></div>
+  </div>
+</main>
+<div id="toast">&#10003; Data exported to CSV</div>
+<script>
+var BASE={revenue:847000,users:12400,orders:3200,growth:24};
+var current={revenue:847000,users:12400,orders:3200,growth:24};
+var refreshCountdown=30,rafId=null,chartData=[];
 
-    <script>
-        function animateCounters() {
-            const counters = document.querySelectorAll('.kpi-value');
-            counters.forEach(counter => {
-                const target = parseInt(counter.dataset.target);
-                const prefix = counter.dataset.prefix || '';
-                const suffix = counter.dataset.suffix || '';
-                const divisor = parseInt(counter.dataset.divisor) || 1;
+function animateCounter(el,from,to,fmt,dur){
+  dur=dur||1400;var s=performance.now();
+  (function tick(now){var p=Math.min((now-s)/dur,1),e=1-Math.pow(1-p,4);
+    el.textContent=fmt(from+(to-from)*e);if(p<1)requestAnimationFrame(tick);})(s);
+}
+function fmtRevenue(v){return v>=1e6?'$'+(v/1e6).toFixed(2)+'M':'$'+Math.round(v/1000)+'K';}
+function fmtUsers(v){var n=Math.round(v);return n>=1000?(n/1000).toFixed(1)+'K':n;}
+function fmtOrders(v){var n=Math.round(v);return n>=1000?(n/1000).toFixed(1)+'K':n;}
+function fmtGrowth(v){return'+'+Math.round(v)+'%';}
+function updateKPIs(anim){
+  [['kpi-revenue',current.revenue,fmtRevenue],['kpi-users',current.users,fmtUsers],
+   ['kpi-orders',current.orders,fmtOrders],['kpi-growth',current.growth,fmtGrowth]].forEach(function(t){
+    var el=document.getElementById(t[0]);
+    anim?animateCounter(el,0,t[1],t[2]):(el.textContent=t[2](t[1]));
+  });
+}
 
-                let current = 0;
-                const increment = target / 50;
-                const timer = setInterval(() => {
-                    current += increment;
-                    if (current >= target) {
-                        current = target;
-                        clearInterval(timer);
-                    }
+function genSeries(days){var d=[],v=18000;for(var i=0;i<days;i++){v=Math.max(5000,v+(Math.random()-.44)*4000);d.push(Math.round(v));}return d;}
 
-                    const displayValue = (current / divisor).toFixed(1);
-                    counter.textContent = `${prefix}${displayValue}${suffix}`;
-                }, 30);
-            });
-        }
+function drawChart(data,progress){
+  progress=progress===undefined?1:progress;
+  var canvas=document.getElementById('revenue-chart');
+  var dpr=window.devicePixelRatio||1,rect=canvas.getBoundingClientRect();
+  canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;
+  var ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  var W=rect.width,H=rect.height,P={t:16,r:16,b:32,l:48};
+  var cW=W-P.l-P.r,cH=H-P.t-P.b;ctx.clearRect(0,0,W,H);
+  var vl=Math.max(2,Math.round(data.length*progress)),vis=data.slice(0,vl);
+  var mx=Math.max.apply(null,vis)*1.1,mn=Math.min.apply(null,vis)*.85;
+  function xo(i){return P.l+(i/(vis.length-1))*cW;}
+  function yo(v){return P.t+cH-((v-mn)/(mx-mn))*cH;}
+  ctx.strokeStyle='#2e3347';ctx.lineWidth=1;
+  for(var g=0;g<=4;g++){var gy=P.t+(g/4)*cH;ctx.beginPath();ctx.moveTo(P.l,gy);ctx.lineTo(P.l+cW,gy);ctx.stroke();
+    ctx.fillStyle='#8b90a7';ctx.font='10px -apple-system,sans-serif';ctx.textAlign='right';
+    ctx.fillText('$'+Math.round((mx-(g/4)*(mx-mn))/1000)+'K',P.l-6,gy+4);}
+  if(vis.length<2)return;
+  var gr=ctx.createLinearGradient(0,P.t,0,P.t+cH);
+  gr.addColorStop(0,'rgba(108,99,255,.35)');gr.addColorStop(1,'rgba(108,99,255,0)');
+  ctx.beginPath();ctx.moveTo(xo(0),yo(vis[0]));
+  for(var i=1;i<vis.length;i++){var x0=xo(i-1),y0=yo(vis[i-1]),x1=xo(i),y1=yo(vis[i]);
+    ctx.bezierCurveTo(x0+(x1-x0)*.5,y0,x0+(x1-x0)*.5,y1,x1,y1);}
+  ctx.lineTo(xo(vis.length-1),P.t+cH);ctx.lineTo(xo(0),P.t+cH);ctx.closePath();ctx.fillStyle=gr;ctx.fill();
+  ctx.beginPath();ctx.moveTo(xo(0),yo(vis[0]));
+  for(var j=1;j<vis.length;j++){var ax0=xo(j-1),ay0=yo(vis[j-1]),ax1=xo(j),ay1=yo(vis[j]);
+    ctx.bezierCurveTo(ax0+(ax1-ax0)*.5,ay0,ax0+(ax1-ax0)*.5,ay1,ax1,ay1);}
+  ctx.strokeStyle='#6c63ff';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();
+  var step=Math.max(1,Math.floor(vis.length/6));
+  for(var k=0;k<vis.length;k+=step){ctx.beginPath();ctx.arc(xo(k),yo(vis[k]),4,0,Math.PI*2);
+    ctx.fillStyle='#6c63ff';ctx.fill();ctx.strokeStyle='#1a1d27';ctx.lineWidth=2;ctx.stroke();}
+  ctx.fillStyle='#8b90a7';ctx.font='10px -apple-system,sans-serif';ctx.textAlign='center';
+  var days=parseInt(document.getElementById('date-range').value),lc=Math.min(6,vis.length);
+  for(var l=0;l<lc;l++){var idx=Math.round((l/(lc-1))*(vis.length-1));
+    var dd=new Date();dd.setDate(dd.getDate()-(vis.length-1-idx));
+    var lbl=days>=365?dd.toLocaleString('default',{month:'short'}):dd.getDate()+'/'+(dd.getMonth()+1);
+    ctx.fillText(lbl,xo(idx),P.t+cH+18);}
+}
 
-        function createRevenueChart() {
-            const svg = document.getElementById('revenueChart');
-            const tooltip = document.getElementById('chartTooltip');
-            const container = svg.parentElement;
+function animateChart(data){var s=null;
+  function frame(ts){if(!s)s=ts;var p=Math.min((ts-s)/1000,1),e=1-Math.pow(1-p,3);
+    drawChart(data,e);if(p<1){if(rafId)cancelAnimationFrame(rafId);rafId=requestAnimationFrame(frame);}}
+  if(rafId)cancelAnimationFrame(rafId);rafId=requestAnimationFrame(frame);}
 
-            const data = [
-                { month: 'Jan', value: 650 },
-                { month: 'Feb', value: 720 },
-                { month: 'Mar', value: 810 },
-                { month: 'Apr', value: 750 },
-                { month: 'May', value: 890 },
-                { month: 'Jun', value: 847 },
-                { month: 'Jul', value: 920 },
-                { month: 'Aug', value: 980 },
-                { month: 'Sep', value: 910 },
-                { month: 'Oct', value: 1050 },
-                { month: 'Nov', value: 1120 },
-                { month: 'Dec', value: 1200 }
-            ];
+var EVENTS=[
+  {icon:'&#128722;',color:'#6c63ff',bg:'rgba(108,99,255,.15)',text:'<strong>Sarah M.</strong> placed a new order',amount:'+$142',time:'2m ago'},
+  {icon:'&#128100;',color:'#00d4aa',bg:'rgba(0,212,170,.15)',text:'<strong>New user</strong> registered from Germany',amount:'',time:'5m ago'},
+  {icon:'&#128179;',color:'#ffa94d',bg:'rgba(255,169,77,.15)',text:'<strong>Payment</strong> processed for order #8821',amount:'+$389',time:'9m ago'},
+  {icon:'&#11088;',color:'#ffd43b',bg:'rgba(255,212,59,.15)',text:'<strong>Alex K.</strong> left a 5-star review',amount:'',time:'14m ago'},
+  {icon:'&#128260;',color:'#ff6b6b',bg:'rgba(255,107,107,.15)',text:'<strong>Refund</strong> issued to Jordan T.',amount:'-$67',time:'21m ago'},
+  {icon:'&#128640;',color:'#6c63ff',bg:'rgba(108,99,255,.15)',text:'<strong>Campaign</strong> "Summer Sale" went live',amount:'',time:'33m ago'},
+  {icon:'&#128230;',color:'#ffa94d',bg:'rgba(255,169,77,.15)',text:'<strong>Order #8819</strong> shipped to Paris',amount:'',time:'47m ago'},
+  {icon:'&#128176;',color:'#00d4aa',bg:'rgba(0,212,170,.15)',text:'<strong>Subscription</strong> renewed — Pro Plan',amount:'+$99',time:'1h ago'},
+  {icon:'&#9888;',color:'#ff6b6b',bg:'rgba(255,107,107,.15)',text:'<strong>Low stock</strong> alert: Widget Pro (3 left)',amount:'',time:'1.5h ago'},
+  {icon:'&#127919;',color:'#00d4aa',bg:'rgba(0,212,170,.15)',text:'<strong>Goal reached</strong>: 12K users milestone',amount:'',time:'2h ago'},
+];
 
-            const width = container.clientWidth;
-            const height = container.clientHeight;
-            const padding = 40;
+function renderActivity(){
+  document.getElementById('activity-list').innerHTML=EVENTS.map(function(e){
+    return'<div class="activity-item"><div class="activity-icon" style="background:'+e.bg+';color:'+e.color+'">'+e.icon+'</div>'+
+    '<div class="activity-body"><div class="activity-text">'+e.text+'</div><div class="activity-time">'+e.time+'</div></div>'+
+    (e.amount?'<div class="activity-amount" style="color:'+(e.amount[0]==='-'?'#ff6b6b':'#00d4aa')+'">'+e.amount+'</div>':'')+
+    '</div>';}).join('');}
 
-            svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-            svg.innerHTML = '';
+var CHANNELS=[{name:'Organic Search',pct:42,color:'#6c63ff'},{name:'Paid Ads',pct:28,color:'#00d4aa'},
+  {name:'Social Media',pct:17,color:'#ffa94d'},{name:'Email',pct:9,color:'#ff6b6b'},{name:'Referral',pct:4,color:'#8b90a7'}];
 
-            const maxValue = Math.max(...data.map(d => d.value));
-            const xScale = (index) => padding + (index * (width - 2 * padding) / (data.length - 1));
-            const yScale = (value) => height - padding - (value / maxValue) * (height - 2 * padding);
+function renderChannels(){
+  document.getElementById('channels').innerHTML=CHANNELS.map(function(c){
+    return'<div class="progress-row"><div class="progress-label"><span>'+c.name+'</span><span>'+c.pct+'%</span></div>'+
+    '<div class="progress-bar"><div class="progress-fill" data-pct="'+c.pct+'" style="background:'+c.color+'"></div></div></div>';}).join('');
+  setTimeout(function(){document.querySelectorAll('.progress-fill').forEach(function(el){el.style.width=el.getAttribute('data-pct')+'%';});},100);}
 
-            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-            const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
-            gradient.setAttribute('id', 'areaGradient');
-            gradient.setAttribute('x1', '0%');
-            gradient.setAttribute('y1', '0%');
-            gradient.setAttribute('x2', '0%');
-            gradient.setAttribute('y2', '100%');
+var ORDERS=[{label:'Completed',val:2841,pill:'pill-green',status:'Done'},{label:'Processing',val:214,pill:'pill-orange',status:'Active'},
+  {label:'Pending',val:87,pill:'pill-orange',status:'Wait'},{label:'Shipped',val:96,pill:'pill-green',status:'Transit'},{label:'Cancelled',val:62,pill:'pill-red',status:'Cancel'}];
 
-            const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-            stop1.setAttribute('offset', '0%');
-            stop1.setAttribute('style', 'stop-color:#3b82f6;stop-opacity:0.6');
+function renderOrderStatus(){
+  document.getElementById('order-status').innerHTML=ORDERS.map(function(o){
+    return'<tr><td>'+o.label+'</td><td><span class="status-pill '+o.pill+'">'+o.status+'</span></td><td>'+o.val.toLocaleString()+'</td></tr>';}).join('');}
 
-            const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-            stop2.setAttribute('offset', '100%');
-            stop2.setAttribute('style', 'stop-color:#3b82f6;stop-opacity:0');
+var PLATFORMS=[{name:'Desktop',val:'54%',color:'#6c63ff',data:[40,45,42,48,55,52,54]},
+  {name:'Mobile',val:'38%',color:'#00d4aa',data:[30,35,38,36,40,37,38]},{name:'Tablet',val:'8%',color:'#ffa94d',data:[9,7,8,10,7,9,8]}];
 
-            gradient.appendChild(stop1);
-            gradient.appendChild(stop2);
-            defs.appendChild(gradient);
-            svg.appendChild(defs);
+function sparkPath(d){var mx=Math.max.apply(null,d),mn=Math.min.apply(null,d),r=mx-mn||1;
+  var pts=d.map(function(v,i){return[(i/(d.length-1))*100,28-((v-mn)/r)*24-2];});
+  var s='M'+pts[0][0]+','+pts[0][1];
+  for(var i=1;i<pts.length;i++){var x0=pts[i-1][0],y0=pts[i-1][1],x1=pts[i][0],y1=pts[i][1];
+    s+=' C'+(x0+(x1-x0)*.5)+','+y0+' '+(x0+(x1-x0)*.5)+','+y1+' '+x1+','+y1;}return s;}
 
-            const areaPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            let areaD = `M ${xScale(0)} ${height - padding}`;
-            data.forEach((point, index) => {
-                areaD += ` L ${xScale(index)} ${yScale(point.value)}`;
-            });
-            areaD += ` L ${xScale(data.length - 1)} ${height - padding} Z`;
-            areaPath.setAttribute('d', areaD);
-            areaPath.setAttribute('fill', 'url(#areaGradient)');
-            svg.appendChild(areaPath);
+function renderSparklines(){
+  document.getElementById('sparklines').innerHTML=PLATFORMS.map(function(p){
+    return'<div class="spark-row"><span class="spark-label">'+p.name+'</span>'+
+    '<svg class="spark-svg" viewBox="0 0 100 28" preserveAspectRatio="none"><path d="'+sparkPath(p.data)+'" fill="none" stroke="'+p.color+'" stroke-width="2" stroke-linecap="round"/></svg>'+
+    '<span class="spark-val" style="color:'+p.color+'">'+p.val+'</span></div>';}).join('');}
 
-            const linePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            let lineD = `M ${xScale(0)} ${yScale(data[0].value)}`;
-            data.forEach((point, index) => {
-                if (index > 0) {
-                    lineD += ` L ${xScale(index)} ${yScale(point.value)}`;
-                }
-            });
-            linePath.setAttribute('d', lineD);
-            linePath.setAttribute('fill', 'none');
-            linePath.setAttribute('stroke', '#3b82f6');
-            linePath.setAttribute('stroke-width', '3');
-            linePath.setAttribute('stroke-linecap', 'round');
-            linePath.setAttribute('stroke-linejoin', 'round');
-            svg.appendChild(linePath);
+function updateRange(){
+  var days=parseInt(document.getElementById('date-range').value);
+  var labels={7:'Last 7 days',30:'Last 30 days',90:'Last 90 days',365:'Last 12 months'};
+  document.getElementById('chart-period').textContent=labels[days];
+  chartData=genSeries(days);animateChart(chartData);
+  var sc=Math.sqrt(days/30);
+  current.revenue=Math.round(BASE.revenue*sc);current.users=Math.round(BASE.users*sc);
+  current.orders=Math.round(BASE.orders*sc);current.growth=BASE.growth+(days/30-1)*3;
+  updateKPIs(true);}
 
-            data.forEach((point, index) => {
-                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                circle.setAttribute('cx', xScale(index));
-                circle.setAttribute('cy', yScale(point.value));
-                circle.setAttribute('r', '6');
-                circle.setAttribute('fill', '#3b82f6');
-                circle.setAttribute('stroke', '#0f1419');
-                circle.setAttribute('stroke-width', '2');
-                circle.style.cursor = 'pointer';
-                circle.style.transition = 'r 0.2s';
+function simulateRefresh(){
+  function j(){return 1+(Math.random()-.5)*.08;}
+  current.revenue=Math.round(current.revenue*j());current.users=Math.round(current.users*j());
+  current.orders=Math.round(current.orders*j());current.growth=Math.min(50,Math.max(5,current.growth+(Math.random()-.5)*2));
+  updateKPIs(true);chartData.push(Math.round(chartData[chartData.length-1]*j()));
+  var ml=parseInt(document.getElementById('date-range').value);if(chartData.length>ml)chartData.shift();
+  animateChart(chartData);var t=EVENTS.shift();t.time='just now';EVENTS.push(t);renderActivity();}
 
-                circle.addEventListener('mouseenter', (e) => {
-                    circle.setAttribute('r', '9');
-                    tooltip.textContent = `${point.month}: $${point.value}K`;
-                    tooltip.classList.add('visible');
-                });
+function tickRefresh(){refreshCountdown--;
+  document.getElementById('refresh-timer').textContent=refreshCountdown>0?'Refreshing in '+refreshCountdown+'s':'Refreshing...';
+  if(refreshCountdown<=0){simulateRefresh();refreshCountdown=30;}}
 
-                circle.addEventListener('mousemove', (e) => {
-                    const rect = container.getBoundingClientRect();
-                    tooltip.style.left = (e.clientX - rect.left + 10) + 'px';
-                    tooltip.style.top = (e.clientY - rect.top - 30) + 'px';
-                });
+function exportData(){
+  var rows=[['Metric','Value'],['Revenue','$'+current.revenue.toLocaleString()],['Users',current.users.toLocaleString()],
+    ['Orders',current.orders.toLocaleString()],['Growth','+'+Math.round(current.growth)+'%'],[],
+    ['Date Range',document.querySelector('#date-range option:checked').text]];
+  var csv=rows.map(function(r){return r.join(',');}).join('\n');
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='analytics-export.csv';a.click();URL.revokeObjectURL(a.href);
+  var t=document.getElementById('toast');t.classList.add('show');setTimeout(function(){t.classList.remove('show');},3000);}
 
-                circle.addEventListener('mouseleave', () => {
-                    circle.setAttribute('r', '6');
-                    tooltip.classList.remove('visible');
-                });
+var rt;window.addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(function(){drawChart(chartData);},150);});
 
-                svg.appendChild(circle);
-
-                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                text.setAttribute('x', xScale(index));
-                text.setAttribute('y', height - 10);
-                text.setAttribute('text-anchor', 'middle');
-                text.setAttribute('fill', '#a0aec0');
-                text.setAttribute('font-size', '12');
-                text.textContent = point.month;
-                svg.appendChild(text);
-            });
-
-            const yAxisSteps = 5;
-            for (let i = 0; i <= yAxisSteps; i++) {
-                const value = (maxValue / yAxisSteps) * i;
-                const y = yScale(value);
-
-                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                text.setAttribute('x', padding - 10);
-                text.setAttribute('y', y + 4);
-                text.setAttribute('text-anchor', 'end');
-                text.setAttribute('fill', '#a0aec0');
-                text.setAttribute('font-size', '11');
-                text.textContent = `$${Math.round(value)}K`;
-                svg.appendChild(text);
-
-                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line.setAttribute('x1', padding);
-                line.setAttribute('y1', y);
-                line.setAttribute('x2', width - padding);
-                line.setAttribute('y2', y);
-                line.setAttribute('stroke', '#2d3748');
-                line.setAttribute('stroke-width', '1');
-                line.setAttribute('stroke-dasharray', '4,4');
-                svg.insertBefore(line, svg.firstChild);
-            }
-        }
-
-        const activities = [
-            { type: 'order', text: 'New order #12345 from John Doe', time: '2 minutes ago' },
-            { type: 'user', text: 'User Sarah Wilson signed up', time: '5 minutes ago' },
-            { type: 'system', text: 'Database backup completed', time: '12 minutes ago' },
-            { type: 'alert', text: 'High traffic detected on US server', time: '15 minutes ago' },
-            { type: 'order', text: 'Order #12344 shipped successfully', time: '20 minutes ago' },
-            { type: 'user', text: 'User Mike Johnson upgraded plan', time: '25 minutes ago' },
-            { type: 'system', text: 'Security scan completed - no threats', time: '30 minutes ago' },
-            { type: 'order', text: 'Refund requested for order #12343', time: '35 minutes ago' },
-            { type: 'user', text: 'User Emma Davis left a review', time: '40 minutes ago' },
-            { type: 'system', text: 'Cache cleared successfully', time: '45 minutes ago' }
-        ];
-
-        function renderActivities() {
-            const container = document.getElementById('activityList');
-            container.innerHTML = activities.map(activity => `
-                <div class="activity-item">
-                    <div class="activity-icon ${activity.type}">
-                        ${getActivityIcon(activity.type)}
-                    </div>
-                    <div class="activity-content">
-                        <div class="activity-text">${activity.text}</div>
-                        <div class="activity-time">${activity.time}</div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function getActivityIcon(type) {
-            const icons = {
-                order: '🛒',
-                user: '👤',
-                system: '⚙️',
-                alert: '⚠️'
-            };
-            return icons[type] || '📌';
-        }
-
-        let countdown = 30;
-
-        function updateCountdown() {
-            countdown--;
-            document.getElementById('countdown').textContent = countdown;
-
-            if (countdown <= 0) {
-                countdown = 30;
-                refreshData();
-            }
-        }
-
-        function refreshData() {
-            const kpiCards = document.querySelectorAll('.kpi-value');
-            kpiCards.forEach(card => {
-                const baseValue = parseInt(card.dataset.target);
-                const variance = Math.random() * 0.1 - 0.05;
-                const newValue = Math.round(baseValue * (1 + variance));
-
-                const prefix = card.dataset.prefix || '';
-                const suffix = card.dataset.suffix || '';
-                const divisor = parseInt(card.dataset.divisor) || 1;
-                card.textContent = `${prefix}${(newValue / divisor).toFixed(1)}${suffix}`;
-            });
-
-            activities.forEach((activity, index) => {
-                const minutes = (index + 1) * 5 + Math.floor(Math.random() * 5);
-                activity.time = `${minutes} minutes ago`;
-            });
-            renderActivities();
-
-            createRevenueChart();
-        }
-
-        function exportData() {
-            const exportData = {
-                timestamp: new Date().toISOString(),
-                kpis: {
-                    revenue: 847000,
-                    users: 12400,
-                    orders: 3200,
-                    growth: 24
-                },
-                activities: activities,
-                dateRange: {
-                    start: document.getElementById('startDate').value,
-                    end: document.getElementById('endDate').value
-                }
-            };
-
-            const dataStr = JSON.stringify(exportData, null, 2);
-            const dataBlob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `analytics-export-${new Date().toISOString().split('T')[0]}.json`;
-            link.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function initializeDates() {
-            const today = new Date();
-            const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
-
-            document.getElementById('endDate').value = today.toISOString().split('T')[0];
-            document.getElementById('startDate').value = lastMonth.toISOString().split('T')[0];
-        }
-
-        window.addEventListener('resize', () => {
-            createRevenueChart();
-        });
-
-        document.addEventListener('DOMContentLoaded', () => {
-            animateCounters();
-            createRevenueChart();
-            renderActivities();
-            initializeDates();
-
-            setInterval(updateCountdown, 1000);
-        });
-    </script>
+chartData=genSeries(30);
+updateKPIs(true);renderActivity();renderChannels();renderOrderStatus();renderSparklines();
+requestAnimationFrame(function(){requestAnimationFrame(function(){animateChart(chartData);});});
+setInterval(tickRefresh,1000);
+</script>
 </body>
 </html>

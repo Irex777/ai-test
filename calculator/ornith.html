@@ -6,13 +6,13 @@
 <title>Calculator</title>
 <style>
   *, *::before, *::after {
-    box-sizing: border-box;
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
   }
 
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
     background: #1a1a2e;
     display: flex;
     justify-content: center;
@@ -26,811 +26,720 @@
     max-width: 420px;
     background: #16213e;
     border-radius: 20px;
-    overflow: hidden;
+    padding: 20px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
   }
 
   .display {
-    padding: 20px 24px 16px;
     background: #0f3460;
-    min-height: 120px;
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+    min-height: 110px;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    position: relative;
     overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
 
-  .display::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-  }
-
-  .expression-history {
-    color: #8899aa;
+  .display .history {
+    color: #8a8fa3;
     font-size: 14px;
     text-align: right;
     min-height: 20px;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
+    word-break: break-all;
     line-height: 1.4;
-    max-height: 56px;
-    overflow-y: auto;
+    overflow-wrap: break-word;
   }
 
-  .current-input {
-    color: #e8e8e8;
-    font-size: 42px;
+  .display .expression {
+    color: #b0b5c9;
+    font-size: 16px;
+    text-align: right;
+    min-height: 22px;
+    word-break: break-all;
+    line-height: 1.4;
+    margin-top: 4px;
+  }
+
+  .display .current {
+    color: #e8eaf0;
+    font-size: 36px;
     font-weight: 300;
     text-align: right;
+    letter-spacing: -0.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-height: 44px;
     line-height: 1.2;
-    margin-top: 8px;
     transition: font-size 0.15s ease;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
   }
 
-  .current-input.small {
-    font-size: 32px;
+  .display .current.shrink-1 { font-size: 28px; }
+  .display .current.shrink-2 { font-size: 22px; }
+  .display .current.shrink-3 { font-size: 18px; }
+
+  .memory-bar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
   }
 
-  .current-input.xsmall {
-    font-size: 24px;
-  }
-
-  .memory-indicator {
-    position: absolute;
-    top: 8px;
-    left: 16px;
-    color: #4fc3f7;
-    font-size: 11px;
+  .memory-bar button {
+    flex: 1;
+    padding: 8px 4px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    color: #6b7a99;
+    font-size: 12px;
     font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
     letter-spacing: 0.5px;
-    opacity: 0;
-    transition: opacity 0.2s;
   }
 
-  .memory-indicator.active {
-    opacity: 1;
+  .memory-bar button:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #a0aec0;
+  }
+
+  .memory-bar button:active {
+    transform: scale(0.96);
+  }
+
+  .memory-bar button.active {
+    color: #e94560;
+    border-color: rgba(233, 69, 96, 0.3);
   }
 
   .buttons {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    gap: 1px;
-    background: #0d1b36;
-    padding: 1px;
+    gap: 8px;
   }
 
-  button {
+  .buttons button {
+    padding: 18px 4px;
     border: none;
-    outline: none;
-    cursor: pointer;
-    font-family: inherit;
+    border-radius: 12px;
     font-size: 18px;
     font-weight: 500;
-    padding: 18px 0;
+    cursor: pointer;
     transition: all 0.12s ease;
     position: relative;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
+    overflow: hidden;
   }
 
-  button:active {
-    transform: scale(0.95);
+  .buttons button:active {
+    transform: scale(0.94);
   }
 
-  .btn-memory {
+  .btn-number {
     background: #1a2744;
-    color: #6b8daf;
-    font-size: 13px;
-    font-weight: 600;
+    color: #e8eaf0;
+    border: 1px solid rgba(255, 255, 255, 0.04);
   }
 
-  .btn-memory:hover {
-    background: #223355;
-    color: #8fb3d4;
-  }
-
-  .btn-memory:active {
-    background: #2a3f66;
-  }
-
-  .btn-function {
-    background: #1e2d4a;
-    color: #a0b4c8;
-    font-size: 16px;
-  }
-
-  .btn-function:hover {
-    background: #283a5c;
-    color: #c0d4e8;
-  }
-
-  .btn-function:active {
-    background: #304468;
-  }
-
-  .btn-digit {
-    background: #253552;
-    color: #e8e8e8;
-    font-size: 22px;
-    font-weight: 400;
-  }
-
-  .btn-digit:hover {
-    background: #2e4262;
-  }
-
-  .btn-digit:active {
-    background: #384e72;
+  .btn-number:hover {
+    background: #223358;
   }
 
   .btn-operator {
-    background: #0f4c75;
-    color: #4fc3f7;
-    font-size: 22px;
-    font-weight: 500;
+    background: #0f3460;
+    color: #53a8d4;
+    border: 1px solid rgba(83, 168, 212, 0.1);
   }
 
   .btn-operator:hover {
-    background: #1565a0;
-    color: #81d4fa;
+    background: #144a7a;
   }
 
-  .btn-operator:active {
-    background: #1a7bc8;
+  .btn-function {
+    background: #1a1a2e;
+    color: #8a8fa3;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .btn-function:hover {
+    background: #252545;
   }
 
   .btn-equals {
     background: #e94560;
     color: #ffffff;
-    font-size: 26px;
-    font-weight: 600;
-    grid-row: span 3;
+    font-weight: 700;
+    border: 1px solid rgba(233, 69, 96, 0.3);
   }
 
   .btn-equals:hover {
     background: #f05a73;
   }
 
-  .btn-equals:active {
-    background: #f76f86;
+  .btn-backspace {
+    background: #1a2744;
+    color: #e94560;
+    border: 1px solid rgba(233, 69, 96, 0.1);
+  }
+
+  .btn-backspace:hover {
+    background: #253358;
   }
 
   .btn-zero {
     grid-column: span 2;
   }
 
-  /* Ripple effect */
-  button::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.15), transparent 60%);
-    opacity: 0;
-    transition: opacity 0.3s;
+  .buttons button .key-hint {
+    display: none;
   }
 
-  button:active::after {
-    opacity: 1;
-  }
-
-  /* Keyboard focus visible */
-  button:focus-visible {
-    outline: 2px solid #4fc3f7;
-    outline-offset: -2px;
-  }
-
-  /* Responsive adjustments */
   @media (max-width: 380px) {
-    button {
-      padding: 14px 0;
-      font-size: 16px;
-    }
-
-    .btn-digit {
-      font-size: 18px;
-    }
-
-    .current-input {
-      font-size: 36px;
-    }
-
-    .btn-equals {
-      font-size: 22px;
-    }
-  }
-
-  @media (max-height: 700px) {
-    button {
-      padding: 12px 0;
-    }
-
-    .display {
-      min-height: 90px;
-      padding: 14px 20px 10px;
-    }
-  }
-
-  @media (min-width: 600px) {
     .calculator {
-      max-width: 480px;
+      padding: 14px;
+      border-radius: 16px;
     }
 
-    button {
-      padding: 22px 0;
+    .buttons button {
+      padding: 15px 2px;
+      font-size: 16px;
+      border-radius: 10px;
+    }
+
+    .display .current {
+      font-size: 30px;
+    }
+
+    .buttons {
+      gap: 6px;
+    }
+
+    .memory-bar button {
+      padding: 6px 2px;
+      font-size: 11px;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .calculator {
+      padding: 28px;
+    }
+
+    .buttons button {
+      padding: 22px 4px;
       font-size: 20px;
     }
 
-    .current-input {
-      font-size: 48px;
+    .display .current {
+      font-size: 42px;
     }
+  }
+
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    transform: scale(0);
+    animation: ripple-anim 0.5s ease-out;
+    pointer-events: none;
+  }
+
+  @keyframes ripple-anim {
+    to {
+      transform: scale(4);
+      opacity: 0;
+    }
+  }
+
+  .error-flash {
+    animation: error-pulse 0.4s ease;
+  }
+
+  @keyframes error-pulse {
+    0%, 100% { background: #0f3460; }
+    50% { background: #3d1a2e; }
   }
 </style>
 </head>
 <body>
 
-<div class="calculator">
-  <div class="display">
-    <div class="memory-indicator" id="memIndicator">M</div>
-    <div class="expression-history" id="expressionHistory"></div>
-    <div class="current-input" id="currentInput">0</div>
+<div class="calculator" id="calculator">
+  <div class="display" id="display">
+    <div class="history" id="history"></div>
+    <div class="expression" id="expression"></div>
+    <div class="current" id="current">0</div>
   </div>
-  <div class="buttons" id="buttonGrid">
-    <!-- Row 1: Memory row -->
-    <button class="btn-memory" data-action="mc" aria-label="Memory Clear">MC</button>
-    <button class="btn-memory" data-action="m+" aria-label="Memory Add">M+</button>
-    <button class="btn-memory" data-action="m-" aria-label="Memory Subtract">M−</button>
-    <button class="btn-memory" data-action="mr" aria-label="Memory Recall">MR</button>
-    <button class="btn-function" data-action="percent" aria-label="Percent">%</button>
-    <button class="btn-function" data-action="backspace" aria-label="Backspace">⌫</button>
 
-    <!-- Row 2: CE, C, +/-, ÷, × -->
-    <button class="btn-function" data-action="ce" aria-label="Clear Entry">CE</button>
-    <button class="btn-function" data-action="clear" aria-label="Clear All">C</button>
-    <button class="btn-function" data-action="sign" aria-label="Toggle Sign">+/−</button>
-    <button class="btn-operator" data-action="divide" aria-label="Divide">÷</button>
-    <button class="btn-operator" data-action="multiply" aria-label="Multiply">×</button>
+  <div class="memory-bar">
+    <button onclick="memoryClear()" title="Memory Clear (MC)">MC</button>
+    <button onclick="memoryRecall()" title="Memory Recall (MR)">MR</button>
+    <button onclick="memorySubtract()" title="Memory Subtract (M-)">M−</button>
+    <button onclick="memoryAdd()" title="Memory Add (M+)">M+</button>
+  </div>
 
-    <!-- Row 3: 7, 8, 9, −, + -->
-    <button class="btn-digit" data-action="digit" data-value="7">7</button>
-    <button class="btn-digit" data-action="digit" data-value="8">8</button>
-    <button class="btn-digit" data-action="digit" data-value="9">9</button>
-    <button class="btn-operator" data-action="subtract" aria-label="Subtract">−</button>
-    <button class="btn-operator" data-action="add" aria-label="Add">+</button>
+  <div class="buttons">
+    <button class="btn-function" onclick="clearEntry()" title="Clear Entry (CE)">CE</button>
+    <button class="btn-function" onclick="clearAll()" title="Clear All (C)">C</button>
+    <button class="btn-function" onclick="inputPercent()" title="Percent (%)">%</button>
+    <button class="btn-operator" onclick="inputToggleSign()" title="Toggle Sign (+/-)">±</button>
+    <button class="btn-operator" onclick="inputOperator('/')" title="Divide (÷)">÷</button>
 
-    <!-- Row 4: 4, 5, 6, = (span 3 rows) -->
-    <button class="btn-digit" data-action="digit" data-value="4">4</button>
-    <button class="btn-digit" data-action="digit" data-value="5">5</button>
-    <button class="btn-digit" data-action="digit" data-value="6">6</button>
-    <button class="btn-equals" data-action="equals" aria-label="Equals">=</button>
+    <button class="btn-number" onclick="inputDigit('7')">7</button>
+    <button class="btn-number" onclick="inputDigit('8')">8</button>
+    <button class="btn-number" onclick="inputDigit('9')">9</button>
+    <button class="btn-backspace" onclick="backspace()" title="Backspace">⌫</button>
+    <button class="btn-operator" onclick="inputOperator('*')" title="Multiply (×)">×</button>
 
-    <!-- Row 5: 1, 2, 3, (covered by =), (covered by =) -->
-    <button class="btn-digit" data-action="digit" data-value="1">1</button>
-    <button class="btn-digit" data-action="digit" data-value="2">2</button>
-    <button class="btn-digit" data-action="digit" data-value="3">3</button>
+    <button class="btn-number" onclick="inputDigit('4')">4</button>
+    <button class="btn-number" onclick="inputDigit('5')">5</button>
+    <button class="btn-number" onclick="inputDigit('6')">6</button>
+    <button class="btn-function" onclick="inputPower()" title="Power (^)">xʸ</button>
+    <button class="btn-operator" onclick="inputOperator('-')" title="Subtract (−)">−</button>
 
-    <!-- Row 6: 0 (span 2), ., (covered by =), (covered by =) -->
-    <button class="btn-digit btn-zero" data-action="digit" data-value="0">0</button>
-    <button class="btn-digit" data-action="decimal" aria-label="Decimal Point">.</button>
+    <button class="btn-number" onclick="inputDigit('1')">1</button>
+    <button class="btn-number" onclick="inputDigit('2')">2</button>
+    <button class="btn-number" onclick="inputDigit('3')">3</button>
+    <button class="btn-function" onclick="inputSquareRoot()" title="Square Root (√)">√</button>
+    <button class="btn-operator" onclick="inputOperator('+')" title="Add (+)">+</button>
+
+    <button class="btn-number btn-zero" onclick="inputDigit('0')">0</button>
+    <button class="btn-number" onclick="inputDecimal()">.</button>
+    <button class="btn-function" onclick="inputFactorial()" title="Factorial (!)">n!</button>
+    <button class="btn-equals" onclick="calculate()" title="Equals (=)">=</button>
   </div>
 </div>
 
 <script>
-(function() {
-  'use strict';
+  let currentInput = '0';
+  let expression = '';
+  let fullExpression = '';
+  let lastResult = null;
+  let justCalculated = false;
+  let memory = 0;
+  let hasMemory = false;
+  let operandStack = [];
+  let operatorStack = [];
 
-  // State
-  let state = {
-    currentInput: '0',
-    expression: '',
-    fullExpression: '',
-    lastOperator: null,
-    lastOperand: null,
-    resetNext: false,
-    memory: 0,
-    hasMemory: false,
-    justEvaluated: false,
-    error: false
-  };
+  const currentEl = document.getElementById('current');
+  const expressionEl = document.getElementById('expression');
+  const historyEl = document.getElementById('history');
+  const displayEl = document.getElementById('display');
 
-  // DOM refs
-  const currentInputEl = document.getElementById('currentInput');
-  const expressionHistoryEl = document.getElementById('expressionHistory');
-  const memIndicatorEl = document.getElementById('memIndicator');
+  function updateDisplay() {
+    currentEl.textContent = formatNumber(currentInput);
+    expressionEl.textContent = fullExpression;
 
-  // Format number for display
-  function formatNumber(num) {
-    if (num === Infinity) return 'Error';
-    if (num === -Infinity) return 'Error';
-    if (isNaN(num)) return 'Error';
+    const len = currentInput.replace(/[^0-9.]/g, '').length;
+    currentEl.className = 'current';
+    if (len > 12) currentEl.classList.add('shrink-3');
+    else if (len > 9) currentEl.classList.add('shrink-2');
+    else if (len > 7) currentEl.classList.add('shrink-1');
 
-    if (Math.abs(num) > 999999999999999) {
-      return num.toExponential(6);
-    }
-
-    let str = num.toString();
-    if (str.length > 15) {
-      str = num.toPrecision(12);
-      str = str.replace(/\.?0+$/, '');
-    }
-    return str;
+    updateMemoryButtons();
   }
 
-  // Format display string with commas for integer part
-  function formatDisplay(str) {
-    if (str === 'Error' || str.includes('e') || str.includes('E')) return str;
-
-    const parts = str.split('.');
+  function formatNumber(numStr) {
+    if (numStr === 'Error' || numStr === 'Infinity' || numStr === '-Infinity' || numStr === 'NaN') {
+      return 'Error';
+    }
+    if (numStr.includes('e')) return numStr;
+    const parts = numStr.split('.');
     let intPart = parts[0];
     const isNeg = intPart.startsWith('-');
     if (isNeg) intPart = intPart.slice(1);
-
     intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    let result = (isNeg ? '-' : '') + intPart;
-    if (parts.length > 1) result += '.' + parts[1];
-    return result;
+    if (isNeg) intPart = '-' + intPart;
+    return parts.length > 1 ? intPart + '.' + parts[1] : intPart;
   }
 
-  // Update display
-  function updateDisplay() {
-    let displayStr = state.currentInput;
-
-    // Try to format with commas if it looks like a plain number
-    if (!state.error && !displayStr.includes('e') && !displayStr.includes('E')) {
-      if (/^-?\d+(\.\d*)?$/.test(displayStr) || /^-?\.\d+$/.test(displayStr)) {
-        const num = parseFloat(displayStr);
-        if (!isNaN(num) && num >= -999999999999999 && num <= 999999999999999) {
-          displayStr = formatDisplay(displayStr);
-        }
-      }
-    }
-
-    currentInputEl.textContent = displayStr;
-
-    // Adjust font size based on length
-    const len = displayStr.replace(/[,.]/g, '').length;
-    currentInputEl.className = 'current-input' +
-      (len > 12 ? ' xsmall' : len > 8 ? ' small' : '');
-
-    expressionHistoryEl.textContent = state.fullExpression;
-
-    memIndicatorEl.className = 'memory-indicator' + (state.hasMemory ? ' active' : '');
-  }
-
-  // Safe evaluation using a proper parser
-  function evaluateExpression(expr) {
-    // Tokenize
-    const tokens = [];
-    let i = 0;
-    while (i < expr.length) {
-      const ch = expr[i];
-      if (ch === ' ' || ch === '\t') {
-        i++;
-        continue;
-      }
-      if (ch >= '0' && ch <= '9' || ch === '.') {
-        let num = '';
-        while (i < expr.length && ((expr[i] >= '0' && expr[i] <= '9') || expr[i] === '.')) {
-          num += expr[i++];
-        }
-        tokens.push({ type: 'number', value: parseFloat(num) });
-        continue;
-      }
-      if (ch === '+' || ch === '-' || ch === '*' || ch === '/') {
-        tokens.push({ type: 'operator', value: ch });
-        i++;
-        continue;
-      }
-      i++;
-    }
-
-    let pos = 0;
-
-    function peek() {
-      return pos < tokens.length ? tokens[pos] : null;
-    }
-
-    function consume() {
-      return tokens[pos++];
-    }
-
-    // expression = term (('+' | '-') term)*
-    function parseExpression() {
-      let result = parseTerm();
-      while (true) {
-        const tok = peek();
-        if (!tok || tok.type !== 'operator' || (tok.value !== '+' && tok.value !== '-')) break;
-        consume();
-        const right = parseTerm();
-        if (tok.value === '+') result += right;
-        else result -= right;
-      }
-      return result;
-    }
-
-    // term = factor (('*' | '/') factor)*
-    function parseTerm() {
-      let result = parseFactor();
-      while (true) {
-        const tok = peek();
-        if (!tok || tok.type !== 'operator' || (tok.value !== '*' && tok.value !== '/')) break;
-        consume();
-        const right = parseFactor();
-        if (tok.value === '*') {
-          result *= right;
-        } else {
-          if (right === 0) throw new Error('Division by zero');
-          result /= right;
-        }
-      }
-      return result;
-    }
-
-    // factor = NUMBER | '+' factor | '-' factor | '(' expression ')'
-    function parseFactor() {
-      const tok = peek();
-      if (!tok) throw new Error('Unexpected end');
-
-      if (tok.type === 'number') {
-        consume();
-        return tok.value;
-      }
-
-      if (tok.type === 'operator') {
-        if (tok.value === '+') {
-          consume();
-          return parseFactor();
-        }
-        if (tok.value === '-') {
-          consume();
-          return -parseFactor();
-        }
-      }
-
-      throw new Error('Unexpected token');
-    }
-
-    const result = parseExpression();
-
-    if (pos !== tokens.length) {
-      throw new Error('Invalid expression');
-    }
-
-    return result;
-  }
-
-  // Convert display operators to math operators
-  function normalizeExpression(expr) {
+  function parseExpression(expr) {
     return expr
-      .replace(/÷/g, '/')
       .replace(/×/g, '*')
+      .replace(/÷/g, '/')
       .replace(/−/g, '-')
-      .replace(/+/g, '+');
+      .replace(/×\^/g, '*')
+      .replace(/÷\^/g, '/');
   }
 
-  // Perform calculation
-  function calculate() {
-    if (state.error) return;
-
-    let expr = state.fullExpression + state.currentInput;
-
-    // Remove trailing operator if present (shouldn't happen but safety)
-    const lastCh = expr.trim().slice(-1);
-    if (lastCh === '+' || lastCh === '-' || lastCh === '*' || lastCh === '/') {
-      expr = expr.trim().slice(0, -1);
-    }
-
+  function evaluateExpression(expr) {
     try {
-      const normalized = normalizeExpression(expr);
-      const result = evaluateExpression(normalized);
+      let sanitized = parseExpression(expr);
+      sanitized = sanitized.replace(/[^0-9+\-*/().%^!sqrtpi]/g, '');
+      if (!sanitized || sanitized === '-') return NaN;
 
-      if (result === undefined || result === null) {
-        showError();
-        return;
+      let result = safeEvaluate(sanitized);
+      if (result === Infinity || result === -Infinity) {
+        if (expr.includes('/') && !expr.includes('e')) {
+          return NaN;
+        }
+        return result;
       }
+      if (result !== result) return NaN;
 
-      const displayResult = formatNumber(result);
-
-      // Show the expression that was evaluated
-      state.fullExpression = expr + ' =';
-      state.currentInput = displayResult;
-      state.resetNext = true;
-      state.justEvaluated = true;
-      state.lastOperator = null;
-      state.lastOperand = null;
-
-      updateDisplay();
+      let precise = parseFloat(result.toPrecision(15));
+      return precise;
     } catch (e) {
-      showError();
+      return NaN;
     }
+  }
+
+  function safeEvaluate(expr) {
+    expr = expr.replace(/\s+/g, '');
+
+    if (expr.includes('sqrt(')) {
+      return safeEvaluate(expr.replace(/sqrt\(([^)]+)\)/g, (_, inner) => {
+        const val = safeEvaluate(inner);
+        if (val < 0) return 'NaN';
+        return Math.sqrt(val).toString();
+      }));
+    }
+
+    if (expr.includes('pow(')) {
+      return safeEvaluate(expr.replace(/pow\(([^,]+),([^)]+)\)/g, (_, base, exp) => {
+        return Math.pow(parseFloat(safeEvaluate(base)), parseFloat(safeEvaluate(exp))).toString();
+      }));
+    }
+
+    if (expr.includes('^')) {
+      return safeEvaluate(expr.replace(/(\d+\.?\d*)\^(\d+\.?\d*)/g, (_, base, exp) => {
+        return Math.pow(parseFloat(base), parseFloat(exp)).toString();
+      }));
+    }
+
+    if (expr.includes('!')) {
+      return safeEvaluate(expr.replace(/(\d+)!/g, (_, num) => {
+        let n = parseInt(num);
+        if (n < 0 || n > 170) return 'NaN';
+        let result = 1;
+        for (let i = 2; i <= n; i++) result *= i;
+        return result.toString();
+      }));
+    }
+
+    let result = Function('"use strict"; return (' + expr + ')')();
+    return result;
   }
 
   function showError() {
-    state.error = true;
-    state.currentInput = 'Error';
-    state.fullExpression = '';
-    state.lastOperator = null;
-    state.lastOperand = null;
+    currentInput = 'Error';
+    fullExpression = '';
+    expression = '';
     updateDisplay();
+    displayEl.classList.add('error-flash');
+    setTimeout(() => displayEl.classList.remove('error-flash'), 400);
   }
 
-  // Input a digit
   function inputDigit(digit) {
-    if (state.error) return;
-
-    if (state.resetNext || state.justEvaluated) {
-      state.currentInput = digit;
-      state.resetNext = false;
-      state.justEvaluated = false;
-      if (state.justEvaluated === false && state.currentInput !== digit) {
-        // We just started a new number after evaluation
-      }
-      if (state.justEvaluated) {
-        state.fullExpression = '';
-        state.justEvaluated = false;
-      }
+    if (justCalculated) {
+      currentInput = digit;
+      fullExpression = '';
+      expression = '';
+      lastResult = null;
+      justCalculated = false;
     } else {
-      if (state.currentInput === '0' && digit !== '0') {
-        state.currentInput = digit;
-      } else if (state.currentInput === '0' && digit === '0') {
-        // Don't add extra zeros
+      if (currentInput === '0' && digit !== '.') {
+        currentInput = digit;
       } else {
-        if (state.currentInput.replace(/[^0-9]/g, '').length >= 15) return;
-        state.currentInput += digit;
+        if (currentInput.length < 20) {
+          currentInput += digit;
+        }
       }
     }
     updateDisplay();
   }
 
-  // Input decimal
   function inputDecimal() {
-    if (state.error) return;
-
-    if (state.resetNext || state.justEvaluated) {
-      state.currentInput = '0.';
-      state.resetNext = false;
-      state.justEvaluated = false;
-      if (state.justEvaluated) {
-        state.fullExpression = '';
-        state.justEvaluated = false;
+    if (justCalculated) {
+      currentInput = '0.';
+      fullExpression = '';
+      expression = '';
+      lastResult = null;
+      justCalculated = false;
+    } else if (!currentInput.includes('.')) {
+      if (currentInput === '0' || currentInput === '') {
+        currentInput = '0.';
+      } else {
+        currentInput += '.';
       }
-    } else if (!state.currentInput.includes('.')) {
-      state.currentInput += '.';
     }
     updateDisplay();
   }
 
-  // Input operator
   function inputOperator(op) {
-    if (state.error) return;
+    if (currentInput === 'Error') return;
 
-    const opSymbols = { add: '+', subtract: '−', multiply: '×', divide: '÷' };
-    const symbol = opSymbols[op];
+    const opSymbols = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+    const currentVal = currentInput;
 
-    if (state.justEvaluated) {
-      // Continue from result
-      state.fullExpression = state.currentInput + ' ' + symbol + ' ';
-      state.resetNext = true;
-      state.justEvaluated = false;
+    if (justCalculated && lastResult !== null) {
+      fullExpression = formatNumber(lastResult.toString()) + ' ' + opSymbols[op] + ' ';
+      currentInput = '0';
+      justCalculated = false;
+      expression = fullExpression;
       updateDisplay();
       return;
     }
 
-    if (state.lastOperator && !state.resetNext) {
-      // Chain: evaluate previous operation first
-      try {
-        const prevExpr = state.fullExpression + state.currentInput;
-        const normalized = normalizeExpression(prevExpr);
-        const result = evaluateExpression(normalized);
-        const displayResult = formatNumber(result);
-        state.currentInput = displayResult;
-        state.fullExpression = state.currentInput + ' ' + symbol + ' ';
-      } catch (e) {
+    if (fullExpression && !justCalculated) {
+      fullExpression = fullExpression.trimEnd();
+      if (fullExpression.match(/[+\-×÷]$/)) {
+        fullExpression = fullExpression.slice(0, -1) + opSymbols[op] + ' ';
+      } else {
+        fullExpression += ' ' + opSymbols[op] + ' ';
+      }
+      currentInput = '0';
+      expression = fullExpression;
+    } else {
+      fullExpression = formatNumber(currentVal) + ' ' + opSymbols[op] + ' ';
+      currentInput = '0';
+      expression = fullExpression;
+    }
+    updateDisplay();
+  }
+
+  function inputPercent() {
+    if (currentInput === 'Error') return;
+    const val = parseFloat(currentInput);
+    if (isNaN(val)) return;
+    currentInput = String(val / 100);
+    updateDisplay();
+  }
+
+  function inputToggleSign() {
+    if (currentInput === 'Error' || currentInput === '0') return;
+    if (currentInput.startsWith('-')) {
+      currentInput = currentInput.slice(1);
+    } else {
+      currentInput = '-' + currentInput;
+    }
+    updateDisplay();
+  }
+
+  function inputPower() {
+    if (currentInput === 'Error') return;
+    const currentVal = currentInput;
+    fullExpression += currentVal + '^';
+    currentInput = '0';
+    expression = fullExpression;
+    updateDisplay();
+  }
+
+  function inputSquareRoot() {
+    if (currentInput === 'Error') return;
+    const val = parseFloat(currentInput);
+    if (isNaN(val)) return;
+    if (val < 0) {
+      showError();
+      return;
+    }
+    const result = Math.sqrt(val);
+    fullExpression = '√(' + formatNumber(currentInput) + ')';
+    currentInput = String(parseFloat(result.toPrecision(15)));
+    lastResult = currentInput;
+    justCalculated = true;
+    updateDisplay();
+  }
+
+  function inputFactorial() {
+    if (currentInput === 'Error') return;
+    const val = parseFloat(currentInput);
+    if (isNaN(val) || val < 0 || val > 170 || val !== Math.floor(val)) {
+      showError();
+      return;
+    }
+    let result = 1;
+    for (let i = 2; i <= val; i++) result *= i;
+    fullExpression = formatNumber(currentInput) + '!';
+    currentInput = String(result);
+    lastResult = currentInput;
+    justCalculated = true;
+    updateDisplay();
+  }
+
+  function calculate() {
+    if (currentInput === 'Error') return;
+
+    let exprToEval = fullExpression + currentInput;
+
+    if (!exprToEval.trim()) return;
+
+    let displayExpr = exprToEval;
+    let result = evaluateExpression(exprToEval);
+
+    if (isNaN(result) || result === Infinity || result === -Infinity) {
+      if (exprToEval.includes('/') && !exprToEval.match(/e[+-]?\d/)) {
+        historyEl.textContent = displayExpr + ' =';
         showError();
         return;
       }
-    } else {
-      if (state.fullExpression === '' && state.currentInput !== '0') {
-        state.fullExpression = state.currentInput + ' ' + symbol + ' ';
-      } else if (state.fullExpression === '') {
-        state.fullExpression = '0 ' + symbol + ' ';
-      } else {
-        // Replace last operator
-        state.fullExpression = state.fullExpression.trimEnd();
-        // Remove old operator
-        state.fullExpression = state.fullExpression.replace(/[+\-×÷]$/, '') + ' ' + symbol + ' ';
-      }
+      currentInput = 'Error';
+      updateDisplay();
+      return;
     }
 
-    state.resetNext = true;
-    state.lastOperator = op;
+    let precise = parseFloat(result.toPrecision(15));
+    historyEl.textContent = displayExpr + ' =';
+    expressionEl.textContent = '';
+    fullExpression = '';
+    expression = '';
+    currentInput = String(precise);
+    lastResult = precise;
+    justCalculated = true;
     updateDisplay();
   }
 
-  // Percent
-  function inputPercent() {
-    if (state.error) return;
-
-    const num = parseFloat(state.currentInput);
-    if (isNaN(num)) return;
-
-    if (state.lastOperator === 'add' || state.lastOperator === 'subtract') {
-      // e.g., 200 + 10% of 200
-      const baseExpr = state.fullExpression;
-      const match = baseExpr.match(/^(.+?)\s*[+\-]\s*([\d.]+)$/);
-      if (match) {
-        const base = parseFloat(match[1]);
-        state.currentInput = formatNumber(base * (num / 100));
-      } else {
-        state.currentInput = formatNumber(num / 100);
-      }
-    } else {
-      state.currentInput = formatNumber(num / 100);
-    }
-
-    state.resetNext = true;
-    updateDisplay();
-  }
-
-  // Toggle sign
-  function toggleSign() {
-    if (state.error) return;
-
-    if (state.currentInput === '0') return;
-
-    if (state.currentInput.startsWith('-')) {
-      state.currentInput = state.currentInput.slice(1);
-    } else {
-      state.currentInput = '-' + state.currentInput;
-    }
-    updateDisplay();
-  }
-
-  // Clear entry
-  function clearEntry() {
-    if (state.error) return;
-    state.currentInput = '0';
-    updateDisplay();
-  }
-
-  // Clear all
   function clearAll() {
-    state.currentInput = '0';
-    state.fullExpression = '';
-    state.lastOperator = null;
-    state.lastOperand = null;
-    state.resetNext = false;
-    state.justEvaluated = false;
-    state.error = false;
+    currentInput = '0';
+    fullExpression = '';
+    expression = '';
+    lastResult = null;
+    justCalculated = false;
+    historyEl.textContent = '';
     updateDisplay();
   }
 
-  // Backspace
+  function clearEntry() {
+    currentInput = '0';
+    updateDisplay();
+  }
+
   function backspace() {
-    if (state.error || state.resetNext || state.justEvaluated) return;
-
-    if (state.currentInput.length > 1) {
-      state.currentInput = state.currentInput.slice(0, -1);
-      if (state.currentInput === '-') state.currentInput = '0';
-    } else {
-      state.currentInput = '0';
+    if (currentInput === 'Error' || justCalculated) {
+      clearAll();
+      return;
     }
-    updateDisplay();
-  }
-
-  // Memory functions
-  function memoryClear() {
-    state.memory = 0;
-    state.hasMemory = false;
-    updateDisplay();
-  }
-
-  function memoryRecall() {
-    if (state.error) return;
-    state.currentInput = formatNumber(state.memory);
-    state.resetNext = true;
+    if (currentInput.length > 1) {
+      currentInput = currentInput.slice(0, -1);
+    } else {
+      currentInput = '0';
+    }
     updateDisplay();
   }
 
   function memoryAdd() {
-    if (state.error) return;
-    const num = parseFloat(state.currentInput);
-    if (!isNaN(num)) {
-      state.memory += num;
-      state.hasMemory = true;
-      updateDisplay();
-    }
+    if (currentInput === 'Error') return;
+    const val = parseFloat(currentInput);
+    if (isNaN(val)) return;
+    memory += val;
+    hasMemory = true;
+    updateDisplay();
   }
 
   function memorySubtract() {
-    if (state.error) return;
-    const num = parseFloat(state.currentInput);
-    if (!isNaN(num)) {
-      state.memory -= num;
-      state.hasMemory = true;
-      updateDisplay();
-    }
+    if (currentInput === 'Error') return;
+    const val = parseFloat(currentInput);
+    if (isNaN(val)) return;
+    memory -= val;
+    hasMemory = true;
+    updateDisplay();
   }
 
-  // Handle button clicks
-  document.getElementById('buttonGrid').addEventListener('click', function(e) {
-    const btn = e.target.closest('button');
-    if (!btn) return;
+  function memoryRecall() {
+    if (!hasMemory) return;
+    currentInput = String(memory);
+    justCalculated = false;
+    updateDisplay();
+  }
 
-    const action = btn.dataset.action;
-    const value = btn.dataset.value;
+  function memoryClear() {
+    memory = 0;
+    hasMemory = false;
+    updateDisplay();
+  }
 
-    switch (action) {
-      case 'digit': inputDigit(value); break;
-      case 'decimal': inputDecimal(); break;
-      case 'add': inputOperator('add'); break;
-      case 'subtract': inputOperator('subtract'); break;
-      case 'multiply': inputOperator('multiply'); break;
-      case 'divide': inputOperator('divide'); break;
-      case 'equals': calculate(); break;
-      case 'clear': clearAll(); break;
-      case 'ce': clearEntry(); break;
-      case 'sign': toggleSign(); break;
-      case 'percent': inputPercent(); break;
-      case 'backspace': backspace(); break;
-      case 'mc': memoryClear(); break;
-      case 'mr': memoryRecall(); break;
-      case 'm+': memoryAdd(); break;
-      case 'm-': memorySubtract(); break;
-    }
+  function updateMemoryButtons() {
+    const buttons = document.querySelectorAll('.memory-bar button');
+    buttons.forEach(btn => {
+      btn.classList.toggle('active', hasMemory);
+    });
+  }
+
+  function createRipple(e, btn) {
+    const ripple = document.createElement('span');
+    ripple.classList.add('ripple');
+    const rect = btn.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    ripple.style.width = ripple.style.height = size + 'px';
+    ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+    ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+    btn.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 500);
+  }
+
+  document.querySelectorAll('.buttons button, .memory-bar button').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      createRipple(e, this);
+    });
   });
 
-  // Keyboard support
   document.addEventListener('keydown', function(e) {
     const key = e.key;
 
-    // Prevent default for calculator keys
-    if (['/', '*', '-', '+', 'Enter', 'Backspace', 'Escape', '%'].includes(key)) {
-      e.preventDefault();
-    }
-
     if (key >= '0' && key <= '9') {
+      e.preventDefault();
       inputDigit(key);
+      flashButton(key);
     } else if (key === '.') {
+      e.preventDefault();
       inputDecimal();
     } else if (key === '+') {
-      inputOperator('add');
+      e.preventDefault();
+      inputOperator('+');
     } else if (key === '-') {
-      inputOperator('subtract');
+      e.preventDefault();
+      inputOperator('-');
     } else if (key === '*') {
-      inputOperator('multiply');
+      e.preventDefault();
+      inputOperator('*');
     } else if (key === '/') {
-      inputOperator('divide');
+      e.preventDefault();
+      inputOperator('/');
     } else if (key === 'Enter' || key === '=') {
+      e.preventDefault();
       calculate();
-    } else if (key === 'Backspace') {
-      backspace();
     } else if (key === 'Escape') {
+      e.preventDefault();
       clearAll();
-    } else if (key === 'Delete') {
-      clearEntry();
+    } else if (key === 'Backspace') {
+      e.preventDefault();
+      backspace();
     } else if (key === '%') {
+      e.preventDefault();
       inputPercent();
-    } else if (key === 'm' || key === 'M') {
-      // Ctrl+M for memory, or just M for MR
-      if (e.ctrlKey || e.metaKey) {
-        // Ctrl+M could be memory clear
-        memoryClear();
-      }
+    } else if (key === 'Delete') {
+      e.preventDefault();
+      clearEntry();
+    } else if (key === '^') {
+      e.preventDefault();
+      inputPower();
+    } else if (key === '!') {
+      e.preventDefault();
+      inputFactorial();
+    } else if (key === 'm') {
+      e.preventDefault();
+      memoryAdd();
+    } else if (key === 'M') {
+      e.preventDefault();
+      memoryClear();
+    } else if (key === 'r') {
+      e.preventDefault();
+      memoryRecall();
     }
   });
 
-  // Initialize display
-  updateDisplay();
+  function flashButton(key) {
+    const buttons = document.querySelectorAll('.buttons button');
+    buttons.forEach(btn => {
+      if (btn.textContent.trim() === key) {
+        btn.style.filter = 'brightness(1.5)';
+        setTimeout(() => btn.style.filter = '', 120);
+      }
+    });
+  }
 
-})();
+  updateDisplay();
 </script>
 
 </body>
