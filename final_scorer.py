@@ -409,7 +409,7 @@ def html_doc(title, body):
         "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n"
         f"<title>{html.escape(title)}</title>\n"
         f"<style>{CSS}</style>\n"
-        "</head>\n<body>\n{body}\n</body>\n</html>\n"
+        f"</head>\n<body>\n{body}\n</body>\n</html>\n"
     )
 
 
