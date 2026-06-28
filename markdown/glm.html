@@ -3,690 +3,1381 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Inkwell — Markdown Editor</title>
+<title>Lumen — Markdown Editor</title>
 <style>
-  /* ── Reset & Variables ── */
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  :root{
-    --bg:#0d1017;--surface:#151a24;--surface-alt:#171c28;
-    --accent:#d4943a;--accent-hover:#e8b04e;--accent-subtle:rgba(212,148,58,.08);
-    --accent-glow:rgba(212,148,58,.25);
-    --text:#c8cdd8;--text-bright:#e8ecf2;--text-muted:#525c6e;
-    --border:#252c3a;--code-bg:#1a1f2c;--link:#6bb8d6;
-    --success:#4ade80;--danger:#f87171;
+  :root {
+    --bg: #0a0c12;
+    --bg-elevated: #11141d;
+    --bg-input: #0f1219;
+    --bg-hover: #181c27;
+    --border: #1d2230;
+    --border-strong: #2a3142;
+    --fg: #e8eaed;
+    --fg-muted: #8b92a5;
+    --fg-dim: #5b6275;
+    --accent: #ff7a45;
+    --accent-glow: rgba(255, 122, 69, 0.18);
+    --accent-hover: #ff8d5e;
+    --amber: #ffd166;
+    --success: #4ade80;
   }
-  html,body{height:100%;overflow:hidden}
-  body{
-    background:var(--bg);color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
-    font-size:15px;line-height:1.6;
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body { height: 100%; overflow: hidden; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-  body::after{
-    content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+
+  /* Atmospheric background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
     background:
-      radial-gradient(ellipse at 12% 8%,rgba(212,148,58,.04) 0%,transparent 55%),
-      radial-gradient(ellipse at 88% 92%,rgba(107,184,214,.03) 0%,transparent 55%);
+      radial-gradient(ellipse 800px 600px at 15% -10%, rgba(255, 122, 69, 0.08), transparent 60%),
+      radial-gradient(ellipse 600px 400px at 110% 110%, rgba(255, 209, 102, 0.04), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
   }
 
-  /* ── App Layout ── */
-  .app{display:flex;flex-direction:column;height:100vh;position:relative;z-index:1;animation:fadeIn .4s ease}
-  @keyframes fadeIn{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
-
-  /* ── Header ── */
-  .app-header{
-    display:flex;align-items:center;justify-content:space-between;
-    padding:0 20px;height:50px;flex-shrink:0;
-    background:rgba(21,26,36,.92);backdrop-filter:blur(14px);
-    border-bottom:1px solid var(--border);
-  }
-  .logo{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;color:var(--text-bright);letter-spacing:-.03em}
-  .logo-dot{
-    width:10px;height:10px;border-radius:50%;background:var(--accent);
-    box-shadow:0 0 10px var(--accent-glow);animation:pulse 3s ease-in-out infinite;
-  }
-  @keyframes pulse{0%,100%{box-shadow:0 0 8px var(--accent-glow)}50%{box-shadow:0 0 16px var(--accent-glow),0 0 4px var(--accent)}}
-  .logo-sub{color:var(--text-muted);font-weight:400;font-size:12px;margin-left:2px}
-  .header-actions{display:flex;gap:6px}
-  .header-btn{
-    display:flex;align-items:center;gap:6px;padding:6px 14px;
-    border:1px solid var(--border);border-radius:6px;background:transparent;
-    color:var(--text-muted);font-size:12px;font-weight:500;cursor:pointer;
-    transition:all .2s ease;font-family:inherit;
-  }
-  .header-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-subtle)}
-  .header-btn:active{transform:scale(.96)}
-  .header-btn.copied{border-color:var(--success);color:var(--success);background:rgba(74,222,128,.07)}
-  .header-btn svg{flex-shrink:0}
-
-  /* ── Toolbar ── */
-  .toolbar{
-    display:flex;align-items:center;padding:5px 14px;gap:2px;
-    background:rgba(23,28,40,.55);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;
-  }
-  .toolbar-btn{
-    display:flex;align-items:center;justify-content:center;
-    width:34px;height:34px;border:none;border-radius:6px;
-    background:transparent;color:var(--text-muted);cursor:pointer;
-    transition:all .15s ease;position:relative;
-  }
-  .toolbar-btn:hover{background:var(--accent-subtle);color:var(--accent)}
-  .toolbar-btn:active{transform:scale(.9)}
-  .toolbar-btn svg{pointer-events:none}
-  .btn-label{font-size:13px;font-weight:700;pointer-events:none;font-family:inherit}
-  .btn-label.it{font-style:italic;font-weight:600}
-  .toolbar-sep{width:1px;height:22px;background:var(--border);margin:0 5px}
-
-  /* Tooltip */
-  .toolbar-btn[data-tip]{position:relative}
-  .toolbar-btn[data-tip]::after{
-    content:attr(data-tip);position:absolute;bottom:calc(100% + 7px);left:50%;
-    transform:translateX(-50%) scale(.92);padding:3px 8px;
-    background:#1c2030;border:1px solid var(--border);border-radius:5px;
-    font-size:11px;font-weight:400;color:var(--text-muted);white-space:nowrap;
-    opacity:0;pointer-events:none;transition:all .15s ease;z-index:20;
-  }
-  .toolbar-btn[data-tip]:hover::after{opacity:1;transform:translateX(-50%) scale(1)}
-
-  /* ── Editor & Preview ── */
-  .editor-container{display:flex;flex:1;overflow:hidden}
-  .pane{flex:1;overflow:auto;position:relative}
-  .editor-pane{background:var(--surface)}
-  .preview-pane{background:var(--bg);border-left:1px solid var(--border)}
-  #editor{
-    width:100%;height:100%;padding:24px 28px;border:none;outline:none;resize:none;
-    background:transparent;color:var(--text);
-    font-family:'SF Mono','Fira Code','Cascadia Code','JetBrains Mono',Consolas,monospace;
-    font-size:14px;line-height:1.75;tab-size:4;
-  }
-  #editor::placeholder{color:var(--text-muted)}
-  #editor::selection{background:rgba(212,148,58,.18)}
-  #preview{padding:24px 36px;min-height:100%}
-
-  /* ── Preview Typography ── */
-  #preview h1,#preview h2,#preview h3,#preview h4,#preview h5,#preview h6{
-    color:var(--text-bright);margin-top:1.5em;margin-bottom:.45em;line-height:1.3;font-weight:700;
-  }
-  #preview h1{font-size:2em;padding-bottom:.3em;border-bottom:2px solid var(--border)}
-  #preview h2{font-size:1.5em;padding-bottom:.2em;border-bottom:1px solid var(--border)}
-  #preview h3{font-size:1.25em}
-  #preview h4{font-size:1.1em}
-  #preview h1:first-child,#preview h2:first-child,#preview h3:first-child{margin-top:0}
-  #preview p{margin-bottom:1em;line-height:1.75}
-  #preview strong{color:var(--text-bright);font-weight:600}
-  #preview em{font-style:italic}
-  #preview del{opacity:.45;text-decoration:line-through}
-  #preview a{color:var(--link);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .2s}
-  #preview a:hover{border-bottom-color:var(--link)}
-  #preview code{
-    background:var(--code-bg);padding:2px 7px;border-radius:4px;
-    font-family:'SF Mono','Fira Code',Consolas,monospace;font-size:.87em;color:#e8a84c;
-  }
-  #preview pre{
-    background:var(--code-bg);border:1px solid var(--border);border-radius:8px;
-    padding:16px 20px;overflow-x:auto;margin:0 0 1em;
-  }
-  #preview pre code{background:transparent;padding:0;border-radius:0;color:var(--text);font-size:.87em;line-height:1.65}
-  #preview blockquote{
-    border-left:3px solid var(--accent);background:var(--accent-subtle);
-    margin:1em 0;padding:12px 20px;border-radius:0 8px 8px 0;
-  }
-  #preview blockquote p:last-child{margin-bottom:0}
-  #preview ul,#preview ol{margin-bottom:1em;padding-left:1.6em}
-  #preview li{margin-bottom:.25em;line-height:1.7}
-  #preview ul li::marker,#preview ol li::marker{color:var(--accent)}
-  #preview hr{border:none;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:2em 0}
-  #preview img{max-width:100%;border-radius:8px;margin:.8em 0}
-  #preview > *:last-child{margin-bottom:0}
-
-  /* ── Status Bar ── */
-  .status-bar{
-    display:flex;align-items:center;gap:18px;padding:0 20px;height:30px;
-    background:rgba(21,26,36,.92);border-top:1px solid var(--border);
-    font-size:11.5px;color:var(--text-muted);flex-shrink:0;
-  }
-  .status-item{display:flex;align-items:center;gap:5px}
-  .status-dot{width:6px;height:6px;border-radius:50%;background:var(--success);flex-shrink:0}
-  .status-sep{color:var(--border)}
-
-  /* ── Scrollbar ── */
-  ::-webkit-scrollbar{width:7px;height:7px}
-  ::-webkit-scrollbar-track{background:transparent}
-  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
-  ::-webkit-scrollbar-thumb:hover{background:#3a4258}
-  *{scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-
-  /* ── Responsive ── */
-  @media(max-width:768px){
-    .editor-container{flex-direction:column}
-    .preview-pane{border-left:none;border-top:1px solid var(--border)}
-    #editor,#preview{padding:16px 18px}
-    .toolbar{padding:4px 8px;gap:1px}
-    .toolbar-btn{width:32px;height:32px}
-    .app-header{padding:0 12px}
-    .logo-sub{display:none}
-    .status-bar{padding:0 12px;gap:10px;font-size:10.5px}
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    position: relative;
+    z-index: 1;
   }
 
-  @media(prefers-reduced-motion:reduce){
-    .app{animation:none}
-    *,*::before,*::after{transition-duration:0s!important;animation-duration:0s!important}
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    background: rgba(17, 20, 29, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .brand-mark {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--accent), var(--amber));
+    display: grid;
+    place-items: center;
+    font-weight: 900;
+    color: #1a0d05;
+    font-size: 16px;
+    box-shadow: 0 4px 18px rgba(255, 122, 69, 0.35);
+  }
+
+  .brand-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+  }
+
+  .brand-name {
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    font-size: 15px;
+  }
+
+  .brand-tag {
+    font-size: 10px;
+    color: var(--fg-dim);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border-strong);
+    background: var(--bg-elevated);
+    color: var(--fg);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-weight: 500;
+  }
+
+  .btn:hover {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+    transform: translateY(-1px);
+  }
+
+  .btn:active { transform: translateY(0); }
+
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #1a0d05;
+    font-weight: 600;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+    box-shadow: 0 6px 20px var(--accent-glow);
+  }
+
+  .btn svg { width: 14px; height: 14px; }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 20px;
+    background: rgba(15, 18, 25, 0.5);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-shrink: 0;
+  }
+
+  .toolbar::-webkit-scrollbar { display: none; }
+
+  .tool-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 7px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--fg-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .tool-btn:hover {
+    background: var(--bg-hover);
+    color: var(--accent);
+    border-color: var(--border-strong);
+  }
+
+  .tool-btn:active {
+    transform: scale(0.94);
+  }
+
+  .tool-btn svg { width: 16px; height: 16px; }
+
+  .tool-divider {
+    width: 1px;
+    height: 22px;
+    background: var(--border);
+    margin: 0 6px;
+    flex-shrink: 0;
+  }
+
+  /* Main split */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+    position: relative;
+  }
+
+  .pane-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 24px;
+    background: rgba(17, 20, 29, 0.4);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .pane-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--fg-dim);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .pane-title::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  .pane-meta {
+    font-size: 11px;
+    color: var(--fg-dim);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Editor */
+  .editor-wrap {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .editor {
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: none;
+    color: var(--fg);
+    font-family: 'SF Mono', Menlo, Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+    font-size: 14px;
+    line-height: 1.75;
+    padding: 28px 32px;
+    resize: none;
+    outline: none;
+    tab-size: 2;
+    caret-color: var(--accent);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  .editor::selection {
+    background: rgba(255, 122, 69, 0.3);
+  }
+
+  .editor::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  .editor::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .editor::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 10px;
+    border: 2px solid var(--bg);
+  }
+
+  .editor::-webkit-scrollbar-thumb:hover {
+    background: #3a4256;
+  }
+
+  /* Divider */
+  .divider {
+    width: 1px;
+    background: var(--border);
+    cursor: col-resize;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .divider::before {
+    content: '';
+    position: absolute;
+    inset: 0 -4px;
+  }
+
+  .divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 4px;
+    height: 36px;
+    background: var(--border-strong);
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+
+  .divider:hover::after,
+  .divider.dragging::after {
+    background: var(--accent);
+  }
+
+  /* Preview */
+  .preview-wrap {
+    flex: 1;
+    overflow: auto;
+    background: var(--bg-elevated);
+  }
+
+  .preview {
+    padding: 32px 40px;
+    max-width: 800px;
+    color: var(--fg);
+    line-height: 1.7;
+  }
+
+  /* Markdown rendered styles */
+  .preview h1,
+  .preview h2,
+  .preview h3,
+  .preview h4,
+  .preview h5,
+  .preview h6 {
+    margin: 1.6em 0 0.6em;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--fg);
+    letter-spacing: -0.01em;
+  }
+
+  .preview h1:first-child,
+  .preview h2:first-child,
+  .preview h3:first-child { margin-top: 0; }
+
+  .preview h1 {
+    font-size: 2.2em;
+    padding-bottom: 0.4em;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(135deg, var(--fg) 0%, var(--accent) 200%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .preview h2 {
+    font-size: 1.6em;
+    padding-bottom: 0.3em;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .preview h3 { font-size: 1.3em; color: var(--amber); }
+  .preview h4 { font-size: 1.1em; }
+  .preview h5 { font-size: 1em; color: var(--fg-muted); }
+  .preview h6 { font-size: 0.9em; color: var(--fg-muted); }
+
+  .preview p {
+    margin: 0 0 1em;
+  }
+
+  .preview strong {
+    color: var(--fg);
+    font-weight: 700;
+  }
+
+  .preview em {
+    color: var(--amber);
+    font-style: italic;
+  }
+
+  .preview del {
+    color: var(--fg-dim);
+  }
+
+  .preview a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid var(--accent-glow);
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .preview a:hover {
+    color: var(--accent-hover);
+    border-bottom-color: var(--accent-hover);
+  }
+
+  .preview ul,
+  .preview ol {
+    margin: 0 0 1em;
+    padding-left: 1.6em;
+  }
+
+  .preview li {
+    margin: 0.3em 0;
+  }
+
+  .preview li::marker {
+    color: var(--accent);
+  }
+
+  .preview code {
+    background: var(--bg);
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'SF Mono', Menlo, Monaco, Consolas, monospace;
+    font-size: 0.88em;
+    border: 1px solid var(--border);
+  }
+
+  .preview pre {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    overflow-x: auto;
+    margin: 0 0 1em;
+    position: relative;
+  }
+
+  .preview pre::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20px;
+    right: 20px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.5;
+  }
+
+  .preview pre code {
+    background: transparent;
+    color: var(--fg);
+    padding: 0;
+    border-radius: 0;
+    border: none;
+    font-size: 13px;
+    line-height: 1.6;
+    display: block;
+  }
+
+  .preview blockquote {
+    border-left: 3px solid var(--accent);
+    background: linear-gradient(90deg, var(--accent-glow), transparent 30%);
+    padding: 12px 20px;
+    margin: 0 0 1em;
+    color: var(--fg-muted);
+    font-style: italic;
+    border-radius: 0 8px 8px 0;
+  }
+
+  .preview hr {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
+    margin: 2em 0;
+  }
+
+  .preview table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0 0 1em;
+    font-size: 0.95em;
+  }
+
+  .preview th,
+  .preview td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+  }
+
+  .preview th {
+    background: var(--bg);
+    font-weight: 600;
+    color: var(--amber);
+  }
+
+  .preview img {
+    max-width: 100%;
+    border-radius: 8px;
+  }
+
+  /* Status bar */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 24px;
+    background: rgba(17, 20, 29, 0.6);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--fg-dim);
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .status-group {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+
+  .status-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .status-item strong {
+    color: var(--fg);
+    font-weight: 600;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 6px var(--success);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--bg-elevated);
+    border: 1px solid var(--accent);
+    color: var(--fg);
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 0 1px var(--accent-glow);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: none;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .toast svg {
+    width: 16px;
+    height: 16px;
+    color: var(--accent);
+  }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    .header { padding: 12px 16px; }
+    .brand-tag { display: none; }
+    .btn span { display: none; }
+    .btn { padding: 8px 10px; }
+    .toolbar { padding: 6px 12px; }
+    .pane-header { padding: 8px 16px; }
+    .editor { padding: 20px; font-size: 13px; }
+    .preview { padding: 20px; }
+    .status-bar { padding: 8px 16px; font-size: 10px; }
+    .status-group { gap: 12px; }
+
+    .main {
+      flex-direction: column;
+    }
+
+    .divider {
+      width: 100%;
+      height: 1px;
+      cursor: row-resize;
+    }
+
+    .divider::after {
+      width: 36px;
+      height: 4px;
+    }
+
+    .mobile-stack .editor-pane {
+      flex: 1.2;
+    }
+
+    .preview-pane {
+      flex: 1;
+    }
+  }
+
+  /* Animations */
+  .preview > * {
+    animation: fadeUp 0.4s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 </style>
 </head>
 <body>
 <div class="app">
-
-  <!-- Header -->
-  <header class="app-header">
-    <div class="logo">
-      <div class="logo-dot" aria-hidden="true"></div>
-      <span>Inkwell</span>
-      <span class="logo-sub">Markdown Editor</span>
+  <header class="header">
+    <div class="brand">
+      <div class="brand-mark">M</div>
+      <div class="brand-text">
+        <span class="brand-name">Lumen</span>
+        <span class="brand-tag">Markdown Studio</span>
+      </div>
     </div>
     <div class="header-actions">
-      <button class="header-btn" id="copyBtn" onclick="copyMarkdown()" aria-label="Copy markdown to clipboard">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-        <span id="copyLabel">Copy</span>
+      <button class="btn" id="copyBtn" title="Copy markdown to clipboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        <span>Copy</span>
       </button>
-      <button class="header-btn" onclick="clearEditor()" aria-label="Reset editor to default content">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+      <button class="btn btn-primary" id="clearBtn" title="Clear editor">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
         <span>Clear</span>
       </button>
     </div>
   </header>
 
-  <!-- Toolbar -->
-  <nav class="toolbar" role="toolbar" aria-label="Formatting">
-    <button class="toolbar-btn" data-tip="Bold  Ctrl+B" onclick="fmtBold()" aria-label="Bold">
-      <span class="btn-label">B</span>
+  <div class="toolbar" id="toolbar">
+    <button class="tool-btn" data-md="heading" title="Heading (Ctrl+H)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 12h12M6 4v16M18 4v16"></path>
+      </svg>
     </button>
-    <button class="toolbar-btn" data-tip="Italic  Ctrl+I" onclick="fmtItalic()" aria-label="Italic">
-      <span class="btn-label it">I</span>
+    <div class="tool-divider"></div>
+    <button class="tool-btn" data-md="bold" title="Bold (Ctrl+B)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path>
+        <path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path>
+      </svg>
     </button>
-    <button class="toolbar-btn" data-tip="Strikethrough" onclick="fmtStrike()" aria-label="Strikethrough">
-      <span class="btn-label" style="text-decoration:line-through;font-size:13px">S</span>
+    <button class="tool-btn" data-md="italic" title="Italic (Ctrl+I)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="4" x2="10" y2="4"></line>
+        <line x1="14" y1="20" x2="5" y2="20"></line>
+        <line x1="15" y1="4" x2="9" y2="20"></line>
+      </svg>
     </button>
-    <div class="toolbar-sep" aria-hidden="true"></div>
-    <button class="toolbar-btn" data-tip="Heading" onclick="fmtHeading()" aria-label="Heading">
-      <span class="btn-label" style="font-size:14px">H</span>
+    <button class="tool-btn" data-md="strike" title="Strikethrough">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 4H9a3 3 0 0 0-2.83 4M14 12a4 4 0 0 1 0 8H6"></path>
+        <line x1="4" y1="12" x2="20" y2="12"></line>
+      </svg>
     </button>
-    <button class="toolbar-btn" data-tip="Blockquote" onclick="fmtQuote()" aria-label="Blockquote">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4.6 6h3.5l-2.5 6H3.1l1.5-6zm7.4 0h3.5l-2.5 6h-2.5l1.5-6z" opacity=".6"/><path d="M4.6 14h3.5l-2.5 6H3.1l1.5-6zm7.4 0h3.5l-2.5 6h-2.5l1.5-6z"/></svg>
+    <div class="tool-divider"></div>
+    <button class="tool-btn" data-md="link" title="Link (Ctrl+K)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+      </svg>
     </button>
-    <div class="toolbar-sep" aria-hidden="true"></div>
-    <button class="toolbar-btn" data-tip="Unordered List" onclick="fmtUL()" aria-label="Unordered list">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4.5" cy="6" r="1.5" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.5" fill="currentColor" stroke="none"/></svg>
+    <button class="tool-btn" data-md="code" title="Inline code">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="16 18 22 12 16 6"></polyline>
+        <polyline points="8 6 2 12 8 18"></polyline>
+      </svg>
     </button>
-    <button class="toolbar-btn" data-tip="Ordered List" onclick="fmtOL()" aria-label="Ordered list">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="10" y1="6" x2="20" y2="6"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="10" y1="18" x2="20" y2="18"/><text x="2" y="8" font-size="7" fill="currentColor" stroke="none" font-family="sans-serif">1</text><text x="2" y="14" font-size="7" fill="currentColor" stroke="none" font-family="sans-serif">2</text><text x="2" y="20" font-size="7" fill="currentColor" stroke="none" font-family="sans-serif">3</text></svg>
+    <button class="tool-btn" data-md="codeblock" title="Code block">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+        <polyline points="9 9 7 12 9 15"></polyline>
+        <polyline points="15 9 17 12 15 15"></polyline>
+      </svg>
     </button>
-    <div class="toolbar-sep" aria-hidden="true"></div>
-    <button class="toolbar-btn" data-tip="Link  Ctrl+K" onclick="fmtLink()" aria-label="Insert link">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+    <div class="tool-divider"></div>
+    <button class="tool-btn" data-md="ul" title="Bulleted list">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="8" y1="6" x2="21" y2="6"></line>
+        <line x1="8" y1="12" x2="21" y2="12"></line>
+        <line x1="8" y1="18" x2="21" y2="18"></line>
+        <circle cx="3.5" cy="6" r="1.2" fill="currentColor"></circle>
+        <circle cx="3.5" cy="12" r="1.2" fill="currentColor"></circle>
+        <circle cx="3.5" cy="18" r="1.2" fill="currentColor"></circle>
+      </svg>
     </button>
-    <button class="toolbar-btn" data-tip="Inline Code" onclick="fmtCode()" aria-label="Inline code">
-      <span class="btn-label" style="font-size:11.5px;font-family:monospace;font-weight:500">&lt;/&gt;</span>
+    <button class="tool-btn" data-md="ol" title="Numbered list">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="10" y1="6" x2="21" y2="6"></line>
+        <line x1="10" y1="12" x2="21" y2="12"></line>
+        <line x1="10" y1="18" x2="21" y2="18"></line>
+        <text x="2" y="8" font-size="7" font-weight="700" fill="currentColor" stroke="none">1</text>
+        <text x="2" y="14" font-size="7" font-weight="700" fill="currentColor" stroke="none">2</text>
+        <text x="2" y="20" font-size="7" font-weight="700" fill="currentColor" stroke="none">3</text>
+      </svg>
     </button>
-    <button class="toolbar-btn" data-tip="Code Block" onclick="fmtCodeBlock()" aria-label="Code block">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+    <button class="tool-btn" data-md="quote" title="Blockquote">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2-2-2H4c-1.25 0-2 .75-2 2v6c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"></path>
+        <path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2-2-2h-4c-1.25 0-2 .75-2 2v6c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"></path>
+      </svg>
     </button>
-  </nav>
-
-  <!-- Editor / Preview Split -->
-  <div class="editor-container">
-    <div class="pane editor-pane">
-      <textarea id="editor" spellcheck="false" placeholder="Start writing markdown..."></textarea>
-    </div>
-    <div class="pane preview-pane" id="previewPane">
-      <div id="preview" role="document" aria-label="Markdown preview"></div>
-    </div>
+    <div class="tool-divider"></div>
+    <button class="tool-btn" data-md="hr" title="Horizontal rule">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="4" y1="12" x2="20" y2="12" stroke-width="3"></line>
+      </svg>
+    </button>
   </div>
 
-  <!-- Status Bar -->
+  <div class="main" id="main">
+    <section class="pane editor-pane">
+      <div class="pane-header">
+        <span class="pane-title">Editor</span>
+        <span class="pane-meta" id="cursorPos">Ln 1, Col 1</span>
+      </div>
+      <div class="editor-wrap">
+        <textarea class="editor" id="editor" spellcheck="false" placeholder="Start writing in markdown..."></textarea>
+      </div>
+    </section>
+
+    <div class="divider" id="divider"></div>
+
+    <section class="pane preview-pane">
+      <div class="pane-header">
+        <span class="pane-title">Preview</span>
+        <span class="pane-meta">Live render</span>
+      </div>
+      <div class="preview-wrap">
+        <article class="preview" id="preview"></article>
+      </div>
+    </section>
+  </div>
+
   <footer class="status-bar">
-    <div class="status-item"><div class="status-dot" aria-hidden="true"></div><span>Live</span></div>
-    <span class="status-sep" aria-hidden="true">|</span>
-    <span id="statWords">0 words</span>
-    <span class="status-sep" aria-hidden="true">|</span>
-    <span id="statChars">0 characters</span>
-    <span class="status-sep" aria-hidden="true">|</span>
-    <span id="statLines">0 lines</span>
+    <div class="status-group">
+      <div class="status-item">
+        <span class="status-dot"></span>
+        <span>Live</span>
+      </div>
+      <div class="status-item">
+        <strong id="wordCount">0</strong>
+        <span>words</span>
+      </div>
+      <div class="status-item">
+        <strong id="charCount">0</strong>
+        <span>chars</span>
+      </div>
+      <div class="status-item">
+        <strong id="lineCount">1</strong>
+        <span>lines</span>
+      </div>
+    </div>
+    <div class="status-group">
+      <div class="status-item">
+        <strong id="readTime">0</strong>
+        <span>min read</span>
+      </div>
+    </div>
   </footer>
+
+  <div class="toast" id="toast">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12"></polyline>
+    </svg>
+    <span id="toastMsg">Copied to clipboard</span>
+  </div>
 </div>
 
 <script>
-/* ═══════════════════════════════════════════
-   Default Sample Content
-   ═══════════════════════════════════════════ */
-const DEFAULT_CONTENT = `# Welcome to Inkwell
+(function() {
+  'use strict';
 
-A real-time markdown editor with **live preview** and a carefully crafted dark theme. Start typing on the left and watch your formatted content appear on the right.
+  // ===================== Default Content =====================
+  const DEFAULT_CONTENT = `# Welcome to Lumen
 
-## Text Formatting
+A focused **markdown editor** with *live* preview — built as a single self-contained HTML file.
 
-You can make text **bold**, *italic*, or even ***both together***. Need to mark something as deleted? Use ~~strikethrough~~.
+> Good tools disappear. The page should respond before you notice you've asked. — Anonymous
 
-## Code
+## Quick Reference
 
-Inline code uses backticks: \`const editor = new Inkwell()\`
+You can write using familiar markdown syntax. Here's what works:
 
-For larger blocks, use fenced code:
+### Text Formatting
+
+This word is **bold**, this one is *italic*, and this is ~~struck through~~. You can also use \`inline code\` for short snippets.
+
+### Lists
+
+Unordered:
+- Pure HTML, CSS, JavaScript
+- Zero dependencies
+- Instant preview
+
+Ordered:
+1. Write markdown on the left
+2. Watch it render on the right
+3. Copy when you're done
+
+### Links & Code
+
+Visit the [W3C spec](https://w3.org) for the source of truth. Here's a code block:
 
 \`\`\`javascript
 function fibonacci(n) {
-    if (n <= 1) return n;
-    return fibonacci(n - 1) + fibonacci(n - 2);
+  if (n <= 1) return n;
+  return fibonacci(n - 1) + fibonacci(n - 2);
 }
 
-// Calculate first 10 Fibonacci numbers
-const sequence = Array.from({ length: 10 }, (_, i) => fibonacci(i));
-console.log(sequence);
+console.log(fibonacci(10)); // 55
 \`\`\`
 
-## Blockquote
+### Tables
 
-> The scariest moment is always just before you start. After that, things can only get better.
->
-> — Stephen King, *On Writing*
-
-## Links
-
-Check out the [Markdown Guide](https://www.markdownguide.org) for a complete syntax reference, or visit [GitHub](https://github.com) for more developer tools.
-
-## Lists
-
-### Unordered
-
-- Live preview updates as you type
-- Full toolbar for quick formatting
-- Keyboard shortcuts for power users
-- Word and character count in real-time
-
-### Ordered
-
-1. Write your markdown in the left editor pane
-2. Watch the formatted preview update instantly
-3. Copy the raw markdown with one click
-4. Paste it anywhere markdown is supported
+| Feature       | Status | Notes                     |
+| ------------- | ------ | ------------------------- |
+| Headings      | ✓      | H1 through H6 supported   |
+| Emphasis      | ✓      | Bold, italic, strikethrough |
+| Code blocks   | ✓      | With syntax preservation  |
+| Lists         | ✓      | Ordered and unordered     |
 
 ---
 
-*Start editing to see the magic happen.*`;
+## Keyboard Shortcuts
 
-/* ═══════════════════════════════════════════
-   HTML Escape Utility
-   ═══════════════════════════════════════════ */
-function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
+- **Ctrl/Cmd + B** — Bold
+- **Ctrl/Cmd + I** — Italic
+- **Ctrl/Cmd + K** — Insert link
+- **Ctrl/Cmd + H** — Toggle heading
 
-/* ═══════════════════════════════════════════
-   Inline Markdown Parser
-   ═══════════════════════════════════════════ */
-function applyInline(text) {
-  // Images before links
-  text = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%;border-radius:8px;margin:.6em 0">');
-  // Links
-  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-  // Bold (** and __)
-  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  text = text.replace(/(?<!\w)__(.+?)__(?!\w)/g, '<strong>$1</strong>');
-  // Italic (* and _)
-  text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
-  text = text.replace(/(?<!\w)_(.+?)_(?!\w)/g, '<em>$1</em>');
-  // Strikethrough
-  text = text.replace(/~~(.+?)~~/g, '<del>$1</del>');
-  return text;
-}
+Click the **toolbar buttons** above, or just start typing. Everything updates instantly.
+`;
 
-/* ═══════════════════════════════════════════
-   Block-Level Markdown Parser
-   ═══════════════════════════════════════════ */
-function parseMarkdown(raw) {
-  // Stash code blocks
-  let codeBlocks = [];
-  let text = raw.replace(/```(\w*)\n([\s\S]*?)```/g, function(m, lang, code) {
-    const idx = codeBlocks.length;
-    codeBlocks.push({ lang: lang, code: code });
-    return '\n\x00CB' + idx + '\x00\n';
-  });
-
-  // Stash inline code
-  let inlineCodes = [];
-  text = text.replace(/`([^`\n]+)`/g, function(m, code) {
-    const idx = inlineCodes.length;
-    inlineCodes.push(code);
-    return '\x01IC' + idx + '\x01';
-  });
-
-  // Split into blocks by blank lines
-  var blocks = text.split(/\n{2,}/);
-  var output = [];
-
-  for (var b = 0; b < blocks.length; b++) {
-    var block = blocks[b].trim();
-    if (!block) continue;
-    var lines = block.split('\n');
-
-    // Code block placeholder
-    var cbMatch = block.match(/^\x00CB(\d+)\x00$/);
-    if (cbMatch) {
-      var cb = codeBlocks[parseInt(cbMatch[1])];
-      output.push('<pre><code' + (cb.lang ? ' class="language-' + escHtml(cb.lang) + '"' : '') + '>' + escHtml(cb.code.trimEnd()) + '</code></pre>');
-      continue;
-    }
-
-    // Heading (single line starting with #)
-    var headMatch = block.match(/^(#{1,6})\s+(.+)$/);
-    if (headMatch && lines.length === 1) {
-      var lvl = headMatch[1].length;
-      output.push('<h' + lvl + '>' + applyInline(escHtml(headMatch[2])) + '</h' + lvl + '>');
-      continue;
-    }
-
-    // Horizontal rule
-    if (/^[-*_]{3,}\s*$/.test(block) && lines.length === 1) {
-      output.push('<hr>');
-      continue;
-    }
-
-    // Blockquote (first line starts with >)
-    if (/^>\s?/.test(lines[0])) {
-      var qContent = lines.map(function(l) { return l.replace(/^>\s?/, ''); }).join('<br>');
-      output.push('<blockquote><p>' + applyInline(escHtml(qContent)) + '</p></blockquote>');
-      continue;
-    }
-
-    // Unordered list
-    if (/^[-*]\s/.test(lines[0])) {
-      var items = lines.filter(function(l) { return /^[-*]\s/.test(l); });
-      var li = items.map(function(l) {
-        return '<li>' + applyInline(escHtml(l.replace(/^[-*]\s+/, ''))) + '</li>';
-      }).join('');
-      output.push('<ul>' + li + '</ul>');
-      continue;
-    }
-
-    // Ordered list
-    if (/^\d+\.\s/.test(lines[0])) {
-      var oItems = lines.filter(function(l) { return /^\d+\.\s/.test(l); });
-      var oLi = oItems.map(function(l) {
-        return '<li>' + applyInline(escHtml(l.replace(/^\d+\.\s+/, ''))) + '</li>';
-      }).join('');
-      output.push('<ol>' + oLi + '</ol>');
-      continue;
-    }
-
-    // Paragraph
-    var para = lines.map(function(l) { return applyInline(escHtml(l)); }).join('<br>');
-    output.push('<p>' + para + '</p>');
+  // ===================== Markdown Parser =====================
+  function escapeHTML(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
-  var html = output.join('\n');
-
-  // Restore inline codes
-  for (var i = 0; i < inlineCodes.length; i++) {
-    html = html.replace('\x01IC' + i + '\x01', '<code>' + escHtml(inlineCodes[i]) + '</code>');
-  }
-
-  return html;
-}
-
-/* ═══════════════════════════════════════════
-   DOM References
-   ═══════════════════════════════════════════ */
-var editorEl = document.getElementById('editor');
-var previewEl = document.getElementById('preview');
-var statWords = document.getElementById('statWords');
-var statChars = document.getElementById('statChars');
-var statLines = document.getElementById('statLines');
-var copyBtn = document.getElementById('copyBtn');
-var copyLabel = document.getElementById('copyLabel');
-var pendingUpdate = false;
-
-/* ═══════════════════════════════════════════
-   Live Update & Stats
-   ═══════════════════════════════════════════ */
-function updatePreview() {
-  previewEl.innerHTML = parseMarkdown(editorEl.value);
-}
-
-function updateStats() {
-  var val = editorEl.value;
-  var chars = val.length;
-  var lines = val ? val.split('\n').length : 0;
-  // Count words: split on whitespace, filter empty
-  var words = val.trim() ? val.trim().split(/\s+/).length : 0;
-  statWords.textContent = words + (words === 1 ? ' word' : ' words');
-  statChars.textContent = chars + (chars === 1 ? ' character' : ' characters');
-  statLines.textContent = lines + (lines === 1 ? ' line' : ' lines');
-}
-
-function refresh() {
-  updatePreview();
-  updateStats();
-}
-
-// Use requestAnimationFrame for smooth updates
-editorEl.addEventListener('input', function() {
-  if (!pendingUpdate) {
-    pendingUpdate = true;
-    requestAnimationFrame(function() {
-      refresh();
-      pendingUpdate = false;
+  function inlineMD(text) {
+    // Inline code first (to protect from other formatting)
+    const codeStash = [];
+    text = text.replace(/`([^`]+)`/g, (m, p1) => {
+      codeStash.push(p1);
+      return `\u0000CODE${codeStash.length - 1}\u0000`;
     });
+
+    // Images ![alt](url)
+    text = text.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g,
+      (m, alt, url, title) => `<img src="${url}" alt="${alt}"${title ? ` title="${title}"` : ''}>`);
+
+    // Links [text](url)
+    text = text.replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g,
+      (m, txt, url, title) => `<a href="${url}"${title ? ` title="${title}"` : ''} target="_blank" rel="noopener">${txt}</a>`);
+
+    // Bold (**text**)
+    text = text.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/__([^_\n]+)__/g, '<strong>$1</strong>');
+
+    // Italic (*text* or _text_)
+    text = text.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+    text = text.replace(/(^|[^_])_([^_\n]+)_(?!_)/g, '$1<em>$2</em>');
+
+    // Strikethrough (~~text~~)
+    text = text.replace(/~~([^~\n]+)~~/g, '<del>$1</del>');
+
+    // Restore inline code
+    text = text.replace(/\u0000CODE(\d+)\u0000/g, (m, i) =>
+      `<code>${escapeHTML(codeStash[+i])}</code>`);
+
+    return text;
   }
-});
 
-/* ═══════════════════════════════════════════
-   Toolbar Formatting Actions
-   ═══════════════════════════════════════════ */
-function wrapSelection(before, after, placeholder) {
-  var start = editorEl.selectionStart;
-  var end = editorEl.selectionEnd;
-  var text = editorEl.value;
-  var selected = text.substring(start, end);
-  var insert = selected || placeholder || 'text';
-  var newVal = text.substring(0, start) + before + insert + after + text.substring(end);
-  editorEl.value = newVal;
+  function parseMD(md) {
+    if (!md) return '';
+    const lines = md.replace(/\r\n/g, '\n').split('\n');
+    const out = [];
+    let i = 0;
+    let para = [];
 
-  // Position cursor
-  if (selected) {
-    editorEl.selectionStart = start + before.length;
-    editorEl.selectionEnd = start + before.length + selected.length;
-  } else {
-    editorEl.selectionStart = start + before.length;
-    editorEl.selectionEnd = start + before.length + insert.length;
+    const flushPara = () => {
+      if (para.length) {
+        out.push(`<p>${inlineMD(para.join(' '))}</p>`);
+        para = [];
+      }
+    };
+
+    while (i < lines.length) {
+      let line = lines[i];
+
+      // Fenced code block
+      if (/^```/.test(line)) {
+        flushPara();
+        const lang = line.replace(/^```\s*/, '').trim();
+        const code = [];
+        i++;
+        while (i < lines.length && !/^```/.test(lines[i])) {
+          code.push(lines[i]);
+          i++;
+        }
+        i++;
+        out.push(`<pre><code${lang ? ` class="language-${lang}"` : ''}>${escapeHTML(code.join('\n'))}</code></pre>`);
+        continue;
+      }
+
+      // Heading
+      const hMatch = line.match(/^(#{1,6})\s+(.*)$/);
+      if (hMatch) {
+        flushPara();
+        const level = hMatch[1].length;
+        out.push(`<h${level}>${inlineMD(hMatch[2])}</h${level}>`);
+        i++;
+        continue;
+      }
+
+      // Horizontal rule
+      if (/^\s*([-*_])\s*\1\s*\1[\s\S]*$/.test(line) && line.replace(/\s/g, '').length >= 3 && /^(\s*[-*_]\s*){3,}$/.test(line)) {
+        flushPara();
+        out.push('<hr>');
+        i++;
+        continue;
+      }
+
+      // Blockquote
+      if (/^>\s?/.test(line)) {
+        flushPara();
+        const quote = [];
+        while (i < lines.length && /^>\s?/.test(lines[i])) {
+          quote.push(lines[i].replace(/^>\s?/, ''));
+          i++;
+        }
+        out.push(`<blockquote>${inlineMD(quote.join(' '))}</blockquote>`);
+        continue;
+      }
+
+      // Unordered list
+      if (/^\s*[-*+]\s+/.test(line)) {
+        flushPara();
+        const items = [];
+        while (i < lines.length && /^\s*[-*+]\s+/.test(lines[i])) {
+          items.push(lines[i].replace(/^\s*[-*+]\s+/, ''));
+          i++;
+        }
+        out.push(`<ul>${items.map(it => `<li>${inlineMD(it)}</li>`).join('')}</ul>`);
+        continue;
+      }
+
+      // Ordered list
+      if (/^\s*\d+\.\s+/.test(line)) {
+        flushPara();
+        const items = [];
+        while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) {
+          items.push(lines[i].replace(/^\s*\d+\.\s+/, ''));
+          i++;
+        }
+        out.push(`<ol>${items.map(it => `<li>${inlineMD(it)}</li>`).join('')}</ol>`);
+        continue;
+      }
+
+      // Table
+      if (/\|/.test(line) && i + 1 < lines.length && /^\s*\|?[\s\-:|]+\|?\s*$/.test(lines[i + 1]) && /\|/.test(lines[i + 1])) {
+        flushPara();
+        const headers = line.split('|').map(s => s.trim()).filter((s, idx, arr) => {
+          if (idx === 0 && s === '') return false;
+          if (idx === arr.length - 1 && s === '') return false;
+          return true;
+        });
+        i += 2;
+        const rows = [];
+        while (i < lines.length && /\|/.test(lines[i]) && lines[i].trim()) {
+          const cells = lines[i].split('|').map(s => s.trim()).filter((s, idx, arr) => {
+            if (idx === 0 && s === '') return false;
+            if (idx === arr.length - 1 && s === '') return false;
+            return true;
+          });
+          rows.push(cells);
+          i++;
+        }
+        let table = '<table><thead><tr>';
+        headers.forEach(h => table += `<th>${inlineMD(h)}</th>`);
+        table += '</tr></thead><tbody>';
+        rows.forEach(row => {
+          table += '<tr>';
+          row.forEach(c => table += `<td>${inlineMD(c)}</td>`);
+          table += '</tr>';
+        });
+        table += '</tbody></table>';
+        out.push(table);
+        continue;
+      }
+
+      // Empty line
+      if (/^\s*$/.test(line)) {
+        flushPara();
+        i++;
+        continue;
+      }
+
+      // Paragraph
+      para.push(line.trim());
+      i++;
+    }
+
+    flushPara();
+    return out.join('\n');
   }
-  editorEl.focus();
-  refresh();
-}
 
-function prefixLine(prefix) {
-  var start = editorEl.selectionStart;
-  var text = editorEl.value;
-  // Find start of current line
-  var lineStart = text.lastIndexOf('\n', start - 1) + 1;
-  var lineEnd = text.indexOf('\n', start);
-  if (lineEnd === -1) lineEnd = text.length;
-  var line = text.substring(lineStart, lineEnd);
-  var newLine = prefix + line;
-  editorEl.value = text.substring(0, lineStart) + newLine + text.substring(lineEnd);
-  editorEl.selectionStart = editorEl.selectionEnd = lineStart + newLine.length;
-  editorEl.focus();
-  refresh();
-}
+  // ===================== Elements =====================
+  const editor = document.getElementById('editor');
+  const preview = document.getElementById('preview');
+  const wordCountEl = document.getElementById('wordCount');
+  const charCountEl = document.getElementById('charCount');
+  const lineCountEl = document.getElementById('lineCount');
+  const readTimeEl = document.getElementById('readTime');
+  const cursorPosEl = document.getElementById('cursorPos');
+  const copyBtn = document.getElementById('copyBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const toast = document.getElementById('toast');
+  const toastMsg = document.getElementById('toastMsg');
+  const divider = document.getElementById('divider');
+  const main = document.getElementById('main');
+  const editorPane = document.querySelector('.editor-pane');
+  const previewPane = document.querySelector('.preview-pane');
 
-function fmtBold() { wrapSelection('**', '**', 'bold text'); }
-function fmtItalic() { wrapSelection('*', '*', 'italic text'); }
-function fmtStrike() { wrapSelection('~~', '~~', 'text'); }
+  // ===================== State =====================
+  let toastTimer = null;
 
-function fmtHeading() {
-  var start = editorEl.selectionStart;
-  var text = editorEl.value;
-  var lineStart = text.lastIndexOf('\n', start - 1) + 1;
-  var lineEnd = text.indexOf('\n', start);
-  if (lineEnd === -1) lineEnd = text.length;
-  var line = text.substring(lineStart, lineEnd);
+  // ===================== Functions =====================
+  function render() {
+    const md = editor.value;
+    preview.innerHTML = parseMD(md);
 
-  var headingMatch = line.match(/^(#{1,6})\s/);
-  var newLine;
-  if (headingMatch) {
-    if (headingMatch[1].length < 6) {
-      newLine = '#' + line;
+    // Word count
+    const words = md.trim() ? md.trim().split(/\s+/).filter(Boolean).length : 0;
+    const chars = md.length;
+    const lines = md.split('\n').length;
+    wordCountEl.textContent = words.toLocaleString();
+    charCountEl.textContent = chars.toLocaleString();
+    lineCountEl.textContent = lines.toLocaleString();
+    readTimeEl.textContent = Math.max(1, Math.ceil(words / 200));
+  }
+
+  function showToast(msg) {
+    toastMsg.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  function getSelection() {
+    return {
+      start: editor.selectionStart,
+      end: editor.selectionEnd
+    };
+  }
+
+  function wrapSelection(before, after, placeholder) {
+    const { start, end } = getSelection();
+    const selected = editor.value.substring(start, end);
+    const text = selected || placeholder;
+    const newText = before + text + after;
+    editor.value = editor.value.substring(0, start) + newText + editor.value.substring(end);
+    const newCursorStart = start + before.length;
+    const newCursorEnd = newCursorStart + text.length;
+    editor.focus();
+    editor.setSelectionRange(newCursorStart, newCursorEnd);
+    render();
+  }
+
+  function prefixLines(prefix, placeholder) {
+    const { start, end } = getSelection();
+    const lineStart = editor.value.lastIndexOf('\n', start - 1) + 1;
+    let lineEnd = editor.value.indexOf('\n', end);
+    if (lineEnd === -1) lineEnd = editor.value.length;
+
+    const selectedLines = editor.value.substring(lineStart, lineEnd);
+    const hasSelection = selectedLines.trim().length > 0;
+    const linesArr = selectedLines.split('\n');
+
+    const newContent = linesArr.map((l, idx) => {
+      if (l.trim() === '' && idx !== linesArr.length - 1) return l;
+      if (typeof prefix === 'function') {
+        return prefix(idx, l) + (hasSelection ? l : placeholder);
+      }
+      return prefix + (hasSelection ? l : placeholder);
+    }).join('\n');
+
+    editor.value = editor.value.substring(0, lineStart) + newContent + editor.value.substring(lineEnd);
+    editor.focus();
+    editor.setSelectionRange(lineStart, lineStart + newContent.length);
+    render();
+  }
+
+  function toggleHeading() {
+    const { start, end } = getSelection();
+    const lineStart = editor.value.lastIndexOf('\n', start - 1) + 1;
+    const lineEnd = editor.value.indexOf('\n', end);
+    const uptoLineEnd = lineEnd === -1 ? editor.value.length : lineEnd;
+    const line = editor.value.substring(lineStart, uptoLineEnd);
+
+    const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
+    let newLine;
+
+    if (headingMatch) {
+      // Increase or reset
+      const currentLevel = headingMatch[1].length;
+      if (currentLevel < 6) {
+        newLine = '#'.repeat(currentLevel + 1) + ' ' + headingMatch[2];
+      } else {
+        newLine = headingMatch[2];
+      }
     } else {
-      // Cycle back: remove heading
-      newLine = line.replace(/^#{1,6}\s/, '');
+      newLine = '## ' + (line || 'Heading');
     }
-  } else {
-    newLine = '## ' + line;
+
+    editor.value = editor.value.substring(0, lineStart) + newLine + editor.value.substring(uptoLineEnd);
+    editor.focus();
+    editor.setSelectionRange(lineStart, lineStart + newLine.length);
+    render();
   }
-  editorEl.value = text.substring(0, lineStart) + newLine + text.substring(lineEnd);
-  editorEl.selectionStart = editorEl.selectionEnd = lineStart + newLine.length;
-  editorEl.focus();
-  refresh();
-}
 
-function fmtQuote() { prefixLine('> '); }
-function fmtUL() { prefixLine('- '); }
-function fmtOL() { prefixLine('1. '); }
-function fmtCode() { wrapSelection('`', '`', 'code'); }
-
-function fmtCodeBlock() {
-  var start = editorEl.selectionStart;
-  var end = editorEl.selectionEnd;
-  var text = editorEl.value;
-  var selected = text.substring(start, end);
-  var insert = selected || 'code here';
-  var block = '\n```\n' + insert + '\n```\n';
-  editorEl.value = text.substring(0, start) + block + text.substring(end);
-
-  if (selected) {
-    editorEl.selectionStart = start + 4;
-    editorEl.selectionEnd = start + 4 + selected.length;
-  } else {
-    editorEl.selectionStart = start + 4;
-    editorEl.selectionEnd = start + 4 + insert.length;
+  function insertLink() {
+    const { start, end } = getSelection();
+    const selected = editor.value.substring(start, end);
+    const text = selected || 'link text';
+    const url = 'https://';
+    const insertion = `[${text}](${url})`;
+    editor.value = editor.value.substring(0, start) + insertion + editor.value.substring(end);
+    editor.focus();
+    // Place cursor on URL
+    const urlPos = start + text.length + 3;
+    editor.setSelectionRange(urlPos, urlPos + url.length);
+    render();
   }
-  editorEl.focus();
-  refresh();
-}
 
-function fmtLink() {
-  var start = editorEl.selectionStart;
-  var end = editorEl.selectionEnd;
-  var text = editorEl.value;
-  var selected = text.substring(start, end);
-  var linkText = selected || 'link text';
-  var insert = '[' + linkText + '](url)';
-  editorEl.value = text.substring(0, start) + insert + text.substring(end);
-  // Select the 'url' portion
-  var urlStart = start + linkText.length + 3;
-  editorEl.selectionStart = urlStart;
-  editorEl.selectionEnd = urlStart + 3;
-  editorEl.focus();
-  refresh();
-}
+  function insertCodeBlock() {
+    const { start, end } = getSelection();
+    const selected = editor.value.substring(start, end);
+    const content = selected || '// your code here';
+    const before = editor.value.substring(0, start);
+    const after = editor.value.substring(end);
 
-/* ═══════════════════════════════════════════
-   Copy & Clear
-   ═══════════════════════════════════════════ */
-function copyMarkdown() {
-  navigator.clipboard.writeText(editorEl.value).then(function() {
-    copyBtn.classList.add('copied');
-    copyLabel.textContent = 'Copied!';
-    setTimeout(function() {
-      copyBtn.classList.remove('copied');
-      copyLabel.textContent = 'Copy';
-    }, 2000);
-  }).catch(function() {
-    // Fallback for older browsers
-    editorEl.select();
-    document.execCommand('copy');
-    copyBtn.classList.add('copied');
-    copyLabel.textContent = 'Copied!';
-    setTimeout(function() {
-      copyBtn.classList.remove('copied');
-      copyLabel.textContent = 'Copy';
-    }, 2000);
+    const needsNewlineBefore = before.length > 0 && !before.endsWith('\n');
+    const needsNewlineAfter = after.length > 0 && !after.startsWith('\n');
+
+    const insertion =
+      (needsNewlineBefore ? '\n' : '') +
+      '```\n' + content + '\n```' +
+      (needsNewlineAfter ? '\n' : '');
+
+    editor.value = before + insertion + after;
+    editor.focus();
+    const contentStart = start + (needsNewlineBefore ? 1 : 0) + 5;
+    editor.setSelectionRange(contentStart, contentStart + content.length);
+    render();
+  }
+
+  function insertHR() {
+    const { start } = getSelection();
+    const before = editor.value.substring(0, start);
+    const after = editor.value.substring(start);
+    const needsNewlineBefore = before.length > 0 && !before.endsWith('\n');
+    const needsNewlineAfter = after.length > 0 && !after.startsWith('\n');
+
+    editor.value = before +
+      (needsNewlineBefore ? '\n' : '') +
+      '\n---\n' +
+      (needsNewlineAfter ? '\n' : '') +
+      after;
+    editor.focus();
+    render();
+  }
+
+  function applyFormat(type) {
+    const map = {
+      bold: () => wrapSelection('**', '**', 'bold text'),
+      italic: () => wrapSelection('*', '*', 'italic text'),
+      strike: () => wrapSelection('~~', '~~', 'strikethrough'),
+      code: () => wrapSelection('`', '`', 'code'),
+      heading: () => toggleHeading(),
+      link: () => insertLink(),
+      codeblock: () => insertCodeBlock(),
+      ul: () => prefixLines('- ', 'list item'),
+      ol: () => prefixLines((i) => `${i + 1}. `, 'list item'),
+      quote: () => prefixLines('> ', 'quoted text'),
+      hr: () => insertHR()
+    };
+    if (map[type]) map[type]();
+  }
+
+  function updateCursorPos() {
+    const pos = editor.selectionStart;
+    const upto = editor.value.substring(0, pos);
+    const line = upto.split('\n').length;
+    const col = pos - upto.lastIndexOf('\n');
+    cursorPosEl.textContent = `Ln ${line}, Col ${col}`;
+  }
+
+  // ===================== Event Listeners =====================
+  editor.addEventListener('input', render);
+  editor.addEventListener('keyup', updateCursorPos);
+  editor.addEventListener('click', updateCursorPos);
+  editor.addEventListener('select', updateCursorPos);
+
+  // Toolbar
+  document.getElementById('toolbar').addEventListener('click', (e) => {
+    const btn = e.target.closest('.tool-btn');
+    if (!btn) return;
+    const md = btn.dataset.md;
+    if (md) applyFormat(md);
   });
-}
 
-function clearEditor() {
-  editorEl.value = DEFAULT_CONTENT;
-  refresh();
-  editorEl.focus();
-}
+  // Keyboard shortcuts
+  editor.addEventListener('keydown', (e) => {
+    const mod = e.ctrlKey || e.metaKey;
+    if (!mod) return;
 
-/* ═══════════════════════════════════════════
-   Keyboard Shortcuts
-   ═══════════════════════════════════════════ */
-editorEl.addEventListener('keydown', function(e) {
-  // Tab key → insert spaces
-  if (e.key === 'Tab') {
+    const key = e.key.toLowerCase();
+    if (key === 'b') { e.preventDefault(); applyFormat('bold'); }
+    else if (key === 'i') { e.preventDefault(); applyFormat('italic'); }
+    else if (key === 'k') { e.preventDefault(); applyFormat('link'); }
+    else if (key === 'h') { e.preventDefault(); applyFormat('heading'); }
+  });
+
+  // Tab support
+  editor.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
+      editor.selectionStart = editor.selectionEnd = start + 2;
+      render();
+    }
+  });
+
+  // Copy
+  copyBtn.addEventListener('click', async () => {
+    const text = editor.value;
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast('Markdown copied to clipboard');
+    } catch (err) {
+      // Fallback
+      editor.select();
+      try {
+        document.execCommand('copy');
+        showToast('Markdown copied to clipboard');
+      } catch (e2) {
+        showToast('Copy failed — select manually');
+      }
+    }
+  });
+
+  // Clear
+  clearBtn.addEventListener('click', () => {
+    if (editor.value.trim() === '') {
+      editor.value = DEFAULT_CONTENT;
+      showToast('Sample content restored');
+    } else {
+      editor.value = '';
+      showToast('Editor cleared');
+    }
+    render();
+    editor.focus();
+  });
+
+  // ===================== Resizable Divider =====================
+  let isDragging = false;
+
+  function startDrag(e) {
+    isDragging = true;
+    divider.classList.add('dragging');
+    document.body.style.cursor = window.innerWidth <= 768 ? 'row-resize' : 'col-resize';
+    document.body.style.userSelect = 'none';
     e.preventDefault();
-    var start = editorEl.selectionStart;
-    var end = editorEl.selectionEnd;
-    editorEl.value = editorEl.value.substring(0, start) + '    ' + editorEl.value.substring(end);
-    editorEl.selectionStart = editorEl.selectionEnd = start + 4;
-    refresh();
-    return;
   }
 
-  // Ctrl/Cmd shortcuts
-  if (e.ctrlKey || e.metaKey) {
-    switch (e.key.toLowerCase()) {
-      case 'b':
-        e.preventDefault();
-        fmtBold();
-        break;
-      case 'i':
-        e.preventDefault();
-        fmtItalic();
-        break;
-      case 'k':
-        e.preventDefault();
-        fmtLink();
-        break;
+  function doDrag(e) {
+    if (!isDragging) return;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const rect = main.getBoundingClientRect();
+
+    if (window.innerWidth <= 768) {
+      const totalH = rect.height;
+      const offset = clientY - rect.top;
+      const topPct = Math.max(15, Math.min(85, (offset / totalH) * 100));
+      editorPane.style.flex = `0 0 ${topPct}%`;
+      previewPane.style.flex = `1`;
+    } else {
+      const totalW = rect.width;
+      const offset = clientX - rect.left;
+      const leftPct = Math.max(20, Math.min(80, (offset / totalW) * 100));
+      editorPane.style.flex = `0 0 ${leftPct}%`;
+      previewPane.style.flex = `1`;
     }
   }
-});
 
-/* ═══════════════════════════════════════════
-   Scroll Sync (approximate ratio-based)
-   ═══════════════════════════════════════════ */
-var previewPane = document.getElementById('previewPane');
-var syncScroll = false;
+  function endDrag() {
+    isDragging = false;
+    divider.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }
 
-editorEl.addEventListener('scroll', function() {
-  if (syncScroll) return;
-  syncScroll = true;
-  requestAnimationFrame(function() {
-    var editorMax = editorEl.scrollHeight - editorEl.clientHeight;
-    var ratio = editorMax > 0 ? editorEl.scrollTop / editorMax : 0;
-    var previewMax = previewPane.scrollHeight - previewPane.clientHeight;
-    previewPane.scrollTop = ratio * previewMax;
-    syncScroll = false;
+  divider.addEventListener('mousedown', startDrag);
+  document.addEventListener('mousemove', doDrag);
+  document.addEventListener('mouseup', endDrag);
+
+  divider.addEventListener('touchstart', startDrag, { passive: false });
+  document.addEventListener('touchmove', doDrag, { passive: false });
+  document.addEventListener('touchend', endDrag);
+
+  // Reset flex on resize
+  window.addEventListener('resize', () => {
+    editorPane.style.flex = '';
+    previewPane.style.flex = '';
   });
-});
 
-previewPane.addEventListener('scroll', function() {
-  if (syncScroll) return;
-  syncScroll = true;
-  requestAnimationFrame(function() {
-    var previewMax = previewPane.scrollHeight - previewPane.clientHeight;
-    var ratio = previewMax > 0 ? previewPane.scrollTop / previewMax : 0;
-    var editorMax = editorEl.scrollHeight - editorEl.clientHeight;
-    editorEl.scrollTop = ratio * editorMax;
-    syncScroll = false;
-  });
-});
+  // ===================== Init =====================
+  editor.value = DEFAULT_CONTENT;
+  render();
+  updateCursorPos();
+  editor.focus();
 
-/* ═══════════════════════════════════════════
-   Initialization
-   ═══════════════════════════════════════════ */
-editorEl.value = DEFAULT_CONTENT;
-refresh();
+  // Place cursor at end
+  editor.setSelectionRange(editor.value.length, editor.value.length);
+})();
 </script>
 </body>
 </html>

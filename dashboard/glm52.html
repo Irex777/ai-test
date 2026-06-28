@@ -1,623 +1,525 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pulse Analytics — Real-time Dashboard</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nebula Analytics — Operations Dashboard</title>
 <style>
   :root {
-    --bg: #0a0d12;
-    --bg-elevated: #11151c;
-    --bg-card: #141923;
-    --bg-hover: #1a2030;
-    --border: #1e2530;
-    --border-bright: #2a3340;
-    --text: #f5f7fa;
-    --text-secondary: #8b95a7;
-    --text-muted: #5a6478;
-    --accent: #00d9a3;
-    --accent-dim: rgba(0, 217, 163, 0.15);
-    --warning: #ffb547;
-    --danger: #ff5577;
-    --info: #5b8def;
-    --purple: #b794f6;
+    --bg: #08080d;
+    --bg-elev: #0f0f17;
+    --card: #12121c;
+    --card-hover: #16161f;
+    --border: #1f1f2c;
+    --border-strong: #2a2a3a;
+    --fg: #f5f5f8;
+    --muted: #8a8a9a;
+    --dim: #5a5a6a;
+    --accent: #ff6b1f;       /* warm amber-orange */
+    --accent-glow: #ff8c3a;
+    --mint: #4ade80;          /* growth / positive */
+    --gold: #fbbf24;
+    --rose: #f43f5e;
+    --azure: #38bdf8;
+    --grid-line: rgba(255,255,255,0.04);
   }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  html, body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "SF Pro Display", system-ui, sans-serif;
-    background: var(--bg);
-    color: var(--text);
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--fg); }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-feature-settings: 'cv02','cv03','cv04','cv11';
+    -webkit-font-smoothing: antialiased;
     min-height: 100vh;
     overflow-x: hidden;
-    -webkit-font-smoothing: antialiased;
+    position: relative;
   }
 
-  /* Ambient background */
+  /* Ambient layered background */
   body::before {
-    content: '';
-    position: fixed;
-    top: -20%;
-    left: -10%;
-    width: 60%;
-    height: 60%;
-    background: radial-gradient(circle, rgba(0, 217, 163, 0.08) 0%, transparent 60%);
+    content: "";
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(900px 600px at 10% 0%, rgba(255,107,31,0.10), transparent 60%),
+      radial-gradient(700px 500px at 90% 10%, rgba(56,189,248,0.06), transparent 60%),
+      radial-gradient(600px 400px at 50% 100%, rgba(74,222,128,0.05), transparent 60%);
     pointer-events: none;
     z-index: 0;
-    animation: float1 20s ease-in-out infinite;
   }
   body::after {
-    content: '';
-    position: fixed;
-    bottom: -20%;
-    right: -10%;
-    width: 50%;
-    height: 50%;
-    background: radial-gradient(circle, rgba(91, 141, 239, 0.06) 0%, transparent 60%);
+    content: "";
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
     pointer-events: none;
     z-index: 0;
-    animation: float2 25s ease-in-out infinite;
   }
 
-  @keyframes float1 {
-    0%, 100% { transform: translate(0, 0); }
-    50% { transform: translate(40px, 60px); }
-  }
-  @keyframes float2 {
-    0%, 100% { transform: translate(0, 0); }
-    50% { transform: translate(-50px, -40px); }
-  }
-
-  .dashboard {
+  .app {
     position: relative;
     z-index: 1;
-    max-width: 1600px;
+    max-width: 1500px;
     margin: 0 auto;
-    padding: 24px 32px 48px;
+    padding: 28px 32px 60px;
   }
 
-  /* Header */
-  header {
+  /* ---------------- Top bar ---------------- */
+  .topbar {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 16px 0 28px;
-    border-bottom: 1px solid var(--border);
+    justify-content: space-between;
+    gap: 24px;
     margin-bottom: 28px;
     flex-wrap: wrap;
-    gap: 16px;
   }
-
   .brand {
     display: flex;
     align-items: center;
     gap: 14px;
   }
-
   .logo {
-    width: 42px;
-    height: 42px;
+    width: 42px; height: 42px;
     border-radius: 12px;
-    background: linear-gradient(135deg, var(--accent) 0%, #00a37a 100%);
-    display: grid;
-    place-items: center;
-    box-shadow: 0 8px 24px rgba(0, 217, 163, 0.25), inset 0 1px 0 rgba(255,255,255,0.2);
+    background: linear-gradient(135deg, var(--accent), #c43d00);
+    display: grid; place-items: center;
+    box-shadow: 0 8px 24px rgba(255,107,31,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
     position: relative;
   }
-  .logo svg { width: 22px; height: 22px; }
-
-  .brand-text h1 {
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
+  .logo::after {
+    content: "";
+    position: absolute; inset: 6px;
+    border-radius: 8px;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4), transparent 60%);
   }
-  .brand-text p {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-top: 2px;
-    letter-spacing: 0.02em;
+  .logo svg { position: relative; z-index: 1; }
+  .brand-name {
+    font-size: 19px; font-weight: 700; letter-spacing: -0.01em;
+  }
+  .brand-sub {
+    font-size: 11px; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.15em; font-weight: 500;
   }
 
   .controls {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   }
 
-  .live-indicator {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    background: var(--bg-card);
+  /* Pill buttons */
+  .pill-group {
+    display: inline-flex;
+    background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    font-size: 12px;
-    color: var(--text-secondary);
-  }
-  .live-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 0 0 rgba(0, 217, 163, 0.7);
-    animation: pulse 2s infinite;
-  }
-  @keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(0, 217, 163, 0.7); }
-    70% { box-shadow: 0 0 0 10px rgba(0, 217, 163, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(0, 217, 163, 0); }
-  }
-
-  .filter-group {
-    display: flex;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 4px;
     gap: 2px;
   }
-  .filter-btn {
-    padding: 6px 14px;
+  .pill {
+    appearance: none;
     background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    font-size: 12px;
+    color: var(--muted);
+    border: 0;
+    padding: 7px 14px;
+    font-size: 12.5px;
     font-weight: 500;
+    border-radius: 7px;
     cursor: pointer;
-    border-radius: 6px;
     transition: all 0.2s ease;
     font-family: inherit;
   }
-  .filter-btn:hover { color: var(--text); }
-  .filter-btn.active {
-    background: var(--accent-dim);
-    color: var(--accent);
+  .pill:hover { color: var(--fg); }
+  .pill.active {
+    background: linear-gradient(180deg, rgba(255,107,31,0.18), rgba(255,107,31,0.08));
+    color: var(--accent-glow);
+    box-shadow: inset 0 0 0 1px rgba(255,107,31,0.35);
   }
 
   .btn {
-    padding: 9px 16px;
-    background: var(--bg-card);
+    appearance: none;
     border: 1px solid var(--border);
-    color: var(--text);
+    background: var(--card);
+    color: var(--fg);
+    padding: 9px 16px;
     font-size: 13px;
     font-weight: 500;
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 8px;
+    transition: all 0.2s ease;
     font-family: inherit;
   }
-  .btn:hover {
-    background: var(--bg-hover);
-    border-color: var(--border-bright);
-    transform: translateY(-1px);
-  }
+  .btn:hover { border-color: var(--border-strong); background: var(--card-hover); transform: translateY(-1px); }
   .btn-primary {
-    background: var(--accent);
-    color: #001812;
-    border-color: var(--accent);
+    background: linear-gradient(180deg, var(--accent-glow), var(--accent));
+    border-color: transparent;
+    color: #1a0a00;
     font-weight: 600;
+    box-shadow: 0 6px 18px rgba(255,107,31,0.35);
   }
-  .btn-primary:hover {
-    background: #00f0b4;
-    border-color: #00f0b4;
-    box-shadow: 0 8px 20px rgba(0, 217, 163, 0.3);
-  }
-  .btn svg { width: 14px; height: 14px; }
+  .btn-primary:hover { box-shadow: 0 10px 24px rgba(255,107,31,0.5); }
 
-  /* KPI Grid */
+  .refresh-indicator {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--muted);
+    padding: 0 10px;
+  }
+  .refresh-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--mint);
+    box-shadow: 0 0 0 0 rgba(74,222,128,0.6);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(74,222,128,0.6); }
+    70% { box-shadow: 0 0 0 10px rgba(74,222,128,0); }
+    100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
+  }
+
+  /* ---------------- Page heading ---------------- */
+  .heading {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    margin-bottom: 24px; gap: 16px; flex-wrap: wrap;
+  }
+  .heading h1 {
+    font-size: 34px; font-weight: 700; letter-spacing: -0.025em;
+    background: linear-gradient(180deg, #fff, #b8b8c8);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .heading p { color: var(--muted); font-size: 14px; margin-top: 6px; }
+  .heading-meta {
+    text-align: right; color: var(--muted); font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .heading-meta strong { color: var(--fg); font-weight: 600; }
+
+  /* ---------------- KPI grid ---------------- */
   .kpi-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
-    margin-bottom: 28px;
+    gap: 18px;
+    margin-bottom: 22px;
   }
-
-  .kpi-card {
-    background: var(--bg-card);
+  .kpi {
+    position: relative;
+    background: linear-gradient(180deg, var(--card), var(--bg-elev));
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 22px;
-    position: relative;
+    padding: 22px 22px 20px;
     overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
+    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    cursor: default;
   }
-  .kpi-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: var(--card-accent, var(--accent));
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 0.4s ease;
-  }
-  .kpi-card:hover {
-    transform: translateY(-4px);
-    border-color: var(--border-bright);
-    background: var(--bg-hover);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-  }
-  .kpi-card:hover::before { transform: scaleX(1); }
-
-  .kpi-card[data-type="revenue"] { --card-accent: var(--accent); }
-  .kpi-card[data-type="users"] { --card-accent: var(--info); }
-  .kpi-card[data-type="orders"] { --card-accent: var(--warning); }
-  .kpi-card[data-type="growth"] { --card-accent: var(--purple); }
-
-  .kpi-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 18px;
-  }
-  .kpi-label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--text-muted);
-    font-weight: 600;
-  }
-  .kpi-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    display: grid;
-    place-items: center;
-    background: rgba(255,255,255,0.04);
-    color: var(--card-accent, var(--accent));
-  }
-  .kpi-icon svg { width: 18px; height: 18px; }
-
-  .kpi-value {
-    font-size: 36px;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    line-height: 1;
-    margin-bottom: 12px;
-    font-feature-settings: "tnum";
-  }
-  .kpi-value .unit { font-size: 22px; color: var(--text-secondary); margin-left: 2px; }
-
-  .kpi-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-  }
-  .kpi-change {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 12px;
-    font-weight: 600;
-    padding: 4px 8px;
-    border-radius: 6px;
-  }
-  .kpi-change.up { background: rgba(0, 217, 163, 0.12); color: var(--accent); }
-  .kpi-change.down { background: rgba(255, 85, 119, 0.12); color: var(--danger); }
-  .kpi-change svg { width: 12px; height: 12px; }
-
-  .spark {
-    width: 80px;
-    height: 32px;
-  }
-
-  /* Charts Row */
-  .charts-row {
-    display: grid;
-    grid-template-columns: 1.6fr 1fr;
-    gap: 20px;
-    margin-bottom: 28px;
-  }
-
-  .panel {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 24px;
-    transition: border-color 0.2s ease;
-  }
-  .panel:hover { border-color: var(--border-bright); }
-
-  .panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-  }
-  .panel-title {
-    font-size: 15px;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-  }
-  .panel-subtitle {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-top: 2px;
-  }
-
-  .legend {
-    display: flex;
-    gap: 16px;
-    font-size: 12px;
-    color: var(--text-secondary);
-  }
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .legend-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-  }
-
-  #revenue-chart {
-    width: 100%;
-    height: 280px;
-    display: block;
-  }
-
-  .donut-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-  }
-  .donut-container {
-    position: relative;
-    width: 200px;
-    height: 200px;
-  }
-  .donut-center {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+  .kpi::before {
+    content: "";
+    position: absolute; inset: 0;
+    background: radial-gradient(400px 80px at 80% 0%, var(--kpi-tint, rgba(255,107,31,0.18)), transparent 70%);
+    opacity: 0.6;
     pointer-events: none;
   }
-  .donut-center .total {
-    font-size: 28px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
+  .kpi:hover {
+    transform: translateY(-4px);
+    border-color: var(--border-strong);
+    box-shadow: 0 18px 40px -20px rgba(0,0,0,0.6), 0 0 0 1px var(--kpi-tint, rgba(255,107,31,0.2));
   }
-  .donut-center .label {
-    font-size: 11px;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-top: 2px;
+  .kpi-label {
+    display: flex; justify-content: space-between; align-items: center;
+    color: var(--muted); font-size: 12.5px;
+    text-transform: uppercase; letter-spacing: 0.12em; font-weight: 600;
   }
-
-  .channel-list {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .channel-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 12px;
-    background: rgba(255,255,255,0.02);
+  .kpi-icon {
+    width: 30px; height: 30px;
     border-radius: 8px;
-    font-size: 13px;
-    transition: background 0.2s ease;
-  }
-  .channel-item:hover { background: rgba(255,255,255,0.04); }
-  .channel-name {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--text-secondary);
-  }
-  .channel-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 2px;
-  }
-  .channel-value {
-    font-weight: 600;
-    font-feature-settings: "tnum";
-  }
-
-  /* Bottom Row */
-  .bottom-row {
-    display: grid;
-    grid-template-columns: 1.4fr 1fr;
-    gap: 20px;
-  }
-
-  .activity-list {
-    display: flex;
-    flex-direction: column;
-    max-height: 480px;
-    overflow-y: auto;
-    margin-right: -8px;
-    padding-right: 8px;
-  }
-  .activity-list::-webkit-scrollbar { width: 6px; }
-  .activity-list::-webkit-scrollbar-track { background: transparent; }
-  .activity-list::-webkit-scrollbar-thumb {
-    background: var(--border-bright);
-    border-radius: 3px;
-  }
-
-  .activity-item {
-    display: flex;
-    gap: 14px;
-    padding: 14px 0;
-    border-bottom: 1px solid var(--border);
-    align-items: flex-start;
-    animation: slideIn 0.4s ease;
-  }
-  .activity-item:last-child { border-bottom: none; }
-
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateX(-12px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
-
-  .activity-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
+    display: grid; place-items: center;
     background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--kpi-color, var(--accent));
   }
-  .activity-icon svg { width: 16px; height: 16px; }
+  .kpi-value {
+    font-size: 38px; font-weight: 700;
+    letter-spacing: -0.03em;
+    margin: 14px 0 6px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .kpi-delta {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12.5px; font-weight: 600;
+    padding: 3px 9px; border-radius: 20px;
+    background: rgba(74,222,128,0.1);
+    color: var(--mint);
+  }
+  .kpi-delta.down { background: rgba(244,63,94,0.1); color: var(--rose); }
+  .kpi-sub {
+    margin-left: 10px; color: var(--dim); font-size: 12px;
+  }
+  .kpi-spark {
+    position: absolute; right: 0; bottom: 0; left: 0;
+    height: 50px; opacity: 0.55;
+    pointer-events: none;
+  }
 
-  .activity-content { flex: 1; min-width: 0; }
-  .activity-text {
-    font-size: 13px;
-    line-height: 1.5;
-    color: var(--text);
-  }
-  .activity-text strong {
-    font-weight: 600;
-    color: var(--text);
-  }
-  .activity-meta {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    margin-top: 4px;
-    font-size: 11px;
-    color: var(--text-muted);
-  }
-  .activity-amount {
-    font-weight: 600;
-    font-feature-settings: "tnum";
-  }
-  .activity-amount.positive { color: var(--accent); }
-  .activity-amount.negative { color: var(--danger); }
-
-  /* Top Products */
-  .product-list {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-  .product-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .product-rank {
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
+  /* ---------------- Main grid: chart + activity ---------------- */
+  .main-grid {
     display: grid;
-    place-items: center;
-    background: rgba(255,255,255,0.04);
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text-secondary);
-    flex-shrink: 0;
+    grid-template-columns: 1.55fr 1fr;
+    gap: 18px;
+    margin-bottom: 22px;
   }
-  .product-item:nth-child(1) .product-rank { background: rgba(0, 217, 163, 0.15); color: var(--accent); }
-  .product-item:nth-child(2) .product-rank { background: rgba(91, 141, 239, 0.15); color: var(--info); }
-  .product-item:nth-child(3) .product-rank { background: rgba(255, 181, 71, 0.15); color: var(--warning); }
-
-  .product-info { flex: 1; min-width: 0; }
-  .product-name {
-    font-size: 13px;
-    font-weight: 500;
-    margin-bottom: 6px;
-    display: flex;
-    justify-content: space-between;
-  }
-  .product-name span:last-child {
-    color: var(--text-secondary);
-    font-feature-settings: "tnum";
-  }
-  .product-bar {
-    height: 4px;
-    background: rgba(255,255,255,0.05);
-    border-radius: 2px;
+  .panel {
+    background: linear-gradient(180deg, var(--card), var(--bg-elev));
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 22px 18px;
+    position: relative;
     overflow: hidden;
   }
-  .product-bar-fill {
-    height: 100%;
-    border-radius: 2px;
-    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  .panel-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 18px; gap: 12px; flex-wrap: wrap;
   }
+  .panel-title { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+  .panel-sub { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
+
+  .legend { display: inline-flex; gap: 16px; font-size: 12px; color: var(--muted); }
+  .legend-item { display: inline-flex; align-items: center; gap: 7px; }
+  .legend-dot { width: 9px; height: 9px; border-radius: 50%; }
+
+  .chart-tabs { display: inline-flex; gap: 4px; background: var(--bg-elev); padding: 3px; border-radius: 8px; border: 1px solid var(--border); }
+  .chart-tab {
+    background: transparent; border: 0; color: var(--muted);
+    padding: 6px 12px; font-size: 12px; font-weight: 500;
+    border-radius: 6px; cursor: pointer; font-family: inherit;
+    transition: all 0.2s;
+  }
+  .chart-tab:hover { color: var(--fg); }
+  .chart-tab.active {
+    background: rgba(255,255,255,0.05);
+    color: var(--fg);
+    box-shadow: inset 0 0 0 1px var(--border-strong);
+  }
+
+  .chart-wrap {
+    position: relative;
+    width: 100%;
+    height: 320px;
+  }
+  #revenueChart { width: 100%; height: 100%; display: block; }
+  .tooltip {
+    position: absolute;
+    background: rgba(15,15,23,0.95);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px;
+    pointer-events: none;
+    transform: translate(-50%, -110%);
+    transition: opacity 0.15s;
+    opacity: 0;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    white-space: nowrap;
+    z-index: 5;
+  }
+  .tooltip-label { color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+  .tooltip-val { font-weight: 600; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .tooltip-val.mint { color: var(--mint); }
+  .tooltip-val.accent { color: var(--accent-glow); }
+
+  /* ---------------- Activity feed ---------------- */
+  .feed {
+    max-height: 380px;
+    overflow-y: auto;
+    margin: 0 -8px;
+    padding: 0 8px;
+  }
+  .feed::-webkit-scrollbar { width: 6px; }
+  .feed::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+  .feed::-webkit-scrollbar-track { background: transparent; }
+
+  .activity-item {
+    display: flex; gap: 12px;
+    padding: 12px 8px;
+    border-radius: 10px;
+    transition: background 0.2s;
+    position: relative;
+    animation: slideIn 0.4s ease both;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .activity-item:hover { background: rgba(255,255,255,0.02); }
+
+  .activity-dot {
+    width: 34px; height: 34px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    display: grid; place-items: center;
+    background: var(--act-bg, rgba(255,107,31,0.1));
+    color: var(--act-color, var(--accent));
+    font-size: 12px; font-weight: 700;
+    border: 1px solid var(--act-border, rgba(255,107,31,0.2));
+  }
+  .activity-body { flex: 1; min-width: 0; }
+  .activity-text { font-size: 13.5px; color: var(--fg); line-height: 1.4; }
+  .activity-text b { font-weight: 600; }
+  .activity-text .amt { color: var(--mint); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .activity-meta {
+    display: flex; gap: 8px; align-items: center;
+    margin-top: 4px;
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+  .activity-meta .tag {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    padding: 1px 7px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* ---------------- Secondary grid ---------------- */
+  .secondary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.1fr;
+    gap: 18px;
+  }
+
+  /* Traffic sources */
+  .source-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--border);
+  }
+  .source-row:last-child { border-bottom: 0; }
+  .source-label { font-size: 13px; min-width: 90px; }
+  .source-bar {
+    flex: 1;
+    height: 8px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .source-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-glow));
+    transition: width 0.6s cubic-bezier(0.2,0.7,0.3,1);
+    position: relative;
+  }
+  .source-fill::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: shimmer 2.5s infinite;
+  }
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  .source-value {
+    font-size: 12.5px; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    min-width: 44px; text-align: right;
+  }
+
+  /* Goals */
+  .goal { margin-bottom: 16px; }
+  .goal:last-child { margin-bottom: 0; }
+  .goal-head {
+    display: flex; justify-content: space-between;
+    margin-bottom: 7px; font-size: 13px;
+  }
+  .goal-head .val { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .goal-track {
+    height: 10px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 5px;
+    overflow: hidden;
+    position: relative;
+  }
+  .goal-fill {
+    height: 100%;
+    border-radius: 5px;
+    background: linear-gradient(90deg, var(--accent), var(--gold));
+    transition: width 0.8s cubic-bezier(0.2,0.7,0.3,1);
+    box-shadow: 0 0 12px rgba(255,107,31,0.5);
+  }
+  .goal-fill.mint { background: linear-gradient(90deg, var(--mint), #84e8a4); box-shadow: 0 0 12px rgba(74,222,128,0.4); }
+  .goal-fill.azure { background: linear-gradient(90deg, var(--azure), #7dd3fc); box-shadow: 0 0 12px rgba(56,189,248,0.4); }
+
+  /* World / regions */
+  .region-list { display: flex; flex-direction: column; gap: 10px; }
+  .region {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: all 0.2s;
+  }
+  .region:hover { border-color: var(--border-strong); transform: translateX(3px); }
+  .region-flag {
+    width: 28px; height: 28px; border-radius: 7px;
+    display: grid; place-items: center;
+    font-size: 11px; font-weight: 700;
+    background: var(--reg-bg); color: var(--reg-fg);
+    border: 1px solid var(--border);
+  }
+  .region-info { flex: 1; }
+  .region-name { font-size: 13px; font-weight: 500; }
+  .region-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .region-val { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .region-trend { font-size: 11px; color: var(--mint); margin-left: 6px; }
 
   /* Toast */
   .toast {
     position: fixed;
-    bottom: 32px;
-    right: 32px;
-    background: var(--bg-card);
-    border: 1px solid var(--accent);
-    color: var(--text);
+    bottom: 30px; right: 30px;
+    background: rgba(15,15,23,0.95);
+    border: 1px solid var(--border-strong);
+    backdrop-filter: blur(12px);
+    color: var(--fg);
     padding: 14px 20px;
     border-radius: 12px;
-    font-size: 13px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    box-shadow: 0 12px 40px rgba(0, 217, 163, 0.2);
-    transform: translateY(120%);
-    opacity: 0;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 1000;
-    pointer-events: none;
-  }
-  .toast.show {
-    transform: translateY(0);
-    opacity: 1;
-  }
-  .toast svg { width: 18px; height: 18px; color: var(--accent); }
-
-  /* Tooltip */
-  .chart-tooltip {
-    position: absolute;
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-bright);
-    border-radius: 8px;
-    padding: 10px 12px;
-    font-size: 12px;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.15s ease;
+    font-size: 13.5px;
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    transform: translateY(20px); opacity: 0;
+    transition: all 0.3s cubic-bezier(0.2,0.7,0.3,1);
     z-index: 100;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    white-space: nowrap;
   }
-  .chart-tooltip.show { opacity: 1; }
-  .tooltip-label { color: var(--text-muted); margin-bottom: 4px; }
-  .tooltip-value { font-weight: 600; font-feature-settings: "tnum"; }
-  .tooltip-value.accent { color: var(--accent); }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast-icon {
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    background: rgba(74,222,128,0.15);
+    color: var(--mint);
+    display: grid; place-items: center;
+  }
 
   /* Responsive */
-  @media (max-width: 1200px) {
+  @media (max-width: 1100px) {
     .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-    .charts-row { grid-template-columns: 1fr; }
-    .bottom-row { grid-template-columns: 1fr; }
+    .main-grid { grid-template-columns: 1fr; }
+    .secondary-grid { grid-template-columns: 1fr 1fr; }
   }
-  @media (max-width: 720px) {
-    .dashboard { padding: 16px; }
+  @media (max-width: 680px) {
+    .app { padding: 20px 16px 40px; }
+    .heading h1 { font-size: 26px; }
     .kpi-grid { grid-template-columns: 1fr; }
-    .kpi-value { font-size: 28px; }
-    header { flex-direction: column; align-items: flex-start; }
-    .controls { width: 100%; }
+    .secondary-grid { grid-template-columns: 1fr; }
+    .topbar { gap: 14px; }
   }
 
+  /* Reduced motion */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
@@ -627,842 +529,802 @@
 </style>
 </head>
 <body>
-<div class="dashboard">
-  <header>
+<div class="app">
+
+  <!-- Top bar -->
+  <header class="topbar">
     <div class="brand">
-      <div class="logo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#001812" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+      <div class="logo" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M3 17L9 11L13 15L21 7" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M14 7H21V14" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
-      <div class="brand-text">
-        <h1>Pulse Analytics</h1>
-        <p>Real-time business intelligence</p>
+      <div>
+        <div class="brand-name">Nebula Analytics</div>
+        <div class="brand-sub">Operations Console</div>
       </div>
     </div>
+
     <div class="controls">
-      <div class="live-indicator">
-        <span class="live-dot"></span>
-        <span>Live · <span id="timer">5s</span></span>
+      <div class="pill-group" role="tablist" aria-label="Date range">
+        <button class="pill" data-range="24h">24H</button>
+        <button class="pill active" data-range="7d">7D</button>
+        <button class="pill" data-range="30d">30D</button>
+        <button class="pill" data-range="90d">90D</button>
+        <button class="pill" data-range="ytd">YTD</button>
       </div>
-      <div class="filter-group" role="tablist" aria-label="Date range filter">
-        <button class="filter-btn" data-range="24h">24H</button>
-        <button class="filter-btn active" data-range="7d">7D</button>
-        <button class="filter-btn" data-range="30d">30D</button>
-        <button class="filter-btn" data-range="90d">90D</button>
-        <button class="filter-btn" data-range="1y">1Y</button>
-      </div>
-      <button class="btn" id="export-btn" aria-label="Export dashboard data">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="7 10 12 15 17 10"/>
-          <line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>
-        Export
-      </button>
-      <button class="btn btn-primary" id="refresh-btn" aria-label="Refresh data now">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="23 4 23 10 17 10"/>
-          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-        </svg>
+      <button class="btn" id="refreshBtn" title="Refresh now">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>
         Refresh
       </button>
+      <button class="btn btn-primary" id="exportBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export
+      </button>
+      <div class="refresh-indicator">
+        <span class="refresh-dot"></span>
+        <span>Live · <span id="nextRefresh">14</span>s</span>
+      </div>
     </div>
   </header>
 
-  <section class="kpi-grid" aria-label="Key performance indicators">
-    <article class="kpi-card" data-type="revenue">
-      <div class="kpi-header">
-        <span class="kpi-label">Total Revenue</span>
-        <div class="kpi-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="12" y1="1" x2="12" y2="23"/>
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-          </svg>
+  <!-- Page heading -->
+  <div class="heading">
+    <div>
+      <h1>Dashboard Overview</h1>
+      <p>Real-time performance across all channels and regions.</p>
+    </div>
+    <div class="heading-meta">
+      <div><strong id="liveTime">—</strong></div>
+      <div>Auto-refresh every 15s</div>
+    </div>
+  </div>
+
+  <!-- KPI cards -->
+  <section class="kpi-grid" aria-label="Key metrics">
+    <article class="kpi" style="--kpi-tint: rgba(255,107,31,0.18); --kpi-color: var(--accent);">
+      <div class="kpi-label">
+        <span>Total Revenue</span>
+        <div class="kpi-icon" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
         </div>
       </div>
-      <div class="kpi-value">$<span class="counter" data-target="847" data-decimals="0">0</span><span class="unit">K</span></div>
-      <div class="kpi-footer">
-        <div class="kpi-change up">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="18 15 12 9 6 15"/>
-          </svg>
-          <span id="rev-change">+12.4%</span>
-        </div>
-        <svg class="spark" id="spark-revenue" viewBox="0 0 80 32" preserveAspectRatio="none"></svg>
+      <div class="kpi-value" data-target="847" data-suffix="K" data-prefix="$">$0</div>
+      <div>
+        <span class="kpi-delta">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+          +18.2%
+        </span>
+        <span class="kpi-sub">vs last period</span>
       </div>
+      <svg class="kpi-spark" viewBox="0 0 200 50" preserveAspectRatio="none"></svg>
     </article>
 
-    <article class="kpi-card" data-type="users">
-      <div class="kpi-header">
-        <span class="kpi-label">Active Users</span>
-        <div class="kpi-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg>
+    <article class="kpi" style="--kpi-tint: rgba(56,189,248,0.18); --kpi-color: var(--azure);">
+      <div class="kpi-label">
+        <span>Active Users</span>
+        <div class="kpi-icon" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         </div>
       </div>
-      <div class="kpi-value"><span class="counter" data-target="12.4" data-decimals="1">0</span><span class="unit">K</span></div>
-      <div class="kpi-footer">
-        <div class="kpi-change up">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="18 15 12 9 6 15"/>
-          </svg>
-          <span id="usr-change">+8.2%</span>
-        </div>
-        <svg class="spark" id="spark-users" viewBox="0 0 80 32" preserveAspectRatio="none"></svg>
+      <div class="kpi-value" data-target="12.4" data-suffix="K">0</div>
+      <div>
+        <span class="kpi-delta">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+          +7.4%
+        </span>
+        <span class="kpi-sub">2.1K new this week</span>
       </div>
+      <svg class="kpi-spark" viewBox="0 0 200 50" preserveAspectRatio="none"></svg>
     </article>
 
-    <article class="kpi-card" data-type="orders">
-      <div class="kpi-header">
-        <span class="kpi-label">Total Orders</span>
-        <div class="kpi-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="9" cy="21" r="1"/>
-            <circle cx="20" cy="21" r="1"/>
-            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-          </svg>
+    <article class="kpi" style="--kpi-tint: rgba(74,222,128,0.18); --kpi-color: var(--mint);">
+      <div class="kpi-label">
+        <span>Orders</span>
+        <div class="kpi-icon" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
         </div>
       </div>
-      <div class="kpi-value"><span class="counter" data-target="3.2" data-decimals="1">0</span><span class="unit">K</span></div>
-      <div class="kpi-footer">
-        <div class="kpi-change up">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="18 15 12 9 6 15"/>
-          </svg>
-          <span id="ord-change">+5.7%</span>
-        </div>
-        <svg class="spark" id="spark-orders" viewBox="0 0 80 32" preserveAspectRatio="none"></svg>
+      <div class="kpi-value" data-target="3.2" data-suffix="K">0</div>
+      <div>
+        <span class="kpi-delta">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+          +12.9%
+        </span>
+        <span class="kpi-sub">avg $265 / order</span>
       </div>
+      <svg class="kpi-spark" viewBox="0 0 200 50" preserveAspectRatio="none"></svg>
     </article>
 
-    <article class="kpi-card" data-type="growth">
-      <div class="kpi-header">
-        <span class="kpi-label">Growth Rate</span>
-        <div class="kpi-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-            <polyline points="17 6 23 6 23 12"/>
-          </svg>
+    <article class="kpi" style="--kpi-tint: rgba(251,191,36,0.18); --kpi-color: var(--gold);">
+      <div class="kpi-label">
+        <span>Growth Rate</span>
+        <div class="kpi-icon" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         </div>
       </div>
-      <div class="kpi-value"><span class="counter" data-target="24" data-decimals="0">0</span><span class="unit">%</span></div>
-      <div class="kpi-footer">
-        <div class="kpi-change up">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="18 15 12 9 6 15"/>
-          </svg>
-          <span id="grw-change">+3.1%</span>
-        </div>
-        <svg class="spark" id="spark-growth" viewBox="0 0 80 32" preserveAspectRatio="none"></svg>
+      <div class="kpi-value" data-target="24" data-suffix="%">0%</div>
+      <div>
+        <span class="kpi-delta">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+          +3.1pp
+        </span>
+        <span class="kpi-sub">above target (20%)</span>
       </div>
+      <svg class="kpi-spark" viewBox="0 0 200 50" preserveAspectRatio="none"></svg>
     </article>
   </section>
 
-  <section class="charts-row">
-    <article class="panel">
-      <div class="panel-header">
+  <!-- Main: chart + activity -->
+  <section class="main-grid">
+    <div class="panel">
+      <div class="panel-head">
         <div>
-          <div class="panel-title">Revenue Overview</div>
-          <div class="panel-subtitle">Compared to previous period</div>
+          <div class="panel-title">Revenue Performance</div>
+          <div class="panel-sub">Comparing this period against previous</div>
         </div>
-        <div class="legend">
-          <div class="legend-item"><span class="legend-dot" style="background: var(--accent)"></span>This period</div>
-          <div class="legend-item"><span class="legend-dot" style="background: #3a4458"></span>Previous</div>
-        </div>
-      </div>
-      <div style="position: relative;">
-        <canvas id="revenue-chart"></canvas>
-        <div class="chart-tooltip" id="chart-tooltip">
-          <div class="tooltip-label" id="tooltip-label">—</div>
-          <div class="tooltip-value accent" id="tooltip-value">—</div>
-        </div>
-      </div>
-    </article>
-
-    <article class="panel">
-      <div class="panel-header">
-        <div>
-          <div class="panel-title">Sales by Channel</div>
-          <div class="panel-subtitle">Distribution share</div>
-        </div>
-      </div>
-      <div class="donut-wrap">
-        <div class="donut-container">
-          <svg viewBox="0 0 200 200" id="donut-chart" style="width:100%;height:100%;"></svg>
-          <div class="donut-center">
-            <div class="total">$<span id="donut-total">847</span>K</div>
-            <div class="label">Total Sales</div>
+        <div style="display:flex; gap:14px; align-items:center;">
+          <div class="legend">
+            <span class="legend-item"><span class="legend-dot" style="background:var(--accent)"></span>This period</span>
+            <span class="legend-item"><span class="legend-dot" style="background:rgba(255,255,255,0.25)"></span>Previous</span>
+          </div>
+          <div class="chart-tabs">
+            <button class="chart-tab active" data-type="revenue">Revenue</button>
+            <button class="chart-tab" data-type="orders">Orders</button>
+            <button class="chart-tab" data-type="users">Users</button>
           </div>
         </div>
-        <div class="channel-list" id="channel-list"></div>
       </div>
-    </article>
-  </section>
+      <div class="chart-wrap">
+        <canvas id="revenueChart"></canvas>
+        <div class="tooltip" id="chartTooltip"></div>
+      </div>
+    </div>
 
-  <section class="bottom-row">
-    <article class="panel">
-      <div class="panel-header">
+    <div class="panel">
+      <div class="panel-head">
         <div>
           <div class="panel-title">Recent Activity</div>
-          <div class="panel-subtitle">Live transaction feed</div>
+          <div class="panel-sub">Live event stream from all systems</div>
         </div>
-        <div class="live-indicator" style="padding: 6px 12px;">
-          <span class="live-dot"></span>
-          <span style="font-size:11px;">Streaming</span>
-        </div>
+        <span class="legend-item" style="font-size:12px; color:var(--muted)">
+          <span class="refresh-dot"></span> Streaming
+        </span>
       </div>
-      <div class="activity-list" id="activity-list"></div>
-    </article>
-
-    <article class="panel">
-      <div class="panel-header">
-        <div>
-          <div class="panel-title">Top Products</div>
-          <div class="panel-subtitle">By units sold this period</div>
-        </div>
-      </div>
-      <div class="product-list" id="product-list"></div>
-    </article>
+      <div class="feed" id="activityFeed"></div>
+    </div>
   </section>
+
+  <!-- Secondary panels -->
+  <section class="secondary-grid">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Traffic Sources</div>
+          <div class="panel-sub">Distribution by channel</div>
+        </div>
+      </div>
+      <div id="sourcesList"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Monthly Goals</div>
+          <div class="panel-sub">Progress toward Q4 targets</div>
+        </div>
+      </div>
+      <div id="goalsList"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Top Regions</div>
+          <div class="panel-sub">By revenue contribution</div>
+        </div>
+      </div>
+      <div class="region-list" id="regionList"></div>
+    </div>
+  </section>
+
 </div>
 
-<div class="toast" id="toast" role="status" aria-live="polite">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-    <polyline points="20 6 9 17 4 12"/>
-  </svg>
-  <span id="toast-message">Data exported successfully</span>
+<div class="toast" id="toast">
+  <div class="toast-icon">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+  </div>
+  <span id="toastMsg">Done</span>
 </div>
 
 <script>
-/* =========================================================
-   Pulse Analytics Dashboard — Logic
-   ========================================================= */
+/* ============================================================
+   Nebula Analytics — runtime
+   ============================================================ */
 
-// ---------- Utility helpers ----------
-const $ = (sel) => document.querySelector(sel);
-const $$ = (sel) => document.querySelectorAll(sel);
-const rand = (min, max) => Math.random() * (max - min) + min;
-const randInt = (min, max) => Math.floor(rand(min, max + 1));
-const formatMoney = (n) => '$' + n.toLocaleString('en-US', { maximumFractionDigits: 0 });
-const formatTime = (date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+// -------- Utility helpers --------
+const $ = (sel, ctx=document) => ctx.querySelector(sel);
+const $$ = (sel, ctx=document) => Array.from(ctx.querySelectorAll(sel));
+const rand = (a, b) => a + Math.random() * (b - a);
+const fmt = {
+  money: n => '$' + n.toLocaleString('en-US', {maximumFractionDigits: 0}),
+  num: n => n.toLocaleString('en-US', {maximumFractionDigits: 0}),
+  time: d => d.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+};
 
-// ---------- Animated counters ----------
-function animateCounter(el, target, decimals = 0, duration = 1400) {
-  const start = parseFloat(el.textContent) || 0;
-  const startTime = performance.now();
-  function tick(now) {
-    const t = Math.min((now - startTime) / duration, 1);
-    // easeOutCubic
+// -------- Toast --------
+function showToast(msg) {
+  const t = $('#toast'); $('#toastMsg').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+// -------- Animated counters --------
+function animateCounter(el, opts = {}) {
+  const target = parseFloat(el.dataset.target);
+  const prefix = el.dataset.prefix || '';
+  const suffix = el.dataset.suffix || '';
+  const decimals = (el.dataset.target.split('.')[1] || '').length;
+  const duration = opts.duration || 1400;
+  const start = performance.now();
+  function frame(now) {
+    const t = Math.min(1, (now - start) / duration);
     const eased = 1 - Math.pow(1 - t, 3);
-    const value = start + (target - start) * eased;
-    el.textContent = decimals > 0 ? value.toFixed(decimals) : Math.round(value).toLocaleString();
-    if (t < 1) requestAnimationFrame(tick);
+    const val = target * eased;
+    el.textContent = prefix + val.toFixed(decimals) + suffix;
+    if (t < 1) requestAnimationFrame(frame);
+    else el.textContent = prefix + target.toFixed(decimals) + suffix;
   }
-  requestAnimationFrame(tick);
+  requestAnimationFrame(frame);
 }
+$$('.kpi-value').forEach(el => animateCounter(el));
 
-function animateAllCounters() {
-  $$('.counter').forEach(el => {
-    const target = parseFloat(el.dataset.target);
-    const decimals = parseInt(el.dataset.decimals) || 0;
-    animateCounter(el, target, decimals);
-  });
-}
-
-// ---------- Sparklines ----------
-function drawSparkline(svgId, color, trend = 'up') {
-  const svg = document.getElementById(svgId);
-  if (!svg) return;
-  svg.innerHTML = '';
-  const points = [];
-  let val = 16;
-  for (let i = 0; i < 12; i++) {
-    val += rand(-3, trend === 'up' ? 4 : -1);
-    val = Math.max(4, Math.min(28, val));
-    points.push({ x: (i / 11) * 80, y: 32 - val });
-  }
-
-  const ns = 'http://www.w3.org/2000/svg';
-
-  // Gradient area
-  const grad = document.createElementNS(ns, 'linearGradient');
-  grad.setAttribute('id', svgId + '-grad');
-  grad.setAttribute('x1', '0'); grad.setAttribute('y1', '0');
-  grad.setAttribute('x2', '0'); grad.setAttribute('y2', '1');
-  grad.innerHTML = `
-    <stop offset="0%" stop-color="${color}" stop-opacity="0.4"/>
-    <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+// -------- Sparkline drawing on each KPI --------
+function drawSparkline(svg, points, color) {
+  const w = 200, h = 50;
+  const min = Math.min(...points), max = Math.max(...points);
+  const span = Math.max(0.001, max - min);
+  const path = points.map((p, i) => {
+    const x = (i / (points.length - 1)) * w;
+    const y = h - ((p - min) / span) * (h - 6) - 3;
+    return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1);
+  }).join(' ');
+  const area = path + ` L${w},${h} L0,${h} Z`;
+  const id = 'g' + Math.random().toString(36).slice(2, 8);
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${color}" stop-opacity="0.45"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <path d="${area}" fill="url(#${id})"/>
+    <path d="${path}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   `;
-  svg.appendChild(grad);
-
-  const areaPath = `M ${points[0].x},32 ${points.map(p => `L ${p.x},${p.y}`).join(' ')} L 80,32 Z`;
-  const area = document.createElementNS(ns, 'path');
-  area.setAttribute('d', areaPath);
-  area.setAttribute('fill', `url(#${svgId}-grad)`);
-  svg.appendChild(area);
-
-  const linePath = `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`;
-  const line = document.createElementNS(ns, 'path');
-  line.setAttribute('d', linePath);
-  line.setAttribute('stroke', color);
-  line.setAttribute('stroke-width', '1.8');
-  line.setAttribute('fill', 'none');
-  line.setAttribute('stroke-linecap', 'round');
-  line.setAttribute('stroke-linejoin', 'round');
-  svg.appendChild(line);
-
-  // End dot
-  const last = points[points.length - 1];
-  const dot = document.createElementNS(ns, 'circle');
-  dot.setAttribute('cx', last.x);
-  dot.setAttribute('cy', last.y);
-  dot.setAttribute('r', '2.5');
-  dot.setAttribute('fill', color);
-  svg.appendChild(dot);
 }
+const sparkColors = ['#ff6b1f', '#38bdf8', '#4ade80', '#fbbf24'];
+$$('.kpi-spark').forEach((svg, i) => {
+  const pts = Array.from({length: 18}, (_, j) => 
+    50 + Math.sin(j * 0.5 + i) * 15 + Math.random() * 12 + j * 1.5
+  );
+  drawSparkline(svg, pts, sparkColors[i]);
+});
 
-// ---------- Revenue Chart (Canvas) ----------
-const chartCanvas = document.getElementById('revenue-chart');
-const ctx = chartCanvas.getContext('2d');
-const tooltip = document.getElementById('chart-tooltip');
-let chartData = [];
-let chartPrev = [];
-let chartLabels = [];
-let chartHover = -1;
-let chartGeometry = [];
+// -------- Revenue Chart (Canvas) --------
+const canvas = $('#revenueChart');
+const ctx = canvas.getContext('2d');
+const tooltip = $('#chartTooltip');
+let chartType = 'revenue';
+let chartRange = '7d';
+let chartData = null;
+let hoverIndex = -1;
+let animProgress = 0;
+let animStart = 0;
+const ANIM_DUR = 900;
 
-function generateChartData(range) {
-  const configs = {
-    '24h': { points: 12, label: hr => `${hr}:00`, base: 30, variance: 18 },
-    '7d':  { points: 7,  label: d => d, base: 95, variance: 35 },
-    '30d': { points: 14, label: d => d, base: 60, variance: 25 },
-    '90d': { points: 12, label: d => d, base: 120, variance: 45 },
-    '1y':  { points: 12, label: m => m, base: 50, variance: 40 }
+function generateChartData(range, type) {
+  const cfg = {
+    '24h': { points: 24, label: i => `${i.toString().padStart(2,'0')}:00`, base: type === 'revenue' ? 12 : type === 'orders' ? 45 : 520, var: 0.4 },
+    '7d':  { points: 7,  label: i => ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i], base: type === 'revenue' ? 110 : type === 'orders' ? 380 : 1750, var: 0.35 },
+    '30d': { points: 30, label: i => `D${i+1}`, base: type === 'revenue' ? 95 : type === 'orders' ? 320 : 1450, var: 0.45 },
+    '90d': { points: 12, label: i => `W${i+1}`, base: type === 'revenue' ? 680 : type === 'orders' ? 2300 : 9800, var: 0.4 },
+    'ytd': { points: 12, label: i => ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][i], base: type === 'revenue' ? 720 : type === 'orders' ? 2500 : 10800, var: 0.45 },
   };
-  const cfg = configs[range] || configs['7d'];
-  const dayLabels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const monthLabels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-  chartLabels = [];
-  chartData = [];
-  chartPrev = [];
-
-  for (let i = 0; i < cfg.points; i++) {
-    let label;
-    if (range === '24h') label = cfg.label(i * 2);
-    else if (range === '7d') label = dayLabels[i];
-    else if (range === '30d') label = `Day ${i*2+1}`;
-    else if (range === '90d') label = `W${i+1}`;
-    else label = monthLabels[i];
-
-    chartLabels.push(label);
-    chartData.push(cfg.base + rand(-cfg.variance, cfg.variance) + i * 2);
-    chartPrev.push(cfg.base * 0.85 + rand(-cfg.variance, cfg.variance) + i * 1.5);
+  const c = cfg[range];
+  const mult = type === 'revenue' ? 1 : type === 'orders' ? 1 : 1;
+  const current = [], previous = [];
+  for (let i = 0; i < c.points; i++) {
+    const trend = 1 + (i / c.points) * 0.4; // upward trend
+    const noise = 1 + (Math.random() - 0.5) * c.var;
+    current.push(c.base * trend * noise * mult);
+    previous.push(c.base * (trend * 0.78) * (1 + (Math.random() - 0.5) * c.var) * mult);
   }
+  return { current, previous, labels: Array.from({length: c.points}, (_, i) => c.label(i)) };
 }
 
 function resizeCanvas() {
   const dpr = window.devicePixelRatio || 1;
-  const rect = chartCanvas.getBoundingClientRect();
-  chartCanvas.width = Math.max(1, rect.width * dpr);
-  chartCanvas.height = Math.max(1, rect.height * dpr);
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.scale(dpr, dpr);
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
 function drawChart() {
-  const rect = chartCanvas.getBoundingClientRect();
-  const W = rect.width;
-  const H = rect.height;
-  ctx.clearRect(0, 0, W, H);
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  ctx.clearRect(0, 0, w, h);
+  if (!chartData) return;
 
-  const padL = 50, padR = 20, padT = 16, padB = 36;
-  const chartW = W - padL - padR;
-  const chartH = H - padT - padB;
+  const padL = 50, padR = 20, padT = 20, padB = 36;
+  const cw = w - padL - padR;
+  const ch = h - padT - padB;
 
-  const allValues = [...chartData, ...chartPrev];
-  const maxVal = Math.max(...allValues) * 1.1;
-  const minVal = 0;
+  const all = chartData.current.concat(chartData.previous);
+  const maxV = Math.max(...all) * 1.15;
+  const minV = 0;
 
-  // Y axis gridlines
-  const gridLines = 5;
-  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  // Grid + Y labels
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
   ctx.lineWidth = 1;
-  ctx.font = '11px -apple-system, system-ui';
-  ctx.fillStyle = '#5a6478';
+  ctx.font = '11px Inter, sans-serif';
+  ctx.fillStyle = '#5a5a6a';
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
-
-  for (let i = 0; i <= gridLines; i++) {
-    const y = padT + (chartH / gridLines) * i;
-    const val = maxVal - (maxVal / gridLines) * i;
+  const ySteps = 5;
+  for (let i = 0; i <= ySteps; i++) {
+    const y = padT + (ch / ySteps) * i;
+    const v = maxV - (maxV / ySteps) * i;
     ctx.beginPath();
     ctx.moveTo(padL, y);
-    ctx.lineTo(W - padR, y);
+    ctx.lineTo(padL + cw, y);
     ctx.stroke();
-    ctx.fillText('$' + Math.round(val) + 'K', padL - 8, y);
+    let label;
+    if (chartType === 'revenue') label = '$' + (v >= 1000 ? (v/1000).toFixed(1) + 'K' : v.toFixed(0));
+    else if (v >= 1000) label = (v/1000).toFixed(1) + 'K';
+    else label = v.toFixed(0);
+    ctx.fillText(label, padL - 10, y);
   }
 
-  // X axis labels
+  // X labels
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  const step = chartW / Math.max(1, chartData.length - 1);
-  chartLabels.forEach((label, i) => {
-    const x = padL + step * i;
-    if (chartData.length > 8 && i % 2 !== 0 && i !== chartData.length - 1) return;
-    ctx.fillText(label, x, H - padB + 10);
-  });
-
-  // Helper to map data to coords
-  const mapX = i => padL + step * i;
-  const mapY = v => padT + chartH - ((v - minVal) / (maxVal - minVal)) * chartH;
-
-  // Previous period line (dashed, muted)
-  ctx.strokeStyle = '#3a4458';
-  ctx.lineWidth = 1.8;
-  ctx.setLineDash([4, 4]);
-  ctx.beginPath();
-  chartPrev.forEach((v, i) => {
-    const x = mapX(i), y = mapY(v);
-    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-  });
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Current period - area fill with gradient
-  const grad = ctx.createLinearGradient(0, padT, 0, padT + chartH);
-  grad.addColorStop(0, 'rgba(0, 217, 163, 0.35)');
-  grad.addColorStop(1, 'rgba(0, 217, 163, 0)');
-
-  ctx.beginPath();
-  chartData.forEach((v, i) => {
-    const x = mapX(i), y = mapY(v);
-    if (i === 0) ctx.moveTo(x, y); else {
-      // Smooth curve using quadratic
-      const prevX = mapX(i - 1), prevY = mapY(chartData[i - 1]);
-      const cpX = (prevX + x) / 2;
-      ctx.quadraticCurveTo(cpX, prevY, cpX, (prevY + y) / 2);
-      ctx.quadraticCurveTo(cpX, y, x, y);
+  const step = chartData.labels.length;
+  const xStep = cw / (step - 1);
+  const labelEvery = Math.ceil(step / 8);
+  chartData.labels.forEach((lab, i) => {
+    if (i % labelEvery === 0 || i === step - 1) {
+      const x = padL + xStep * i;
+      ctx.fillText(lab, x, padT + ch + 10);
     }
   });
-  ctx.lineTo(mapX(chartData.length - 1), padT + chartH);
-  ctx.lineTo(mapX(0), padT + chartH);
-  ctx.closePath();
-  ctx.fillStyle = grad;
-  ctx.fill();
 
-  // Current period - main line
-  ctx.strokeStyle = '#00d9a3';
-  ctx.lineWidth = 2.5;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.shadowColor = 'rgba(0, 217, 163, 0.5)';
-  ctx.shadowBlur = 8;
-  ctx.beginPath();
-  chartData.forEach((v, i) => {
-    const x = mapX(i), y = mapY(v);
-    if (i === 0) ctx.moveTo(x, y); else {
-      const prevX = mapX(i - 1), prevY = mapY(chartData[i - 1]);
-      const cpX = (prevX + x) / 2;
-      ctx.quadraticCurveTo(cpX, prevY, cpX, (prevY + y) / 2);
-      ctx.quadraticCurveTo(cpX, y, x, y);
-    }
-  });
-  ctx.stroke();
-  ctx.shadowBlur = 0;
+  // Helpers
+  const px = i => padL + xStep * i;
+  const py = v => padT + ch - ((v - minV) / (maxV - minV)) * ch;
 
-  // Points
-  chartGeometry = [];
-  chartData.forEach((v, i) => {
-    const x = mapX(i), y = mapY(v);
-    chartGeometry.push({ x, y, value: v, label: chartLabels[i], prev: chartPrev[i] });
+  // Previous period (subtle area + line)
+  ctx.globalAlpha = 0.4;
+  drawArea(chartData.previous, px, py, padT + ch, 'rgba(255,255,255,0.04)');
+  drawLine(chartData.previous, px, py, 'rgba(255,255,255,0.35)', 1.5, [4, 4], animProgress);
+  ctx.globalAlpha = 1;
 
-    if (chartHover === i) {
-      // Hover ring
+  // Current period — area
+  const grad = ctx.createLinearGradient(0, padT, 0, padT + ch);
+  grad.addColorStop(0, 'rgba(255,107,31,0.35)');
+  grad.addColorStop(1, 'rgba(255,107,31,0.0)');
+  drawArea(chartData.current, px, py, padT + ch, grad, animProgress);
+
+  // Current period — line
+  drawLine(chartData.current, px, py, '#ff6b1f', 2.6, null, animProgress);
+  // Glow
+  ctx.save();
+  ctx.shadowColor = 'rgba(255,107,31,0.55)';
+  ctx.shadowBlur = 14;
+  drawLine(chartData.current, px, py, '#ff8c3a', 2.2, null, animProgress);
+  ctx.restore();
+
+  // Points (only if not too many)
+  if (chartData.current.length <= 14) {
+    for (let i = 0; i < chartData.current.length; i++) {
+      if (i / (chartData.current.length - 1) > animProgress) break;
+      const x = px(i), y = py(chartData.current[i]);
+      const isHover = i === hoverIndex;
       ctx.beginPath();
-      ctx.arc(x, y, 8, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(0, 217, 163, 0.2)';
+      ctx.arc(x, y, isHover ? 6 : 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#0f0f17';
       ctx.fill();
-
-      ctx.beginPath();
-      ctx.arc(x, y, 5, 0, Math.PI * 2);
-      ctx.fillStyle = '#0a0d12';
-      ctx.fill();
-      ctx.strokeStyle = '#00d9a3';
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = isHover ? 3 : 2;
+      ctx.strokeStyle = isHover ? '#ffb380' : '#ff6b1f';
       ctx.stroke();
-
-      // Vertical guide
-      ctx.strokeStyle = 'rgba(0, 217, 163, 0.3)';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([3, 3]);
-      ctx.beginPath();
-      ctx.moveTo(x, padT);
-      ctx.lineTo(x, padT + chartH);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    } else {
-      ctx.beginPath();
-      ctx.arc(x, y, 3.5, 0, Math.PI * 2);
-      ctx.fillStyle = '#00d9a3';
-      ctx.fill();
-      ctx.strokeStyle = '#0a0d12';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-  });
-}
-
-// Chart hover interaction
-chartCanvas.addEventListener('mousemove', (e) => {
-  const rect = chartCanvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  let nearest = -1, nearestDist = Infinity;
-  chartGeometry.forEach((p, i) => {
-    const d = Math.abs(p.x - mx);
-    if (d < nearestDist && d < 30) { nearestDist = d; nearest = i; }
-  });
-  if (nearest !== chartHover) {
-    chartHover = nearest;
-    drawChart();
-    if (nearest >= 0) {
-      const p = chartGeometry[nearest];
-      tooltip.classList.add('show');
-      $('#tooltip-label').textContent = p.label;
-      $('#tooltip-value').textContent = '$' + Math.round(p.value) + 'K';
-      const tx = Math.min(rect.width - 120, Math.max(0, p.x - 50));
-      const ty = p.y - 60;
-      tooltip.style.left = tx + 'px';
-      tooltip.style.top = ty + 'px';
-    } else {
-      tooltip.classList.remove('show');
     }
   }
-});
 
-chartCanvas.addEventListener('mouseleave', () => {
-  chartHover = -1;
+  // Hover vertical line
+  if (hoverIndex >= 0 && hoverIndex < chartData.current.length) {
+    const x = px(hoverIndex);
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(x, padT);
+    ctx.lineTo(x, padT + ch);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+function drawArea(data, px, py, baseY, fill, progress = 1) {
+  const cutoff = Math.floor(data.length * progress);
+  if (cutoff < 2) return;
+  ctx.beginPath();
+  ctx.moveTo(px(0), baseY);
+  for (let i = 0; i < cutoff; i++) ctx.lineTo(px(i), py(data[i]));
+  const partial = (data.length * progress) - cutoff;
+  if (cutoff < data.length && partial > 0) {
+    const x = px(cutoff - 1) + (px(cutoff) - px(cutoff - 1)) * partial;
+    const y = py(data[cutoff - 1]) + (py(data[cutoff]) - py(data[cutoff - 1])) * partial;
+    ctx.lineTo(x, y);
+    ctx.lineTo(x, baseY);
+  } else {
+    ctx.lineTo(px(cutoff - 1), baseY);
+  }
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+}
+
+function drawLine(data, px, py, color, width, dash, progress = 1) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  if (dash) ctx.setLineDash(dash); else ctx.setLineDash([]);
+  ctx.beginPath();
+  const total = data.length - 1;
+  const target = total * progress;
+  const full = Math.floor(target);
+  const partial = target - full;
+  ctx.moveTo(px(0), py(data[0]));
+  for (let i = 1; i <= full; i++) ctx.lineTo(px(i), py(data[i]));
+  if (partial > 0 && full < total) {
+    const x = px(full) + (px(full + 1) - px(full)) * partial;
+    const y = py(data[full]) + (py(data[full + 1]) - py(data[full])) * partial;
+    ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function animateChart() {
+  animStart = performance.now();
+  function frame(now) {
+    animProgress = Math.min(1, (now - animStart) / ANIM_DUR);
+    animProgress = 1 - Math.pow(1 - animProgress, 3); // ease out
+    drawChart();
+    if (animProgress < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+function updateChart() {
+  chartData = generateChartData(chartRange, chartType);
+  animProgress = 0;
+  animateChart();
+}
+
+// Hover detection
+canvas.addEventListener('mousemove', (e) => {
+  if (!chartData) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const padL = 50, padR = 20;
+  const cw = rect.width - padL - padR;
+  const step = chartData.current.length;
+  const xStep = cw / (step - 1);
+  let idx = Math.round((x - padL) / xStep);
+  idx = Math.max(0, Math.min(step - 1, idx));
+  if (idx !== hoverIndex) {
+    hoverIndex = idx;
+    drawChart();
+    const cur = chartData.current[idx];
+    const prev = chartData.previous[idx];
+    const label = chartData.labels[idx];
+    const fmtVal = v => chartType === 'revenue' ? '$' + v.toFixed(1) + 'K'
+                       : v >= 1000 ? (v/1000).toFixed(2) + 'K' : v.toFixed(0);
+    tooltip.innerHTML = `
+      <div class="tooltip-label">${label}</div>
+      <div class="tooltip-val accent">${fmtVal(cur)}</div>
+      <div class="tooltip-label" style="margin-top:6px">Prev: <span style="color:#b8b8c8">${fmtVal(prev)}</span></div>
+    `;
+    const tipX = padL + idx * xStep;
+    tooltip.style.left = tipX + 'px';
+    tooltip.style.top = (e.clientY - rect.top - 10) + 'px';
+    tooltip.style.opacity = '1';
+  }
+});
+canvas.addEventListener('mouseleave', () => {
+  hoverIndex = -1;
+  tooltip.style.opacity = '0';
   drawChart();
-  tooltip.classList.remove('show');
 });
 
-// ---------- Donut Chart ----------
-const channels = [
-  { name: 'Organic Search', value: 38, color: '#00d9a3' },
-  { name: 'Direct',          value: 24, color: '#5b8def' },
-  { name: 'Social Media',    value: 18, color: '#ffb547' },
-  { name: 'Email',           value: 12, color: '#b794f6' },
-  { name: 'Referral',        value: 8,  color: '#ff5577' }
+// Chart tabs
+$$('.chart-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    $$('.chart-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    chartType = tab.dataset.type;
+    updateChart();
+  });
+});
+
+// -------- Activity feed --------
+const ACTIVITY_TEMPLATES = [
+  { type: 'order',   icon: '$', color: '#4ade80', bg: 'rgba(74,222,128,0.12)', border: 'rgba(74,222,128,0.25)',
+    text: () => { const n = (Math.random()*2400+200).toFixed(0); return { html: `New order <b>#NB-${rand(10000,99999).toFixed(0)}</b> · <span class="amt">$${n}</span>`, tag: 'Order' }; } },
+  { type: 'user',    icon: '+', color: '#38bdf8', bg: 'rgba(56,189,248,0.12)', border: 'rgba(56,189,248,0.25)',
+    text: () => { const names = ['Sarah Chen','Marcus Liu','Elena Rivera','Tomás Reyes','Priya Shah','Jonas Weber','Nia Okafor','Yuki Tanaka']; const n = names[Math.floor(Math.random()*names.length)]; return { html: `<b>${n}</b> signed up from <b>Google Ads</b>`, tag: 'User' }; } },
+  { type: 'payment', icon: '✓', color: '#fbbf24', bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.25)',
+    text: () => { const n = (Math.random()*3000+300).toFixed(0); return { html: `Payment captured · <span class="amt">$${n}</span> via Stripe`, tag: 'Payment' }; } },
+  { type: 'review',  icon: '★', color: '#ff6b1f', bg: 'rgba(255,107,31,0.12)', border: 'rgba(255,107,31,0.25)',
+    text: () => { const stars = Math.floor(rand(4,6)); return { html: `New <b>${stars}-star</b> review on <b>${['Capterra','G2','Trustpilot','Product Hunt'][Math.floor(Math.random()*4)]}</b>`, tag: 'Review' }; } },
+  { type: 'refund',  icon: '↻', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)', border: 'rgba(244,63,94,0.25)',
+    text: () => { const n = (Math.random()*200+30).toFixed(0); return { html: `Refund issued · <span class="amt" style="color:#f43f5e">-$${n}</span>`, tag: 'Refund' }; } },
+  { type: 'goal',     icon: '◆', color: '#4ade80', bg: 'rgba(74,222,128,0.12)', border: 'rgba(74,222,128,0.25)',
+    text: () => { const goals = ['Daily revenue target hit','Weekly signups target hit','Conversion goal reached','NPS milestone unlocked']; return { html: `<b>${goals[Math.floor(Math.random()*goals.length)]}</b>`, tag: 'Goal' }; } },
+  { type: 'product',  icon: '◦', color: '#38bdf8', bg: 'rgba(56,189,248,0.12)', border: 'rgba(56,189,248,0.25)',
+    text: () => { const items = ['Aurora Hoodie','Helios Mug','Nebula Backpack','Orbit Watch','Pulse Sneakers']; return { html: `Low stock alert · <b>${items[Math.floor(Math.random()*items.length)]}</b> (≤ 12 left)`, tag: 'Inventory' }; } },
 ];
 
-function drawDonut() {
-  const svg = document.getElementById('donut-chart');
-  svg.innerHTML = '';
-  const ns = 'http://www.w3.org/2000/svg';
-  const cx = 100, cy = 100, r = 70, strokeW = 22;
-  const total = channels.reduce((s, c) => s + c.value, 0);
-  let offset = 0;
-  const circumference = 2 * Math.PI * r;
+const feed = $('#activityFeed');
+let activityItems = [];
 
-  // Background track
-  const track = document.createElementNS(ns, 'circle');
-  track.setAttribute('cx', cx); track.setAttribute('cy', cy);
-  track.setAttribute('r', r);
-  track.setAttribute('fill', 'none');
-  track.setAttribute('stroke', 'rgba(255,255,255,0.04)');
-  track.setAttribute('stroke-width', strokeW);
-  svg.appendChild(track);
-
-  channels.forEach((ch, i) => {
-    const dash = (ch.value / total) * circumference;
-    const gap = circumference - dash;
-    const seg = document.createElementNS(ns, 'circle');
-    seg.setAttribute('cx', cx); seg.setAttribute('cy', cy);
-    seg.setAttribute('r', r);
-    seg.setAttribute('fill', 'none');
-    seg.setAttribute('stroke', ch.color);
-    seg.setAttribute('stroke-width', strokeW);
-    seg.setAttribute('stroke-dasharray', `${dash} ${gap}`);
-    seg.setAttribute('stroke-dashoffset', -offset);
-    seg.setAttribute('transform', `rotate(-90 ${cx} ${cy})`);
-    seg.style.transition = 'stroke-width 0.2s ease';
-    seg.style.cursor = 'pointer';
-    seg.addEventListener('mouseenter', () => seg.setAttribute('stroke-width', '26'));
-    seg.addEventListener('mouseleave', () => seg.setAttribute('stroke-width', strokeW));
-    svg.appendChild(seg);
-    offset += dash;
-  });
-
-  // Channel list
-  const list = document.getElementById('channel-list');
-  list.innerHTML = '';
-  channels.forEach(ch => {
-    const item = document.createElement('div');
-    item.className = 'channel-item';
-    item.innerHTML = `
-      <div class="channel-name">
-        <span class="channel-dot" style="background:${ch.color}"></span>
-        ${ch.name}
-      </div>
-      <div class="channel-value">${ch.value}%</div>
-    `;
-    list.appendChild(item);
-  });
+function relativeTime(d) {
+  const diff = (Date.now() - d) / 1000;
+  if (diff < 5) return 'just now';
+  if (diff < 60) return Math.floor(diff) + 's ago';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  return Math.floor(diff/3600) + 'h ago';
 }
 
-// ---------- Activity Feed ----------
-const activityTemplates = [
-  { type: 'sale', icon: 'cart', color: '#00d9a3', text: (n, p) => `New order <strong>#${n}</strong> · ${p}`, amount: () => '+' + formatMoney(randInt(50, 1200)) },
-  { type: 'user', icon: 'user', color: '#5b8def', text: (n) => `<strong>${n}</strong> signed up`, amount: () => '' },
-  { type: 'sale', icon: 'cart', color: '#00d9a3', text: (n, p) => `Subscription renewed · ${p}`, amount: () => '+' + formatMoney(randInt(29, 199)) },
-  { type: 'refund', icon: 'refund', color: '#ff5577', text: (n) => `Refund processed · Order #${n}`, amount: () => '-' + formatMoney(randInt(20, 300)) },
-  { type: 'sale', icon: 'cart', color: '#ffb547', text: (n, p) => `Upsell purchase · ${p}`, amount: () => '+' + formatMoney(randInt(80, 500)) },
-  { type: 'user', icon: 'star', color: '#b794f6', text: (n) => `<strong>${n}</strong> upgraded to Pro`, amount: () => '+' + formatMoney(randInt(99, 299)) },
-  { type: 'sale', icon: 'cart', color: '#00d9a3', text: (n, p) => `Bulk order · ${p}`, amount: () => '+' + formatMoney(randInt(500, 2500)) },
-  { type: 'review', icon: 'star', color: '#ffb547', text: (n, p) => `New 5-star review on ${p}`, amount: () => '' }
-];
-
-const names = ['Sarah Chen','Marcus Liu','Elena Rodriguez','James Okafor','Priya Patel','Tom Anderson','Yuki Tanaka','Olivia Kim','David Smith','Aisha Mohammed','Liam Walsh','Sofia Garcia'];
-const products = ['Quantum Headphones','Aurora Watch','Nebula Speaker','Eclipse Phone','Pulse Earbuds','Vertex Tablet','Lumen Camera','Helix Charger'];
-const icons = {
-  cart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>',
-  user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
-  refund: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>',
-  star: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
-};
-
-let activities = [];
-
-function generateActivity() {
-  const tpl = activityTemplates[randInt(0, activityTemplates.length - 1)];
-  const name = names[randInt(0, names.length - 1)];
-  const product = products[randInt(0, products.length - 1)];
-  const orderNum = randInt(10000, 99999);
-  return {
-    ...tpl,
-    text: tpl.text(orderNum, product),
-    name: name,
-    amount: tpl.amount(),
-    time: new Date()
+function pushActivity(template, ageSeconds = 0) {
+  const data = template.text();
+  const item = {
+    template, time: Date.now() - ageSeconds * 1000, ...data
   };
+  activityItems.unshift(item);
+  if (activityItems.length > 14) activityItems.pop();
+  renderFeed();
 }
 
-function renderActivities() {
-  const list = document.getElementById('activity-list');
-  list.innerHTML = '';
-  activities.slice(0, 10).forEach(act => {
-    const item = document.createElement('div');
-    item.className = 'activity-item';
-    const amountClass = act.amount.startsWith('+') ? 'positive' : (act.amount.startsWith('-') ? 'negative' : '');
-    item.innerHTML = `
-      <div class="activity-icon" style="color:${act.color}; background:${act.color}1a;">
-        ${icons[act.icon]}
+function renderFeed() {
+  feed.innerHTML = activityItems.map((it, idx) => `
+    <div class="activity-item" style="animation-delay:${idx * 30}ms">
+      <div class="activity-dot" style="--act-bg:${it.template.bg};--act-color:${it.template.color};--act-border:${it.template.border}">
+        ${it.template.icon}
       </div>
-      <div class="activity-content">
-        <div class="activity-text">${act.text}</div>
+      <div class="activity-body">
+        <div class="activity-text">${it.html}</div>
         <div class="activity-meta">
-          <span>${act.name}</span>
-          <span>·</span>
-          <span>${timeAgo(act.time)}</span>
-          ${act.amount ? `<span>·</span><span class="activity-amount ${amountClass}">${act.amount}</span>` : ''}
+          <span>${relativeTime(it.time)}</span>
+          <span class="tag">${it.tag}</span>
         </div>
       </div>
-    `;
-    list.appendChild(item);
-  });
+    </div>
+  `).join('');
 }
 
-function timeAgo(date) {
-  const sec = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (sec < 5) return 'just now';
-  if (sec < 60) return `${sec}s ago`;
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  return `${hr}h ago`;
-}
-
-// Seed initial activities
-for (let i = 0; i < 10; i++) {
-  const act = generateActivity();
-  act.time = new Date(Date.now() - i * randInt(20000, 90000));
-  activities.push(act);
-}
-
-// ---------- Top Products ----------
-const topProducts = [
-  { name: 'Quantum Headphones', units: 1842, color: '#00d9a3' },
-  { name: 'Aurora Smart Watch', units: 1567, color: '#5b8def' },
-  { name: 'Nebula Speaker',     units: 1289, color: '#ffb547' },
-  { name: 'Eclipse Phone Pro',  units: 1043, color: '#b794f6' },
-  { name: 'Pulse Earbuds',      units: 876,  color: '#ff5577' },
-  { name: 'Vertex Tablet',      units: 654,  color: '#00d9a3' }
-];
-
-function renderTopProducts() {
-  const list = document.getElementById('product-list');
-  list.innerHTML = '';
-  const max = Math.max(...topProducts.map(p => p.units));
-  topProducts.forEach((p, i) => {
-    const item = document.createElement('div');
-    item.className = 'product-item';
-    item.innerHTML = `
-      <div class="product-rank">${i + 1}</div>
-      <div class="product-info">
-        <div class="product-name">
-          <span>${p.name}</span>
-          <span>${p.units.toLocaleString()}</span>
-        </div>
-        <div class="product-bar">
-          <div class="product-bar-fill" style="width:0%; background:${p.color};"></div>
-        </div>
-      </div>
-    `;
-    list.appendChild(item);
-    // Animate bar
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        item.querySelector('.product-bar-fill').style.width = ((p.units / max) * 100) + '%';
-      }, i * 80);
+// Seed with 10 items, aging backward
+function seedFeed() {
+  activityItems = [];
+  const seedTemplates = [
+    ACTIVITY_TEMPLATES[0], ACTIVITY_TEMPLATES[1], ACTIVITY_TEMPLATES[2],
+    ACTIVITY_TEMPLATES[3], ACTIVITY_TEMPLATES[0], ACTIVITY_TEMPLATES[5],
+    ACTIVITY_TEMPLATES[6], ACTIVITY_TEMPLATES[2], ACTIVITY_TEMPLATES[4],
+    ACTIVITY_TEMPLATES[1],
+  ];
+  seedTemplates.forEach((tpl, i) => {
+    const data = tpl.text();
+    activityItems.push({
+      template: tpl, time: Date.now() - (i * 90 + 20) * 1000, ...data
     });
   });
+  renderFeed();
 }
+seedFeed();
 
-// ---------- Toast ----------
-let toastTimer;
-function showToast(message) {
-  const toast = document.getElementById('toast');
-  document.getElementById('toast-message').textContent = message;
-  toast.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+// -------- Traffic sources --------
+const sources = [
+  { name: 'Organic Search', value: 42, color: '#ff6b1f' },
+  { name: 'Direct',         value: 26, color: '#ff8c3a' },
+  { name: 'Social',         value: 18, color: '#fbbf24' },
+  { name: 'Referral',       value: 9,  color: '#38bdf8' },
+  { name: 'Email',          value: 5,  color: '#4ade80' },
+];
+function renderSources() {
+  $('#sourcesList').innerHTML = sources.map(s => `
+    <div class="source-row">
+      <div class="source-label">${s.name}</div>
+      <div class="source-bar">
+        <div class="source-fill" style="width:0%;background:linear-gradient(90deg, ${s.color}, ${s.color}cc)" data-w="${s.value}"></div>
+      </div>
+      <div class="source-value">${s.value}%</div>
+    </div>
+  `).join('');
+  // Animate widths
+  requestAnimationFrame(() => {
+    $$('.source-fill').forEach(el => { el.style.width = el.dataset.w + '%'; });
+  });
 }
+renderSources();
 
-// ---------- Export ----------
-document.getElementById('export-btn').addEventListener('click', () => {
-  const data = {
-    exportedAt: new Date().toISOString(),
-    kpis: {
-      revenue: '$847K',
-      users: '12.4K',
-      orders: '3.2K',
-      growth: '+24%'
-    },
-    revenueByPeriod: chartLabels.map((l, i) => ({ label: l, current: chartData[i], previous: chartPrev[i] })),
-    channels: channels,
-    topProducts: topProducts,
-    recentActivity: activities.slice(0, 10).map(a => ({ text: a.text.replace(/<[^>]+>/g, ''), user: a.name, amount: a.amount, time: a.time.toISOString() }))
-  };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+// -------- Goals --------
+const goals = [
+  { name: 'Revenue Q4',  value: 78, cls: '' },
+  { name: 'New Customers', value: 92, cls: 'mint' },
+  { name: 'Retention Rate', value: 64, cls: 'azure' },
+  { name: 'NPS Score', value: 86, cls: '' },
+];
+function renderGoals() {
+  $('#goalsList').innerHTML = goals.map(g => `
+    <div class="goal">
+      <div class="goal-head">
+        <span>${g.name}</span>
+        <span class="val">${g.value}%</span>
+      </div>
+      <div class="goal-track">
+        <div class="goal-fill ${g.cls}" style="width:0%" data-w="${g.value}"></div>
+      </div>
+    </div>
+  `).join('');
+  requestAnimationFrame(() => {
+    $$('.goal-fill').forEach(el => { el.style.width = el.dataset.w + '%'; });
+  });
+}
+renderGoals();
+
+// -------- Regions --------
+const regions = [
+  { code: 'NA', name: 'North America', sub: 'United States · Canada', value: 342, trend: '+14%', bg: 'rgba(255,107,31,0.15)', fg: '#ff8c3a' },
+  { code: 'EU', name: 'Europe',         sub: 'UK · DE · FR · NL',     value: 268, trend: '+9%',  bg: 'rgba(56,189,248,0.15)', fg: '#7dd3fc' },
+  { code: 'AP', name: 'Asia Pacific',   sub: 'JP · SG · AU · KR',     value: 197, trend: '+22%', bg: 'rgba(74,222,128,0.15)', fg: '#86efac' },
+  { code: 'LA', name: 'Latin America',  sub: 'BR · MX · AR',          value: 89,  trend: '+6%',  bg: 'rgba(251,191,36,0.15)', fg: '#fcd34d' },
+  { code: 'ME', name: 'Middle East',    sub: 'AE · SA · IL',          value: 54,  trend: '+11%', bg: 'rgba(244,63,94,0.15)', fg: '#fda4af' },
+];
+function renderRegions() {
+  $('#regionList').innerHTML = regions.map(r => `
+    <div class="region">
+      <div class="region-flag" style="--reg-bg:${r.bg};--reg-fg:${r.fg}">${r.code}</div>
+      <div class="region-info">
+        <div class="region-name">${r.name}</div>
+        <div class="region-sub">${r.sub}</div>
+      </div>
+      <div>
+        <span class="region-val">$${r.value}K</span>
+        <span class="region-trend">${r.trend}</span>
+      </div>
+    </div>
+  `).join('');
+}
+renderRegions();
+
+// -------- Date range pills --------
+$$('.pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    $$('.pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    chartRange = pill.dataset.range;
+    updateChart();
+    showToast(`Range set to ${pill.textContent}`);
+  });
+});
+
+// -------- Export --------
+$('#exportBtn').addEventListener('click', () => {
+  // Generate CSV from chart data
+  if (!chartData) return;
+  const rows = [['Label', 'Current', 'Previous']];
+  chartData.labels.forEach((l, i) => {
+    rows.push([l, chartData.current[i].toFixed(2), chartData.previous[i].toFixed(2)]);
+  });
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `pulse-analytics-${Date.now()}.json`;
+  a.download = `nebula-${chartType}-${chartRange}-${Date.now()}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  showToast('Dashboard data exported as JSON');
+  showToast(`Exported ${chartType} data (${chartRange.toUpperCase()})`);
 });
 
-// ---------- Date Range Filter ----------
-$$('.filter-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    $$('.filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    const range = btn.dataset.range;
-    generateChartData(range);
-    drawChart();
-    showToast(`Showing data for ${btn.textContent.trim()}`);
+// -------- Manual refresh --------
+$('#refreshBtn').addEventListener('click', () => {
+  refreshData();
+  showToast('Dashboard refreshed');
+});
+
+// -------- Auto refresh --------
+let nextRefreshSeconds = 15;
+function refreshData() {
+  // Slightly perturb KPI targets and re-animate
+  const kpiTargets = [847, 12.4, 3.2, 24];
+  $$('.kpi-value').forEach((el, i) => {
+    const drift = (Math.random() - 0.35) * (kpiTargets[i] * 0.015);
+    const newVal = Math.max(0, kpiTargets[i] + drift);
+    el.dataset.target = newVal.toFixed(kpiTargets[i] < 100 ? 1 : 0);
+    animateCounter(el, { duration: 900 });
   });
-});
 
-// ---------- Auto Refresh ----------
-let refreshSeconds = 5;
-const refreshInterval = 5;
+  // New sparklines
+  $$('.kpi-spark').forEach((svg, i) => {
+    const pts = Array.from({length: 18}, (_, j) =>
+      50 + Math.sin(j * 0.5 + i + Math.random()) * 15 + Math.random() * 12 + j * 1.5
+    );
+    drawSparkline(svg, pts, sparkColors[i]);
+  });
 
-function tickTimer() {
-  refreshSeconds--;
-  if (refreshSeconds <= 0) {
-    refreshSeconds = refreshInterval;
-    simulateUpdate();
+  // Refresh chart
+  updateChart();
+
+  // Perturb sources
+  sources.forEach(s => { s.value = Math.max(2, Math.min(60, s.value + Math.round((Math.random()-0.5)*6))); });
+  // Normalize to ~100
+  const total = sources.reduce((a,b) => a + b.value, 0);
+  sources.forEach(s => s.value = Math.round(s.value / total * 100));
+  renderSources();
+
+  // Perturb goals slightly
+  goals.forEach(g => { g.value = Math.max(20, Math.min(99, g.value + Math.round((Math.random()-0.5)*4))); });
+  renderGoals();
+
+  // Perturb regions
+  regions.forEach(r => {
+    const delta = Math.round((Math.random()-0.3) * 12);
+    r.value = Math.max(20, r.value + delta);
+    r.trend = (delta >= 0 ? '+' : '') + (delta + Math.round(Math.random()*5)) + '%';
+  });
+  renderRegions();
+
+  // New activity
+  const tpl = ACTIVITY_TEMPLATES[Math.floor(Math.random() * ACTIVITY_TEMPLATES.length)];
+  pushActivity(tpl);
+
+  nextRefreshSeconds = 15;
+}
+
+// Live clock + countdown
+function updateClock() {
+  $('#liveTime').textContent = fmt.time(new Date());
+}
+setInterval(updateClock, 1000); updateClock();
+
+setInterval(() => {
+  nextRefreshSeconds--;
+  if (nextRefreshSeconds <= 0) {
+    refreshData();
+    nextRefreshSeconds = 15;
   }
-  document.getElementById('timer').textContent = refreshSeconds + 's';
-}
+  $('#nextRefresh').textContent = nextRefreshSeconds;
+}, 1000);
 
-function simulateUpdate() {
-  // Update KPIs slightly
-  const kpis = [
-    { sel: '.kpi-card[data-type="revenue"] .counter', target: 847 + randInt(-3, 8), decimals: 0, changeId: 'rev-change', base: 12.4 },
-    { sel: '.kpi-card[data-type="users"] .counter',   target: 12.4 + rand(-0.3, 0.5), decimals: 1, changeId: 'usr-change', base: 8.2 },
-    { sel: '.kpi-card[data-type="orders"] .counter',  target: 3.2 + rand(-0.1, 0.3), decimals: 1, changeId: 'ord-change', base: 5.7 },
-    { sel: '.kpi-card[data-type="growth"] .counter',  target: 24 + randInt(-1, 3), decimals: 0, changeId: 'grw-change', base: 24 }
-  ];
-
-  kpis.forEach(k => {
-    const el = document.querySelector(k.sel);
-    if (el) {
-      el.dataset.target = k.target;
-      animateCounter(el, k.target, k.decimals, 800);
-    }
-    const changeEl = document.getElementById(k.changeId);
-    if (changeEl) {
-      const newVal = (k.base + rand(-2, 2)).toFixed(1);
-      changeEl.textContent = (newVal > 0 ? '+' : '') + newVal + '%';
-    }
-  });
-
-  // Slightly shift chart data
-  chartData = chartData.map(v => Math.max(10, v + rand(-8, 8)));
-  drawChart();
-
-  // Add new activity
-  activities.unshift(generateActivity());
-  if (activities.length > 20) activities.pop();
-  renderActivities();
-
-  // Redraw sparklines for variety
-  drawSparkline('spark-revenue', '#00d9a3', 'up');
-  drawSparkline('spark-users', '#5b8def', 'up');
-  drawSparkline('spark-orders', '#ffb547', 'up');
-  drawSparkline('spark-growth', '#b794f6', 'up');
-}
-
-document.getElementById('refresh-btn').addEventListener('click', () => {
-  refreshSeconds = refreshInterval;
-  simulateUpdate();
-  showToast('Data refreshed successfully');
-});
-
-// ---------- Init ----------
-function init() {
-  animateAllCounters();
-  drawSparkline('spark-revenue', '#00d9a3', 'up');
-  drawSparkline('spark-users', '#5b8def', 'up');
-  drawSparkline('spark-orders', '#ffb547', 'up');
-  drawSparkline('spark-growth', '#b794f6', 'up');
-
-  generateChartData('7d');
-  resizeCanvas();
-  drawChart();
-  drawDonut();
-  renderActivities();
-  renderTopProducts();
-
-  setInterval(tickTimer, 1000);
-}
-
+// -------- Init chart --------
 window.addEventListener('resize', () => {
   resizeCanvas();
   drawChart();
 });
 
-window.addEventListener('load', init);
+// Wait for layout
+requestAnimationFrame(() => {
+  resizeCanvas();
+  updateChart();
+});
+
+// Welcome toast
+setTimeout(() => showToast('Connected · Streaming live data'), 600);
 </script>
 </body>
 </html>

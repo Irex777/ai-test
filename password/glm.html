@@ -3,928 +3,1129 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vaultkey — Password Generator</title>
+<title>Cipher Forge — Password Generator</title>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-  :root {
-    --bg: #08080e;
-    --surface: #101018;
-    --card: #16161f;
-    --border: #252533;
-    --fg: #e4e4ec;
-    --muted: #6e6e82;
-    --accent: #00d992;
-    --accent-dim: rgba(0,217,146,0.12);
-    --accent-glow: rgba(0,217,146,0.25);
-    --danger: #ff4f6e;
-    --warn: #ffaa2c;
-    --good: #6ee75a;
-    --radius: 12px;
-  }
+:root {
+  --bg: #08080d;
+  --bg-2: #0f0f17;
+  --surface: #14141d;
+  --surface-2: #1c1c28;
+  --surface-3: #24242f;
+  --border: #2a2a38;
+  --border-strong: #3a3a4a;
+  --text: #f5f0e8;
+  --text-2: #b8b8c8;
+  --text-3: #6a6a7a;
+  --accent: #ff8a3d;
+  --accent-2: #ffb547;
+  --accent-glow: rgba(255, 138, 61, 0.4);
+  --cyan: #4dd4e0;
+  --danger: #ff4d6d;
+  --success: #7dd87d;
+  --warning: #ffc04d;
+  --pink: #ff6b9d;
+}
 
-  html { font-size: 16px; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Courier New', monospace;
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.5;
+  position: relative;
+}
 
-  body {
-    background: var(--bg);
-    color: var(--fg);
-    font-family: 'Segoe UI', 'SF Pro Display', -apple-system, sans-serif;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    overflow-x: hidden;
-  }
+/* atmospheric background */
+.bg-fx { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+.bg-fx::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse at 15% 25%, rgba(255, 138, 61, 0.14), transparent 55%),
+    radial-gradient(ellipse at 85% 75%, rgba(77, 212, 224, 0.10), transparent 55%),
+    radial-gradient(ellipse at 50% 110%, rgba(255, 107, 157, 0.07), transparent 50%);
+}
+.bg-fx::after {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  opacity: 0.035;
+}
 
-  /* Animated background blobs */
-  body::before, body::after {
-    content: '';
-    position: fixed;
-    border-radius: 50%;
-    filter: blur(120px);
-    opacity: 0.4;
-    z-index: 0;
-    pointer-events: none;
-    animation: blobFloat 18s ease-in-out infinite alternate;
-  }
-  body::before {
-    width: 500px; height: 500px;
-    background: radial-gradient(circle, rgba(0,217,146,0.18), transparent 70%);
-    top: -100px; left: -150px;
-  }
-  body::after {
-    width: 400px; height: 400px;
-    background: radial-gradient(circle, rgba(0,180,220,0.12), transparent 70%);
-    bottom: -80px; right: -100px;
-    animation-delay: -9s;
-  }
+.floating-particles { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 1; }
+.particle {
+  position: absolute;
+  font-family: 'Courier New', monospace;
+  color: var(--accent);
+  opacity: 0.07;
+  animation: floatUp linear infinite;
+  user-select: none;
+  font-weight: bold;
+  text-shadow: 0 0 8px currentColor;
+}
+@keyframes floatUp {
+  0% { transform: translateY(110vh) rotate(0deg); }
+  100% { transform: translateY(-15vh) rotate(360deg); }
+}
 
-  @keyframes blobFloat {
-    0%   { transform: translate(0, 0) scale(1); }
-    50%  { transform: translate(60px, 40px) scale(1.15); }
-    100% { transform: translate(-30px, 60px) scale(0.95); }
-  }
+.app {
+  position: relative;
+  z-index: 2;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+}
 
-  .app {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    max-width: 580px;
-    padding: 40px 20px 60px;
-  }
+/* Header */
+header {
+  text-align: center;
+  margin-bottom: 44px;
+  padding-top: 20px;
+}
+.logo { display: inline-flex; align-items: center; gap: 18px; margin-bottom: 14px; }
+.logo-mark {
+  width: 56px; height: 56px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-radius: 14px;
+  box-shadow: 0 8px 32px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.2);
+  animation: pulse 3s ease-in-out infinite;
+  position: relative;
+}
+.logo-mark::after {
+  content: '';
+  position: absolute; inset: -3px;
+  border: 1px solid var(--accent);
+  border-radius: 16px;
+  opacity: 0.4;
+  animation: pulseRing 3s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 8px 32px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.2); }
+  50% { box-shadow: 0 8px 48px var(--accent-glow), 0 0 60px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.2); }
+}
+@keyframes pulseRing {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.15); opacity: 0; }
+}
+.logo-mark svg { width: 30px; height: 30px; fill: #0a0a0f; }
+h1 {
+  font-family: 'Impact', 'Arial Black', 'Bebas Neue', sans-serif;
+  font-size: clamp(42px, 7.5vw, 84px);
+  font-weight: 900;
+  letter-spacing: -2px;
+  background: linear-gradient(180deg, var(--text) 0%, var(--text-2) 60%, #777787 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 0.9;
+}
+.subtitle {
+  color: var(--text-3);
+  font-size: 12px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-top: 10px;
+}
+.subtitle .dot { color: var(--accent); margin: 0 8px; }
 
-  /* Header */
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
-  }
-  .logo-icon {
-    width: 40px; height: 40px;
-    background: var(--accent);
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 0 24px var(--accent-glow);
-    position: relative;
-    overflow: hidden;
-  }
-  .logo-icon::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.25) 0%, transparent 50%);
-  }
-  .logo-icon svg { position: relative; z-index: 1; }
-  .logo h1 {
-    font-size: 1.65rem;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    color: var(--fg);
-  }
-  .logo h1 span { color: var(--accent); }
-  .subtitle {
-    color: var(--muted);
-    font-size: 0.88rem;
-    margin-bottom: 32px;
-    padding-left: 52px;
-  }
+/* Main grid */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 22px;
+}
+@media (max-width: 880px) {
+  .main-grid { grid-template-columns: 1fr; }
+}
 
-  /* Card */
-  .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px;
-    margin-bottom: 16px;
-    transition: border-color 0.3s;
-  }
-  .card:hover { border-color: #33334a; }
+.panel {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--bg-2) 100%);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 26px;
+  position: relative;
+}
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 24px; right: 24px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.5;
+}
 
-  /* Password display */
-  .pw-display {
-    position: relative;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 18px 60px 18px 18px;
-    min-height: 64px;
-    display: flex;
-    align-items: center;
-    margin-bottom: 16px;
-    overflow: hidden;
-    transition: border-color 0.3s;
-  }
-  .pw-display:focus-within,
-  .pw-display:hover { border-color: var(--accent); }
+/* Password display */
+.password-display {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 22px;
+  margin-bottom: 14px;
+  position: relative;
+  overflow: hidden;
+}
+.password-display::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 138, 61, 0.06), transparent);
+  animation: scan 5s ease-in-out infinite;
+}
+@keyframes scan {
+  0%, 100% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+}
+.password-row {
+  display: flex; align-items: center; gap: 12px;
+  position: relative; z-index: 1;
+}
+.password-text {
+  flex: 1;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  word-break: break-all;
+  min-height: 28px;
+  font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+  color: var(--text);
+  transition: opacity 0.2s;
+}
+.password-text.placeholder { color: var(--text-3); opacity: 0.5; letter-spacing: 4px; }
+.password-text.flash { animation: flash 0.5s ease-out; }
+@keyframes flash {
+  0% { color: var(--accent-2); text-shadow: 0 0 18px var(--accent); }
+  100% { color: var(--text); text-shadow: none; }
+}
+.char-type { color: var(--accent-2); }
+.char-num { color: var(--cyan); }
+.char-sym { color: var(--pink); }
 
-  .pw-text {
-    font-family: 'Cascadia Code', 'Fira Code', 'SF Mono', 'Consolas', monospace;
-    font-size: 1.15rem;
-    font-weight: 600;
-    letter-spacing: 1.5px;
-    word-break: break-all;
-    line-height: 1.5;
-    color: var(--fg);
-    user-select: all;
-    flex: 1;
-    min-height: 1.5em;
-  }
-  .pw-text .char-upper { color: #5eead4; }
-  .pw-text .char-lower { color: var(--fg); }
-  .pw-text .char-num   { color: #fbbf24; }
-  .pw-text .char-sym   { color: #f472b6; }
+.copy-btn {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  white-space: nowrap;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+.copy-btn:hover {
+  background: var(--accent);
+  color: #0a0a0f;
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.copy-btn svg { width: 14px; height: 14px; fill: currentColor; }
 
-  .pw-text-empty {
-    color: var(--muted);
-    font-weight: 400;
-    font-size: 0.95rem;
-    letter-spacing: 0;
-    font-family: 'Segoe UI', sans-serif;
-  }
+/* Strength section */
+.strength-section { margin-bottom: 24px; }
+.strength-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.strength-label { color: var(--text-3); font-weight: 600; }
+.strength-value { font-weight: 800; letter-spacing: 2px; transition: color 0.3s; }
+.strength-bar {
+  height: 6px;
+  background: var(--surface-2);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.strength-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 3px;
+  transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.3s;
+  position: relative;
+}
+.strength-fill::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shimmer 2.5s linear infinite;
+}
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
 
-  .copy-btn {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: var(--accent-dim);
-    border: 1px solid transparent;
-    color: var(--accent);
-    width: 40px; height: 40px;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: all 0.2s;
-  }
-  .copy-btn:hover {
-    background: var(--accent);
-    color: var(--bg);
-    box-shadow: 0 0 16px var(--accent-glow);
-  }
-  .copy-btn:active { transform: translateY(-50%) scale(0.92); }
-  .copy-btn svg { width: 18px; height: 18px; }
+/* Controls */
+.control-group { margin-bottom: 22px; }
+.control-group:last-child { margin-bottom: 0; }
 
-  /* Meta row: char count + entropy */
-  .meta-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    font-size: 0.82rem;
-    color: var(--muted);
-  }
-  .meta-row .badge {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-family: 'Cascadia Code', 'Fira Code', monospace;
-    font-size: 0.78rem;
-  }
-  .entropy-val { color: var(--accent); font-weight: 700; }
+.control-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-3);
+  font-weight: 700;
+}
+.control-label .value {
+  font-size: 24px;
+  color: var(--accent);
+  letter-spacing: -1px;
+  font-family: 'SF Mono', monospace;
+  font-weight: 800;
+  text-shadow: 0 0 12px rgba(255, 138, 61, 0.3);
+}
 
-  /* Strength meter */
-  .strength-wrap { margin-bottom: 24px; }
-  .strength-label-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-  }
-  .strength-label-row span {
-    font-size: 0.82rem;
-    color: var(--muted);
-  }
-  .strength-text {
-    font-weight: 700;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-  .strength-bar-bg {
-    width: 100%;
-    height: 6px;
-    background: var(--surface);
-    border-radius: 3px;
-    overflow: hidden;
-  }
-  .strength-bar {
-    height: 100%;
-    width: 0%;
-    border-radius: 3px;
-    transition: width 0.5s cubic-bezier(0.22,1,0.36,1), background 0.4s;
-  }
+/* Custom slider */
+.slider-wrap { position: relative; padding: 8px 0; }
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent) var(--pct, 33%), var(--surface-2) var(--pct, 33%));
+  border-radius: 3px;
+  outline: none;
+}
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px; height: 22px;
+  background: var(--accent);
+  border: 3px solid var(--bg);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 0 1px var(--accent), 0 0 16px var(--accent-glow);
+  transition: transform 0.15s;
+}
+.slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+.slider::-moz-range-thumb {
+  width: 22px; height: 22px;
+  background: var(--accent);
+  border: 3px solid var(--bg);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 0 1px var(--accent), 0 0 16px var(--accent-glow);
+}
+.slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 10px;
+  color: var(--text-3);
+  letter-spacing: 1px;
+}
 
-  /* Slider */
-  .slider-section { margin-bottom: 24px; }
-  .slider-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-  }
-  .slider-header label {
-    font-size: 0.88rem;
-    font-weight: 600;
-    color: var(--fg);
-  }
-  .slider-val {
-    background: var(--accent);
-    color: var(--bg);
-    font-weight: 800;
-    font-size: 0.9rem;
-    padding: 3px 12px;
-    border-radius: 6px;
-    min-width: 42px;
-    text-align: center;
-    font-family: 'Cascadia Code', monospace;
-  }
+/* Toggles */
+.toggle-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 480px) {
+  .toggle-grid { grid-template-columns: 1fr; }
+}
+.toggle {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+.toggle:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-3);
+}
+.toggle.active {
+  border-color: var(--accent);
+  background: rgba(255, 138, 61, 0.08);
+  box-shadow: 0 0 0 1px var(--accent), 0 4px 16px rgba(255, 138, 61, 0.15);
+}
+.toggle input { display: none; }
+.toggle-switch {
+  width: 36px; height: 20px;
+  background: var(--bg);
+  border-radius: 10px;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 16px; height: 16px;
+  background: var(--text-3);
+  border-radius: 50%;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.toggle.active .toggle-switch { background: var(--accent); }
+.toggle.active .toggle-switch::after { left: 18px; background: #0a0a0f; }
+.toggle-info { flex: 1; min-width: 0; }
+.toggle-name {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 2px;
+  color: var(--text);
+}
+.toggle-desc {
+  font-size: 10px;
+  color: var(--text-3);
+  letter-spacing: 0.5px;
+}
 
-  input[type="range"] {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 100%;
-    height: 6px;
-    border-radius: 3px;
-    background: var(--surface);
-    outline: none;
-    cursor: pointer;
-  }
-  input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 22px; height: 22px;
-    border-radius: 50%;
-    background: var(--accent);
-    border: 3px solid var(--card);
-    box-shadow: 0 0 12px var(--accent-glow);
-    cursor: pointer;
-    transition: transform 0.15s;
-  }
-  input[type="range"]::-webkit-slider-thumb:hover {
-    transform: scale(1.15);
-  }
-  input[type="range"]::-moz-range-thumb {
-    width: 22px; height: 22px;
-    border-radius: 50%;
-    background: var(--accent);
-    border: 3px solid var(--card);
-    box-shadow: 0 0 12px var(--accent-glow);
-    cursor: pointer;
-  }
+/* Stats */
+.stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px dashed var(--border);
+}
+.stat {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  position: relative;
+  overflow: hidden;
+}
+.stat::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: var(--accent);
+}
+.stat-label {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+.stat-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.5px;
+  font-family: 'SF Mono', monospace;
+}
+.stat-value .unit {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-left: 4px;
+  font-weight: 500;
+  letter-spacing: 1px;
+}
 
-  /* Toggle options */
-  .options-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 24px;
-  }
-  .opt-btn {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 14px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.2s;
-    user-select: none;
-  }
-  .opt-btn:hover { border-color: #44445a; background: #13131e; }
-  .opt-btn.active {
-    border-color: var(--accent);
-    background: var(--accent-dim);
-  }
-  .opt-check {
-    width: 20px; height: 20px;
-    border-radius: 5px;
-    border: 2px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    transition: all 0.2s;
-    flex-shrink: 0;
-  }
-  .opt-btn.active .opt-check {
-    border-color: var(--accent);
-    background: var(--accent);
-  }
-  .opt-check svg { opacity: 0; transition: opacity 0.15s; }
-  .opt-btn.active .opt-check svg { opacity: 1; }
-  .opt-label {
-    font-size: 0.84rem;
-    font-weight: 600;
-    color: var(--fg);
-  }
-  .opt-sub {
-    font-size: 0.72rem;
-    color: var(--muted);
-    margin-top: 1px;
-  }
+/* Generate button */
+.generate-btn {
+  width: 100%;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  border: none;
+  color: #0a0a0f;
+  padding: 18px;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-top: 22px;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 28px var(--accent-glow);
+}
+.generate-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px var(--accent-glow);
+}
+.generate-btn:active { transform: translateY(0); }
+.generate-btn::before {
+  content: '';
+  position: absolute; top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  transition: left 0.6s;
+}
+.generate-btn:hover::before { left: 100%; }
+.generate-btn svg {
+  width: 16px; height: 16px;
+  fill: currentColor;
+  vertical-align: middle;
+  margin-right: 10px;
+}
 
-  .opt-full {
-    grid-column: 1 / -1;
-  }
+/* History */
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.history-title {
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+}
+.history-title::before {
+  content: '';
+  width: 4px; height: 16px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+.history-count {
+  background: var(--surface-2);
+  color: var(--text-2);
+  padding: 3px 9px;
+  border-radius: 10px;
+  font-size: 11px;
+  border: 1px solid var(--border);
+  font-weight: 700;
+}
+.clear-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-3);
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: all 0.2s;
+  font-weight: 700;
+}
+.clear-btn:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
 
-  /* Generate button */
-  .gen-btn {
-    width: 100%;
-    padding: 16px;
-    background: var(--accent);
-    color: var(--bg);
-    border: none;
-    border-radius: 10px;
-    font-size: 1rem;
-    font-weight: 800;
-    letter-spacing: 0.5px;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-    overflow: hidden;
-  }
-  .gen-btn::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);
-    opacity: 0;
-    transition: opacity 0.2s;
-  }
-  .gen-btn:hover {
-    box-shadow: 0 4px 30px var(--accent-glow), 0 0 60px rgba(0,217,146,0.12);
-    transform: translateY(-1px);
-  }
-  .gen-btn:hover::before { opacity: 1; }
-  .gen-btn:active { transform: translateY(0) scale(0.985); }
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 540px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.history-list::-webkit-scrollbar { width: 4px; }
+.history-list::-webkit-scrollbar-track { background: transparent; }
+.history-list::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
 
-  /* Pulse animation on generate */
-  @keyframes genPulse {
-    0%   { box-shadow: 0 0 0 0 var(--accent-glow); }
-    70%  { box-shadow: 0 0 0 12px rgba(0,217,146,0); }
-    100% { box-shadow: 0 0 0 0 rgba(0,217,146,0); }
-  }
-  .gen-btn.pulse { animation: genPulse 0.5s ease-out; }
+.history-empty {
+  text-align: center;
+  padding: 50px 20px;
+  color: var(--text-3);
+  font-size: 12px;
+  letter-spacing: 2px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+}
+.history-empty .icon {
+  display: block;
+  font-size: 28px;
+  margin-bottom: 12px;
+  opacity: 0.4;
+  letter-spacing: 4px;
+}
 
-  /* History */
-  .history-card { padding-bottom: 16px; }
-  .history-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 14px;
-  }
-  .history-header h2 {
-    font-size: 0.92rem;
-    font-weight: 700;
-    color: var(--fg);
-  }
-  .clear-btn {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    font-size: 0.76rem;
-    padding: 4px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .clear-btn:hover { border-color: var(--danger); color: var(--danger); }
+.history-item {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  animation: slideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.history-item:hover {
+  background: var(--surface-3);
+  border-color: var(--accent);
+  transform: translateX(-2px);
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.history-pw {
+  font-size: 13px;
+  letter-spacing: 1px;
+  word-break: break-all;
+  margin-bottom: 8px;
+  color: var(--text);
+  font-weight: 600;
+}
+.history-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: var(--text-3);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.history-meta-left { display: flex; gap: 8px; align-items: center; }
+.history-meta .strength-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 6px currentColor;
+}
+.history-meta .time { color: var(--text-3); }
 
-  .history-list { display: flex; flex-direction: column; gap: 6px; }
-  .history-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    background: var(--surface);
-    border-radius: 8px;
-    border: 1px solid transparent;
-    transition: all 0.2s;
-    animation: slideIn 0.3s ease-out;
-  }
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateY(-8px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .history-item:hover { border-color: var(--border); }
-  .history-pw {
-    flex: 1;
-    font-family: 'Cascadia Code', 'Fira Code', monospace;
-    font-size: 0.82rem;
-    color: var(--fg);
-    letter-spacing: 0.5px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .history-meta {
-    font-size: 0.7rem;
-    color: var(--muted);
-    white-space: nowrap;
-  }
-  .history-copy {
-    background: none;
-    border: none;
-    color: var(--muted);
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
-    display: flex; align-items: center; justify-content: center;
-    transition: color 0.2s;
-  }
-  .history-copy:hover { color: var(--accent); }
-  .history-copy svg { width: 14px; height: 14px; }
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  padding: 14px 22px;
+  border-radius: 10px;
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 700;
+  opacity: 0;
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 100;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px var(--accent-glow);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.toast::before {
+  content: '';
+  width: 6px; height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--accent);
+}
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
 
-  .history-empty {
-    text-align: center;
-    color: var(--muted);
-    font-size: 0.84rem;
-    padding: 20px 0;
-  }
-
-  /* Toast */
-  .toast {
-    position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%) translateY(80px);
-    background: var(--card);
-    border: 1px solid var(--accent);
-    color: var(--accent);
-    padding: 10px 24px;
-    border-radius: 10px;
-    font-size: 0.88rem;
-    font-weight: 600;
-    pointer-events: none;
-    opacity: 0;
-    transition: all 0.35s cubic-bezier(0.22,1,0.36,1);
-    z-index: 999;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
-  }
-  .toast.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-
-  /* Responsive */
-  @media (max-width: 480px) {
-    .options-grid { grid-template-columns: 1fr; }
-    .app { padding: 24px 14px 40px; }
-    .card { padding: 18px; }
-    .pw-text { font-size: 1rem; }
-  }
-
-  /* Reduced motion */
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      transition-duration: 0.01ms !important;
-    }
-  }
+footer {
+  text-align: center;
+  margin-top: 50px;
+  color: var(--text-3);
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+footer .dot { color: var(--accent); }
 </style>
 </head>
 <body>
 
-<div class="app">
-  <!-- Logo -->
-  <div class="logo">
-    <div class="logo-icon">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#08080e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-      </svg>
-    </div>
-    <h1>Vault<span>key</span></h1>
-  </div>
-  <p class="subtitle">Cryptographically strong passwords, instantly.</p>
+<div class="bg-fx"></div>
+<div class="floating-particles" id="particles"></div>
 
-  <!-- Password display card -->
-  <div class="card">
-    <div class="pw-display" id="pwDisplay">
-      <div class="pw-text" id="pwText">
-        <span class="pw-text-empty">Click generate to create a password</span>
+<div class="app">
+  <header>
+    <div class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
       </div>
-      <button class="copy-btn" id="copyBtn" title="Copy to clipboard" aria-label="Copy password to clipboard">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-        </svg>
+    </div>
+    <h1>CIPHER FORGE</h1>
+    <p class="subtitle">Cryptographic <span class="dot">●</span> Password <span class="dot">●</span> Generator</p>
+  </header>
+
+  <div class="main-grid">
+    <div class="panel">
+      <div class="password-display">
+        <div class="password-row">
+          <div class="password-text placeholder" id="password">CLICK GENERATE TO BEGIN</div>
+          <button class="copy-btn" id="copyBtn" aria-label="Copy password">
+            <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+            <span>COPY</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="strength-section">
+        <div class="strength-header">
+          <span class="strength-label">Password Strength</span>
+          <span class="strength-value" id="strengthLabel" style="color: var(--text-3);">NONE</span>
+        </div>
+        <div class="strength-bar">
+          <div class="strength-fill" id="strengthFill"></div>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">
+          <span>Password Length</span>
+          <span class="value" id="lengthValue">16</span>
+        </div>
+        <div class="slider-wrap">
+          <input type="range" min="8" max="64" value="16" class="slider" id="lengthSlider" aria-label="Password length">
+        </div>
+        <div class="slider-ticks">
+          <span>8</span><span>20</span><span>32</span><span>44</span><span>56</span><span>64</span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="control-label"><span>Character Sets</span></div>
+        <div class="toggle-grid">
+          <label class="toggle active" data-toggle="uppercase">
+            <input type="checkbox" checked>
+            <div class="toggle-switch"></div>
+            <div class="toggle-info">
+              <div class="toggle-name">UPPERCASE</div>
+              <div class="toggle-desc">A — Z</div>
+            </div>
+          </label>
+          <label class="toggle active" data-toggle="lowercase">
+            <input type="checkbox" checked>
+            <div class="toggle-switch"></div>
+            <div class="toggle-info">
+              <div class="toggle-name">LOWERCASE</div>
+              <div class="toggle-desc">a — z</div>
+            </div>
+          </label>
+          <label class="toggle active" data-toggle="numbers">
+            <input type="checkbox" checked>
+            <div class="toggle-switch"></div>
+            <div class="toggle-info">
+              <div class="toggle-name">NUMBERS</div>
+              <div class="toggle-desc">0 — 9</div>
+            </div>
+          </label>
+          <label class="toggle active" data-toggle="symbols">
+            <input type="checkbox" checked>
+            <div class="toggle-switch"></div>
+            <div class="toggle-info">
+              <div class="toggle-name">SYMBOLS</div>
+              <div class="toggle-desc">! @ # $ %</div>
+            </div>
+          </label>
+          <label class="toggle" data-toggle="excludeAmbiguous" style="grid-column: 1 / -1;">
+            <input type="checkbox">
+            <div class="toggle-switch"></div>
+            <div class="toggle-info">
+              <div class="toggle-name">EXCLUDE AMBIGUOUS</div>
+              <div class="toggle-desc">Skip i, l, 1, O, 0, B, 8, S, 5, etc.</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-label">Character Count</div>
+          <div class="stat-value"><span id="charCount">0</span><span class="unit">chars</span></div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Entropy</div>
+          <div class="stat-value"><span id="entropy">0.0</span><span class="unit">bits</span></div>
+        </div>
+      </div>
+
+      <button class="generate-btn" id="generateBtn">
+        <svg viewBox="0 0 24 24"><path d="M12 2v2c4.97 0 9 4.03 9 9s-4.03 9-9 9-9-4.03-9-9h-2c0 6.08 4.93 11 11 11s11-4.92 11-11S18.08 2 12 2zm0 6v6c0 .38.21.71.53.88l4 2c.34.18.76.14 1.05-.15.39-.39.31-1.04-.15-1.27L13 11.62V8c0-.41-.34-.75-.75-.75h-.5c-.41 0-.75.34-.75.75z"/></svg>
+        Generate Password
       </button>
     </div>
 
-    <!-- Meta row -->
-    <div class="meta-row">
-      <span>Characters: <span class="badge" id="charCount">0</span></span>
-      <span>Entropy: <span class="entropy-val" id="entropyVal">0</span> bits</span>
-    </div>
-
-    <!-- Strength meter -->
-    <div class="strength-wrap">
-      <div class="strength-label-row">
-        <span>Password Strength</span>
-        <span class="strength-text" id="strengthText" style="color:var(--muted)">—</span>
+    <div class="panel">
+      <div class="history-header">
+        <div class="history-title">
+          Recent Passwords
+          <span class="history-count" id="historyCount">0</span>
+        </div>
+        <button class="clear-btn" id="clearBtn">Clear</button>
       </div>
-      <div class="strength-bar-bg">
-        <div class="strength-bar" id="strengthBar"></div>
-      </div>
-    </div>
-
-    <!-- Length slider -->
-    <div class="slider-section">
-      <div class="slider-header">
-        <label for="lengthSlider">Password Length</label>
-        <span class="slider-val" id="lengthVal">16</span>
-      </div>
-      <input type="range" id="lengthSlider" min="8" max="64" value="16" aria-label="Password length">
-    </div>
-
-    <!-- Character type toggles -->
-    <div class="options-grid">
-      <div class="opt-btn active" data-opt="uppercase" tabindex="0" role="checkbox" aria-checked="true" aria-label="Include uppercase letters">
-        <div class="opt-check">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#08080e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
-        <div>
-          <div class="opt-label">Uppercase</div>
-          <div class="opt-sub">A-Z</div>
-        </div>
-      </div>
-      <div class="opt-btn active" data-opt="lowercase" tabindex="0" role="checkbox" aria-checked="true" aria-label="Include lowercase letters">
-        <div class="opt-check">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#08080e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
-        <div>
-          <div class="opt-label">Lowercase</div>
-          <div class="opt-sub">a-z</div>
-        </div>
-      </div>
-      <div class="opt-btn active" data-opt="numbers" tabindex="0" role="checkbox" aria-checked="true" aria-label="Include numbers">
-        <div class="opt-check">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#08080e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
-        <div>
-          <div class="opt-label">Numbers</div>
-          <div class="opt-sub">0-9</div>
-        </div>
-      </div>
-      <div class="opt-btn active" data-opt="symbols" tabindex="0" role="checkbox" aria-checked="true" aria-label="Include symbols">
-        <div class="opt-check">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#08080e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
-        <div>
-          <div class="opt-label">Symbols</div>
-          <div class="opt-sub">!@#$%^&amp;*</div>
-        </div>
-      </div>
-      <div class="opt-btn opt-full" data-opt="excludeAmbiguous" tabindex="0" role="checkbox" aria-checked="false" aria-label="Exclude ambiguous characters">
-        <div class="opt-check">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#08080e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
-        <div>
-          <div class="opt-label">Exclude Ambiguous</div>
-          <div class="opt-sub">Removes l, 1, I, O, 0, o, |, etc.</div>
+      <div class="history-list" id="historyList">
+        <div class="history-empty">
+          <span class="icon">◇ ◇ ◇</span>
+          No passwords yet.<br>Generated passwords will appear here.
         </div>
       </div>
     </div>
-
-    <!-- Generate button -->
-    <button class="gen-btn" id="genBtn">Generate Password</button>
   </div>
 
-  <!-- History card -->
-  <div class="card history-card">
-    <div class="history-header">
-      <h2>Recent Passwords</h2>
-      <button class="clear-btn" id="clearHistory">Clear All</button>
-    </div>
-    <div class="history-list" id="historyList">
-      <div class="history-empty">No passwords generated yet.</div>
-    </div>
-  </div>
+  <footer>
+    Generated Locally <span class="dot">●</span> Never Transmitted <span class="dot">●</span> 100% Client-Side
+  </footer>
 </div>
 
-<!-- Toast notification -->
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast">Copied to clipboard</div>
 
 <script>
-  /* ─── Character Sets ─── */
-  const CHARSETS = {
-    uppercase: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-    lowercase: 'abcdefghijklmnopqrstuvwxyz',
-    numbers:   '0123456789',
-    symbols:   '!@#$%^&*()_+-=[]{}|;:,.<>?/~`'
-  };
+// Character sets
+const CHARSETS = {
+  uppercase: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+  lowercase: 'abcdefghijklmnopqrstuvwxyz',
+  numbers: '0123456789',
+  symbols: '!@#$%^&*()_+-=[]{}|;:,.<>?'
+};
+const AMBIGUOUS = 'Il1O0B8S5Z2G6qD';
 
-  const AMBIGUOUS = 'Il1O0o|[]{}';
+// State
+const state = {
+  length: 16,
+  uppercase: true,
+  lowercase: true,
+  numbers: true,
+  symbols: true,
+  excludeAmbiguous: false,
+  history: [],
+  lastPassword: ''
+};
 
-  /* ─── State ─── */
-  const state = {
-    length: 16,
-    options: {
-      uppercase: true,
-      lowercase: true,
-      numbers: true,
-      symbols: true,
-      excludeAmbiguous: false
-    },
-    currentPassword: '',
-    history: []
-  };
+// Crypto-safe RNG
+function secureRandom(max) {
+  const array = new Uint32Array(1);
+  crypto.getRandomValues(array);
+  return array[0] % max;
+}
 
-  /* ─── DOM Refs ─── */
-  const $pwText       = document.getElementById('pwText');
-  const $charCount    = document.getElementById('charCount');
-  const $entropyVal   = document.getElementById('entropyVal');
-  const $strengthText = document.getElementById('strengthText');
-  const $strengthBar  = document.getElementById('strengthBar');
-  const $lengthSlider = document.getElementById('lengthSlider');
-  const $lengthVal    = document.getElementById('lengthVal');
-  const $genBtn       = document.getElementById('genBtn');
-  const $copyBtn      = document.getElementById('copyBtn');
-  const $historyList  = document.getElementById('historyList');
-  const $clearHistory = document.getElementById('clearHistory');
-  const $toast        = document.getElementById('toast');
-
-  /* ─── Helpers ─── */
-  function getCharset() {
-    let pool = '';
-    const opts = state.options;
-    if (opts.uppercase) pool += CHARSETS.uppercase;
-    if (opts.lowercase) pool += CHARSETS.lowercase;
-    if (opts.numbers)   pool += CHARSETS.numbers;
-    if (opts.symbols)   pool += CHARSETS.symbols;
-
-    if (opts.excludeAmbiguous) {
-      pool = pool.split('').filter(c => !AMBIGUOUS.includes(c)).join('');
-    }
-    return pool;
+function getActiveCharset() {
+  let charset = '';
+  if (state.uppercase) charset += CHARSETS.uppercase;
+  if (state.lowercase) charset += CHARSETS.lowercase;
+  if (state.numbers) charset += CHARSETS.numbers;
+  if (state.symbols) charset += CHARSETS.symbols;
+  if (state.excludeAmbiguous) {
+    charset = charset.split('').filter(c => !AMBIGUOUS.includes(c)).join('');
   }
+  return charset;
+}
 
-  /* Crypto-secure random index */
-  function secureRandomIndex(max) {
-    const array = new Uint32Array(1);
-    crypto.getRandomValues(array);
-    return array[0] % max;
+function generatePassword() {
+  const charset = getActiveCharset();
+  if (!charset || charset.length === 0) {
+    showToast('Select at least one character set');
+    return null;
   }
-
-  /* Calculate entropy bits: log2(poolSize^length) */
-  function calcEntropy(poolSize, length) {
-    if (poolSize <= 0 || length <= 0) return 0;
-    return Math.floor(length * Math.log2(poolSize));
+  
+  // Build set list to guarantee at least one of each enabled type
+  const sets = [];
+  if (state.uppercase) sets.push(state.excludeAmbiguous ? filterAmbiguous(CHARSETS.uppercase) : CHARSETS.uppercase);
+  if (state.lowercase) sets.push(state.excludeAmbiguous ? filterAmbiguous(CHARSETS.lowercase) : CHARSETS.lowercase);
+  if (state.numbers) sets.push(state.excludeAmbiguous ? filterAmbiguous(CHARSETS.numbers) : CHARSETS.numbers);
+  if (state.symbols) sets.push(CHARSETS.symbols);
+  
+  let password = '';
+  // Ensure at least one char from each enabled set
+  for (const s of sets) {
+    if (password.length >= state.length) break;
+    password += s[secureRandom(s.length)];
   }
-
-  /* ─── Password coloring ─── */
-  function classifyChar(c) {
-    if (CHARSETS.uppercase.includes(c)) return 'upper';
-    if (CHARSETS.lowercase.includes(c)) return 'lower';
-    if (CHARSETS.numbers.includes(c))   return 'num';
-    return 'sym';
+  while (password.length < state.length) {
+    password += charset[secureRandom(charset.length)];
   }
-
-  function renderColoredPassword(pw) {
-    if (!pw) {
-      $pwText.innerHTML = '<span class="pw-text-empty">Click generate to create a password</span>';
-      return;
-    }
-    $pwText.innerHTML = pw.split('').map(c => {
-      const cls = classifyChar(c);
-      const escaped = c.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      return `<span class="char-${cls}">${escaped}</span>`;
-    }).join('');
+  // Shuffle using Fisher-Yates with crypto RNG
+  const arr = password.split('');
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = secureRandom(i + 1);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
+  return arr.join('');
+}
 
-  /* ─── Strength Meter ─── */
-  function updateStrength(entropy) {
-    let label, color, pct;
-    if (entropy < 36) {
-      label = 'Weak'; color = 'var(--danger)'; pct = 15;
-    } else if (entropy < 60) {
-      label = 'Medium'; color = 'var(--warn)'; pct = 40;
-    } else if (entropy < 90) {
-      label = 'Strong'; color = '#4ade80'; pct = 70;
-    } else {
-      label = 'Very Strong'; color = 'var(--accent)'; pct = 100;
-    }
-    $strengthText.textContent = label;
-    $strengthText.style.color = color;
-    $strengthBar.style.width = pct + '%';
-    $strengthBar.style.background = `linear-gradient(90deg, ${color}, ${color})`;
+function filterAmbiguous(str) {
+  return str.split('').filter(c => !AMBIGUOUS.includes(c)).join('');
+}
+
+function calculateEntropy(length, charsetSize) {
+  if (charsetSize === 0) return 0;
+  return length * Math.log2(charsetSize);
+}
+
+function getStrengthInfo(entropy) {
+  if (entropy === 0) return { label: 'NONE', pct: 0, color: 'var(--text-3)' };
+  if (entropy < 40) return { label: 'WEAK', pct: 20, color: 'var(--danger)' };
+  if (entropy < 60) return { label: 'MEDIUM', pct: 45, color: 'var(--warning)' };
+  if (entropy < 100) return { label: 'STRONG', pct: 75, color: 'var(--success)' };
+  return { label: 'VERY STRONG', pct: 100, color: 'var(--cyan)' };
+}
+
+// Colorize password chars
+function colorizePassword(pw) {
+  return pw.split('').map(c => {
+    if (/[0-9]/.test(c)) return `<span class="char-num">${c}</span>`;
+    if (/[a-z]/.test(c)) return `<span class="char-type">${c}</span>`;
+    if (/[A-Z]/.test(c)) return `<span class="char-type">${c}</span>`;
+    return `<span class="char-sym">${c}</span>`;
+  }).join('');
+}
+
+function updateDisplay() {
+  const lengthEl = document.getElementById('lengthValue');
+  const charCountEl = document.getElementById('charCount');
+  const entropyEl = document.getElementById('entropy');
+  const strengthLabel = document.getElementById('strengthLabel');
+  const strengthFill = document.getElementById('strengthFill');
+  
+  lengthEl.textContent = state.length;
+  const slider = document.getElementById('lengthSlider');
+  slider.style.setProperty('--pct', `${((state.length - 8) / 56) * 100}%`);
+  
+  if (state.lastPassword) {
+    const entropy = calculateEntropy(state.lastPassword.length, getActiveCharset().length);
+    const strength = getStrengthInfo(entropy);
+    
+    charCountEl.textContent = state.lastPassword.length;
+    entropyEl.textContent = entropy.toFixed(1);
+    strengthLabel.textContent = strength.label;
+    strengthLabel.style.color = strength.color;
+    strengthFill.style.width = strength.pct + '%';
+    strengthFill.style.background = `linear-gradient(90deg, ${strength.color}, ${strength.color}cc)`;
+    strengthFill.style.boxShadow = `0 0 12px ${strength.color}`;
+  } else {
+    charCountEl.textContent = 0;
+    entropyEl.textContent = '0.0';
+    strengthLabel.textContent = 'NONE';
+    strengthLabel.style.color = 'var(--text-3)';
+    strengthFill.style.width = '0%';
   }
+}
 
-  /* ─── Generate Password ─── */
-  function generate() {
-    const pool = getCharset();
-    if (pool.length === 0) {
-      showToast('Enable at least one character type');
-      return;
-    }
+function displayPassword(pw) {
+  const el = document.getElementById('password');
+  el.classList.remove('placeholder');
+  el.innerHTML = colorizePassword(pw);
+  el.classList.remove('flash');
+  void el.offsetWidth; // restart animation
+  el.classList.add('flash');
+}
 
-    const len = state.length;
-    let pw = '';
-    for (let i = 0; i < len; i++) {
-      pw += pool[secureRandomIndex(pool.length)];
-    }
-
-    /* Ensure at least one char from each active set is present */
-    const opts = state.options;
-    const activeSets = [];
-    if (opts.uppercase) activeSets.push(CHARSETS.uppercase);
-    if (opts.lowercase) activeSets.push(CHARSETS.lowercase);
-    if (opts.numbers)   activeSets.push(CHARSETS.numbers);
-    if (opts.symbols)   activeSets.push(CHARSETS.symbols);
-
-    const pwArr = pw.split('');
-    activeSets.forEach((set, idx) => {
-      let filtered = set;
-      if (opts.excludeAmbiguous) {
-        filtered = set.split('').filter(c => !AMBIGUOUS.includes(c)).join('');
-      }
-      if (filtered.length === 0) return;
-      /* Check if at least one char from this set exists */
-      const hasChar = pwArr.some(c => filtered.includes(c));
-      if (!hasChar && idx < pwArr.length) {
-        pwArr[idx] = filtered[secureRandomIndex(filtered.length)];
-      }
-    });
-    /* Shuffle using Fisher-Yates */
-    for (let i = pwArr.length - 1; i > 0; i--) {
-      const j = secureRandomIndex(i + 1);
-      [pwArr[i], pwArr[j]] = [pwArr[j], pwArr[i]];
-    }
-
-    pw = pwArr.join('');
-    state.currentPassword = pw;
-
-    /* Update UI */
-    renderColoredPassword(pw);
-    const entropy = calcEntropy(pool.length, len);
-    $charCount.textContent = pw.length;
-    $entropyVal.textContent = entropy;
-    updateStrength(entropy);
-
-    /* Add to history */
-    state.history.unshift({ pw, entropy, time: new Date() });
-    if (state.history.length > 10) state.history.pop();
-    renderHistory();
-
-    /* Button pulse */
-    $genBtn.classList.remove('pulse');
-    void $genBtn.offsetWidth; /* trigger reflow */
-    $genBtn.classList.add('pulse');
-  }
-
-  /* ─── History ─── */
-  function renderHistory() {
-    if (state.history.length === 0) {
-      $historyList.innerHTML = '<div class="history-empty">No passwords generated yet.</div>';
-      return;
-    }
-    $historyList.innerHTML = state.history.map((item, i) => {
-      const escaped = item.pw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      return `
-        <div class="history-item">
-          <span class="history-pw" title="${escaped}">${escaped}</span>
-          <span class="history-meta">${item.entropy}bit</span>
-          <button class="history-copy" data-idx="${i}" title="Copy" aria-label="Copy this password">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-            </svg>
-          </button>
-        </div>`;
-    }).join('');
-  }
-
-  /* ─── Copy to clipboard ─── */
-  async function copyText(text) {
-    try {
-      await navigator.clipboard.writeText(text);
-      showToast('Copied to clipboard');
-    } catch {
-      /* Fallback */
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      showToast('Copied to clipboard');
-    }
-  }
-
-  /* ─── Toast ─── */
-  let toastTimer;
-  function showToast(msg) {
-    clearTimeout(toastTimer);
-    $toast.textContent = msg;
-    $toast.classList.add('show');
-    toastTimer = setTimeout(() => $toast.classList.remove('show'), 2200);
-  }
-
-  /* ─── Slider track fill ─── */
-  function updateSliderTrack() {
-    const val = $lengthSlider.value;
-    const min = $lengthSlider.min;
-    const max = $lengthSlider.max;
-    const pct = ((val - min) / (max - min)) * 100;
-    $lengthSlider.style.background = `linear-gradient(to right, var(--accent) 0%, var(--accent) ${pct}%, var(--surface) ${pct}%, var(--surface) 100%)`;
-  }
-
-  /* ─── Event Listeners ─── */
-  $lengthSlider.addEventListener('input', () => {
-    state.length = parseInt($lengthSlider.value);
-    $lengthVal.textContent = state.length;
-    updateSliderTrack();
+function addToHistory(pw) {
+  const entropy = calculateEntropy(pw.length, getActiveCharset().length);
+  const strength = getStrengthInfo(entropy);
+  state.history.unshift({
+    password: pw,
+    time: new Date(),
+    strength: strength,
+    entropy: entropy
   });
+  if (state.history.length > 10) state.history.pop();
+  renderHistory();
+}
 
-  $genBtn.addEventListener('click', generate);
+function timeAgo(date) {
+  const sec = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (sec < 5) return 'just now';
+  if (sec < 60) return sec + 's ago';
+  if (sec < 3600) return Math.floor(sec / 60) + 'm ago';
+  return Math.floor(sec / 3600) + 'h ago';
+}
 
-  $copyBtn.addEventListener('click', () => {
-    if (state.currentPassword) {
-      copyText(state.currentPassword);
-    } else {
-      showToast('Generate a password first');
-    }
-  });
-
-  /* Option toggles */
-  document.querySelectorAll('.opt-btn').forEach(btn => {
-    function toggle() {
-      const opt = btn.dataset.opt;
-      const wasActive = btn.classList.contains('active');
-
-      /* Prevent disabling the last active charset option */
-      if (wasActive && opt !== 'excludeAmbiguous') {
-        const activeCount = ['uppercase','lowercase','numbers','symbols']
-          .filter(k => state.options[k]).length;
-        if (activeCount <= 1) {
-          showToast('Keep at least one character type enabled');
-          return;
-        }
-      }
-
-      btn.classList.toggle('active');
-      state.options[opt] = !wasActive;
-      btn.setAttribute('aria-checked', String(!wasActive));
-    }
-
-    btn.addEventListener('click', toggle);
-    btn.addEventListener('keydown', e => {
-      if (e.key === ' ' || e.key === 'Enter') {
-        e.preventDefault();
-        toggle();
-      }
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  const count = document.getElementById('historyCount');
+  count.textContent = state.history.length;
+  
+  if (state.history.length === 0) {
+    list.innerHTML = '<div class="history-empty"><span class="icon">◇ ◇ ◇</span>No passwords yet.<br>Generated passwords will appear here.</div>';
+    return;
+  }
+  
+  list.innerHTML = state.history.map(item => `
+    <div class="history-item" data-pw="${escapeHtml(item.password)}">
+      <div class="history-pw">${colorizePassword(item.password)}</div>
+      <div class="history-meta">
+        <div class="history-meta-left">
+          <span class="strength-dot" style="background:${item.strength.color};color:${item.strength.color}"></span>
+          <span>${item.strength.label}</span>
+          <span>·</span>
+          <span>${item.entropy.toFixed(0)} BITS</span>
+        </div>
+        <span class="time">${timeAgo(item.time)}</span>
+      </div>
+    </div>
+  `).join('');
+  
+  list.querySelectorAll('.history-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const pw = item.dataset.pw;
+      state.lastPassword = pw;
+      displayPassword(pw);
+      updateDisplay();
+      showToast('Loaded from history');
     });
   });
+}
 
-  /* History copy buttons (delegated) */
-  $historyList.addEventListener('click', e => {
-    const copyBtn = e.target.closest('.history-copy');
-    if (!copyBtn) return;
-    const idx = parseInt(copyBtn.dataset.idx);
-    if (state.history[idx]) {
-      copyText(state.history[idx].pw);
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function copyToClipboard(text) {
+  if (!text || text === 'CLICK GENERATE TO BEGIN') {
+    showToast('Generate a password first');
+    return;
+  }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('Copied to clipboard');
+    }).catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+    showToast('Copied to clipboard');
+  } catch (e) {
+    showToast('Copy failed');
+  }
+  document.body.removeChild(ta);
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+// Event bindings
+document.getElementById('lengthSlider').addEventListener('input', (e) => {
+  state.length = parseInt(e.target.value);
+  updateDisplay();
+});
+
+document.querySelectorAll('.toggle').forEach(toggle => {
+  toggle.addEventListener('click', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    const key = toggle.dataset.toggle;
+    state[key] = !state[key];
+    toggle.classList.toggle('active', state[key]);
+    toggle.querySelector('input').checked = state[key];
+    // If we'd have no charsets, prevent
+    if (key !== 'excludeAmbiguous') {
+      const anyEnabled = state.uppercase || state.lowercase || state.numbers || state.symbols;
+      if (!anyEnabled) {
+        state[key] = true;
+        toggle.classList.add('active');
+        toggle.querySelector('input').checked = true;
+        showToast('At least one set required');
+        return;
+      }
     }
+    updateDisplay();
   });
+});
 
-  /* Clear history */
-  $clearHistory.addEventListener('click', () => {
-    state.history = [];
-    renderHistory();
-    showToast('History cleared');
-  });
+document.getElementById('generateBtn').addEventListener('click', () => {
+  const pw = generatePassword();
+  if (pw) {
+    state.lastPassword = pw;
+    displayPassword(pw);
+    addToHistory(pw);
+    updateDisplay();
+  }
+});
 
-  /* Keyboard shortcut: Space/Enter on generate */
-  document.addEventListener('keydown', e => {
-    if (e.key === 'g' && !e.ctrlKey && !e.metaKey && e.target === document.body) {
-      generate();
-    }
-  });
+document.getElementById('copyBtn').addEventListener('click', () => {
+  copyToClipboard(state.lastPassword);
+});
 
-  /* ─── Init ─── */
-  updateSliderTrack();
+document.getElementById('clearBtn').addEventListener('click', () => {
+  if (state.history.length === 0) return;
+  state.history = [];
+  renderHistory();
+  showToast('History cleared');
+});
+
+// Keyboard shortcut: spacebar to generate
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && !e.target.classList.contains('toggle')) {
+    e.preventDefault();
+    document.getElementById('generateBtn').click();
+  }
+});
+
+// Floating particles (binary + symbols for atmosphere)
+function createParticles() {
+  const container = document.getElementById('particles');
+  const chars = '01ABCDEF!@#$%^&*abcdef0123456789';
+  const count = 35;
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.textContent = chars[Math.floor(Math.random() * chars.length)];
+    p.style.left = Math.random() * 100 + '%';
+    p.style.fontSize = (Math.random() * 22 + 12) + 'px';
+    p.style.animationDuration = (Math.random() * 25 + 20) + 's';
+    p.style.animationDelay = (Math.random() * 25) + 's';
+    if (Math.random() > 0.65) p.style.color = 'var(--cyan)';
+    else if (Math.random() > 0.5) p.style.color = 'var(--pink)';
+    container.appendChild(p);
+  }
+}
+
+// Init
+createParticles();
+updateDisplay();
+renderHistory();
+
+// Auto-generate one on load for immediate feedback
+setTimeout(() => {
+  document.getElementById('generateBtn').click();
+}, 400);
+
+// Refresh history times periodically
+setInterval(() => {
+  if (state.history.length > 0) renderHistory();
+}, 30000);
 </script>
+
 </body>
 </html>

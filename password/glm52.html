@@ -3,1033 +3,967 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cipher — Password Generator</title>
+<title>Cipher — Password Forge</title>
 <style>
   :root {
-    --bg: #0a0a0f;
-    --bg-2: #12121a;
-    --card: rgba(22, 22, 32, 0.65);
-    --card-solid: #16161e;
+    --bg: #07080b;
+    --bg-grad-1: #0d1410;
+    --bg-grad-2: #0a0a12;
+    --card: rgba(18, 22, 26, 0.55);
+    --card-strong: rgba(22, 28, 32, 0.85);
     --border: rgba(255, 255, 255, 0.07);
     --border-strong: rgba(255, 255, 255, 0.14);
-    --fg: #f4f4f8;
-    --muted: #7a7a88;
-    --dim: #4a4a55;
-    --accent: #d4ff3a;
-    --accent-glow: rgba(212, 255, 58, 0.45);
-    --accent-2: #ff5e3a;
-    --accent-3: #00d9ff;
-    --weak: #ff3a5e;
-    --medium: #ff8c3a;
-    --strong: #ffd23a;
-    --very-strong: #d4ff3a;
+    --text: #e8efe8;
+    --muted: #6a7572;
+    --accent: #a8ff60;
+    --accent-dim: rgba(168, 255, 96, 0.15);
+    --danger: #ff4e64;
+    --warning: #ffb938;
+    --good: #00e0c6;
+    --excellent: #a8ff60;
+    --weak: #ff4e64;
+    --medium: #ffb938;
   }
-
+  
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
+  
   html, body {
-    background: var(--bg);
-    color: var(--fg);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     min-height: 100vh;
+    font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
+    background: var(--bg);
+    color: var(--text);
     overflow-x: hidden;
-    -webkit-font-smoothing: antialiased;
   }
-
+  
   body {
-    background:
-      radial-gradient(ellipse 80% 50% at 20% 0%, rgba(212, 255, 58, 0.08), transparent 60%),
-      radial-gradient(ellipse 60% 50% at 80% 100%, rgba(255, 94, 58, 0.06), transparent 60%),
-      radial-gradient(ellipse 40% 30% at 50% 50%, rgba(0, 217, 255, 0.04), transparent 60%),
-      var(--bg);
-    background-attachment: fixed;
     position: relative;
+    padding: 28px 20px 60px;
   }
-
-  /* Animated grid backdrop */
-  body::before {
-    content: '';
+  
+  /* Animated background */
+  .bg-grid {
     position: fixed;
     inset: 0;
-    background-image:
-      linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-    background-size: 60px 60px;
-    pointer-events: none;
-    z-index: 0;
-    mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 30%, transparent 100%);
-    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 30%, transparent 100%);
+    background-image: 
+      linear-gradient(rgba(168, 255, 96, 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(168, 255, 96, 0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+    z-index: -3;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
   }
-
-  /* Floating noise dots */
-  body::after {
-    content: '';
+  
+  .bg-glow {
     position: fixed;
     inset: 0;
-    background-image:
-      radial-gradient(circle at 15% 25%, rgba(212, 255, 58, 0.4) 1px, transparent 1px),
-      radial-gradient(circle at 85% 75%, rgba(255, 94, 58, 0.3) 1px, transparent 1px),
-      radial-gradient(circle at 50% 50%, rgba(0, 217, 255, 0.2) 1px, transparent 1px),
-      radial-gradient(circle at 25% 85%, rgba(212, 255, 58, 0.3) 1px, transparent 1px),
-      radial-gradient(circle at 75% 15%, rgba(255, 94, 58, 0.2) 1px, transparent 1px);
-    background-size: 100% 100%;
+    background: 
+      radial-gradient(ellipse 800px 600px at 15% 20%, rgba(168, 255, 96, 0.08), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 85% 80%, rgba(0, 224, 198, 0.06), transparent 60%),
+      radial-gradient(ellipse 500px 400px at 50% 50%, rgba(255, 185, 56, 0.03), transparent 70%);
+    z-index: -2;
+    animation: glowDrift 20s ease-in-out infinite;
+  }
+  
+  @keyframes glowDrift {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(-30px, 20px) scale(1.05); }
+  }
+  
+  /* Floating particles */
+  .particles {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
     pointer-events: none;
-    z-index: 0;
-    animation: drift 20s ease-in-out infinite alternate;
-    opacity: 0.6;
+    overflow: hidden;
   }
-
-  @keyframes drift {
-    0% { transform: translate(0, 0); }
-    100% { transform: translate(-20px, 20px); }
+  
+  .particle {
+    position: absolute;
+    color: var(--accent);
+    font-size: 11px;
+    opacity: 0;
+    font-family: monospace;
+    text-shadow: 0 0 8px currentColor;
+    animation: floatUp linear infinite;
   }
-
+  
+  @keyframes floatUp {
+    0% { transform: translateY(110vh) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.4; }
+    90% { opacity: 0.4; }
+    100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+  }
+  
   .container {
-    position: relative;
-    z-index: 1;
-    max-width: 1280px;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 32px 24px 64px;
+    position: relative;
   }
-
+  
   /* Header */
   header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    margin-bottom: 40px;
+    align-items: center;
+    margin-bottom: 36px;
     padding-bottom: 24px;
     border-bottom: 1px solid var(--border);
   }
-
+  
   .brand {
     display: flex;
     align-items: center;
     gap: 14px;
   }
-
-  .brand-mark {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  
+  .logo {
+    width: 48px;
+    height: 48px;
+    border: 1px solid var(--accent);
     display: grid;
     place-items: center;
-    box-shadow: 0 0 30px rgba(212, 255, 58, 0.3);
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-size: 22px;
+    font-weight: bold;
+    box-shadow: 0 0 24px rgba(168, 255, 96, 0.25), inset 0 0 12px rgba(168, 255, 96, 0.1);
     position: relative;
-    overflow: hidden;
+    animation: logoPulse 3s ease-in-out infinite;
   }
-
-  .brand-mark::before {
-    content: '';
-    position: absolute;
-    inset: 2px;
-    border-radius: 10px;
-    background: var(--bg);
+  
+  @keyframes logoPulse {
+    0%, 100% { box-shadow: 0 0 24px rgba(168, 255, 96, 0.25), inset 0 0 12px rgba(168, 255, 96, 0.1); }
+    50% { box-shadow: 0 0 36px rgba(168, 255, 96, 0.45), inset 0 0 18px rgba(168, 255, 96, 0.2); }
   }
-
-  .brand-mark svg {
-    position: relative;
-    z-index: 1;
-    width: 22px;
-    height: 22px;
-  }
-
+  
   .brand-text h1 {
     font-size: 22px;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 2px;
   }
-
+  
   .brand-text p {
     font-size: 11px;
     color: var(--muted);
-    margin-top: 4px;
-    letter-spacing: 0.1em;
+    letter-spacing: 2px;
     text-transform: uppercase;
   }
-
-  .status-pill {
+  
+  .header-status {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    font-size: 12px;
+    gap: 10px;
+    font-size: 11px;
     color: var(--muted);
-    backdrop-filter: blur(10px);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
   }
-
+  
   .status-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
     background: var(--accent);
-    box-shadow: 0 0 10px var(--accent-glow);
-    animation: pulse 2s ease-in-out infinite;
+    box-shadow: 0 0 12px var(--accent);
+    animation: blink 2s ease-in-out infinite;
   }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.6; transform: scale(0.85); }
+  
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
   }
-
+  
   /* Main grid */
   .main-grid {
     display: grid;
-    grid-template-columns: 1.4fr 1fr;
+    grid-template-columns: 1fr 380px;
     gap: 24px;
   }
-
-  @media (max-width: 980px) {
+  
+  @media (max-width: 920px) {
     .main-grid { grid-template-columns: 1fr; }
   }
-
+  
   .panel {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 28px;
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+    padding: 28px;
     position: relative;
     overflow: hidden;
   }
-
+  
   .panel::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 0; left: 0; right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
   }
-
+  
   .panel-label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
+    gap: 8px;
   }
-
-  .panel-label span {
-    font-size: 11px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--muted);
-    font-weight: 600;
+  
+  .panel-label::before {
+    content: '';
+    width: 4px;
+    height: 4px;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
   }
-
-  .panel-label .meta {
-    font-family: "SF Mono", "JetBrains Mono", "Fira Code", Consolas, monospace;
-    font-size: 11px;
-    color: var(--dim);
-  }
-
+  
   /* Password display */
-  .password-panel {
-    grid-column: 1;
-  }
-
   .password-display {
     background: rgba(0, 0, 0, 0.4);
     border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 24px;
-    min-height: 110px;
+    padding: 24px 20px;
+    margin-bottom: 20px;
+    position: relative;
+    min-height: 90px;
     display: flex;
     align-items: center;
-    gap: 16px;
-    position: relative;
-    overflow: hidden;
-    transition: border-color 0.3s ease;
+    word-break: break-all;
+    transition: border-color 0.3s;
   }
-
+  
+  .password-display:hover {
+    border-color: var(--border-strong);
+  }
+  
   .password-display::after {
     content: '';
     position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(212, 255, 58, 0.08), transparent 40%);
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s ease;
+    top: 8px; right: 8px;
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+    animation: blink 1.5s ease-in-out infinite;
   }
-
-  .password-display:hover::after { opacity: 1; }
-
-  .password-display.flash {
-    animation: flash 0.6s ease;
-  }
-
-  @keyframes flash {
-    0% { border-color: var(--accent); box-shadow: 0 0 40px rgba(212, 255, 58, 0.3); }
-    100% { border-color: var(--border); box-shadow: none; }
-  }
-
+  
   .password-text {
-    flex: 1;
-    font-family: "SF Mono", "JetBrains Mono", "Fira Code", Consolas, monospace;
     font-size: 22px;
     font-weight: 500;
-    letter-spacing: 0.02em;
-    word-break: break-all;
+    letter-spacing: 1.5px;
+    color: var(--text);
     line-height: 1.4;
-    color: var(--fg);
-    position: relative;
-    z-index: 1;
+    flex: 1;
+    transition: all 0.3s;
   }
-
-  .password-text .char {
-    display: inline-block;
-    animation: charIn 0.4s ease backwards;
+  
+  .password-text.placeholder {
+    color: var(--muted);
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
   }
-
-  @keyframes charIn {
-    0% { opacity: 0; transform: translateY(8px); filter: blur(4px); }
-    100% { opacity: 1; transform: translateY(0); filter: blur(0); }
-  }
-
-  .password-text .char.num { color: var(--accent-3); }
-  .password-text .char.sym { color: var(--accent-2); }
-  .password-text .char.up { color: var(--accent); }
-
+  
+  .password-text .char-num { color: var(--accent); }
+  .password-text .char-sym { color: var(--warning); }
+  .password-text .char-up { color: var(--good); }
+  .password-text .char-low { color: var(--text); }
+  
   .copy-btn {
-    flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--border);
-    color: var(--fg);
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    color: var(--text);
+    padding: 10px 16px;
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
     cursor: pointer;
-    display: grid;
-    place-items: center;
-    transition: all 0.2s ease;
-    position: relative;
-    z-index: 1;
+    transition: all 0.2s;
+    margin-left: 16px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
-
+  
   .copy-btn:hover {
     background: var(--accent);
-    border-color: var(--accent);
     color: var(--bg);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(212, 255, 58, 0.3);
+    border-color: var(--accent);
+    box-shadow: 0 0 20px var(--accent-dim);
   }
-
-  .copy-btn:active { transform: translateY(0); }
-
-  .copy-btn svg { width: 18px; height: 18px; }
-
+  
+  .copy-btn:active {
+    transform: scale(0.96);
+  }
+  
   /* Strength meter */
   .strength-section {
-    margin-top: 20px;
+    margin-bottom: 24px;
   }
-
+  
   .strength-header {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
   }
-
-  .strength-header .label {
-    font-size: 11px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
+  
+  .strength-label {
+    font-size: 10px;
     color: var(--muted);
-    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
   }
-
+  
   .strength-value {
     font-size: 14px;
     font-weight: 700;
-    letter-spacing: 0.05em;
+    letter-spacing: 2px;
     text-transform: uppercase;
+    transition: color 0.3s;
   }
-
+  
   .strength-bar {
-    height: 8px;
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 4px;
-    overflow: hidden;
-    position: relative;
     display: flex;
-    gap: 3px;
+    gap: 4px;
+    height: 6px;
   }
-
+  
   .strength-segment {
     flex: 1;
-    background: rgba(255, 255, 255, 0.04);
-    border-radius: 2px;
-    transition: background 0.4s ease, box-shadow 0.4s ease;
+    background: rgba(255, 255, 255, 0.05);
+    transition: all 0.4s;
+    position: relative;
+    overflow: hidden;
   }
-
-  .strength-segment.active.weak { background: var(--weak); box-shadow: 0 0 12px var(--weak); }
-  .strength-segment.active.medium { background: var(--medium); box-shadow: 0 0 12px var(--medium); }
-  .strength-segment.active.strong { background: var(--strong); box-shadow: 0 0 12px var(--strong); }
-  .strength-segment.active.very-strong { background: var(--very-strong); box-shadow: 0 0 12px var(--accent-glow); }
-
-  /* Stats row */
-  .stats-row {
+  
+  .strength-segment.active {
+    background: var(--current-color, var(--accent));
+    box-shadow: 0 0 12px var(--current-color, var(--accent));
+  }
+  
+  .strength-segment.active::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: shimmer 2s linear infinite;
+  }
+  
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  
+  /* Metrics row */
+  .metrics {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 12px;
-    margin-top: 20px;
+    margin-bottom: 28px;
   }
-
-  .stat {
+  
+  .metric {
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px 16px;
+    padding: 14px;
+    text-align: center;
+    transition: border-color 0.2s;
   }
-
-  .stat-label {
-    font-size: 10px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--muted);
-    font-weight: 600;
-    margin-bottom: 6px;
+  
+  .metric:hover {
+    border-color: var(--accent);
   }
-
-  .stat-value {
-    font-family: "SF Mono", "JetBrains Mono", "Fira Code", Consolas, monospace;
-    font-size: 20px;
+  
+  .metric-value {
+    font-size: 26px;
     font-weight: 700;
-    color: var(--fg);
-    letter-spacing: -0.02em;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 6px;
+    font-variant-numeric: tabular-nums;
   }
-
-  .stat-value .unit {
-    font-size: 12px;
+  
+  .metric-label {
+    font-size: 9px;
     color: var(--muted);
-    font-weight: 500;
-    margin-left: 4px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
   }
-
+  
   /* Generate button */
   .generate-btn {
     width: 100%;
-    margin-top: 24px;
-    padding: 18px;
     background: var(--accent);
     color: var(--bg);
     border: none;
-    border-radius: 14px;
-    font-size: 15px;
-    font-weight: 800;
-    letter-spacing: 0.05em;
+    padding: 18px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
     text-transform: uppercase;
     cursor: pointer;
     position: relative;
     overflow: hidden;
-    transition: all 0.2s ease;
-    box-shadow: 0 8px 24px rgba(212, 255, 58, 0.25);
+    transition: all 0.2s;
+    box-shadow: 0 0 0 0 var(--accent);
   }
-
+  
+  .generate-btn:hover {
+    box-shadow: 0 0 30px rgba(168, 255, 96, 0.4);
+    transform: translateY(-1px);
+  }
+  
+  .generate-btn:active {
+    transform: translateY(0);
+  }
+  
   .generate-btn::before {
     content: '';
     position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-    transform: translateX(-100%);
-    transition: transform 0.6s ease;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    transition: left 0.6s;
   }
-
-  .generate-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 32px rgba(212, 255, 58, 0.4);
+  
+  .generate-btn:hover::before {
+    left: 100%;
   }
-
-  .generate-btn:hover::before { transform: translateX(100%); }
-  .generate-btn:active { transform: translateY(0); }
-
-  .generate-btn-content {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    position: relative;
-    z-index: 1;
+  
+  .generate-btn .key-hint {
+    font-size: 10px;
+    opacity: 0.6;
+    margin-left: 12px;
+    padding: 2px 6px;
+    border: 1px solid currentColor;
   }
-
-  /* Controls panel */
-  .controls-panel {
-    grid-column: 2;
-  }
-
-  @media (max-width: 980px) {
-    .password-panel, .controls-panel { grid-column: 1; }
-  }
-
+  
+  /* Length slider */
   .control-group {
     margin-bottom: 24px;
   }
-
-  .control-group:last-child { margin-bottom: 0; }
-
-  /* Length slider */
-  .length-header {
+  
+  .control-header {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
     margin-bottom: 14px;
   }
-
-  .length-header .label {
+  
+  .control-title {
     font-size: 11px;
-    letter-spacing: 0.15em;
+    color: var(--text);
+    letter-spacing: 2px;
     text-transform: uppercase;
-    color: var(--muted);
     font-weight: 600;
   }
-
+  
   .length-value {
-    font-family: "SF Mono", "JetBrains Mono", "Fira Code", Consolas, monospace;
-    font-size: 24px;
-    font-weight: 800;
+    font-size: 32px;
+    font-weight: 700;
     color: var(--accent);
-    letter-spacing: -0.02em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 20px rgba(168, 255, 96, 0.4);
   }
-
-  .slider-wrap {
+  
+  .slider-wrapper {
     position: relative;
-    padding: 10px 0;
+    padding: 12px 0;
   }
-
-  .slider {
+  
+  input[type="range"] {
     -webkit-appearance: none;
     appearance: none;
     width: 100%;
-    height: 6px;
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 3px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.08);
     outline: none;
-    background-image: linear-gradient(90deg, var(--accent), var(--accent));
-    background-size: 0% 100%;
-    background-repeat: no-repeat;
-    transition: background-size 0.1s ease;
+    cursor: pointer;
   }
-
-  .slider::-webkit-slider-thumb {
+  
+  input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: var(--fg);
-    border: 4px solid var(--accent);
+    width: 20px;
+    height: 20px;
+    background: var(--accent);
     cursor: pointer;
-    box-shadow: 0 0 0 4px rgba(212, 255, 58, 0.15), 0 4px 12px rgba(0, 0, 0, 0.4);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 0 1px var(--accent), 0 0 16px rgba(168, 255, 96, 0.6);
+    transition: transform 0.15s;
   }
-
-  .slider::-webkit-slider-thumb:hover {
-    transform: scale(1.15);
-    box-shadow: 0 0 0 6px rgba(212, 255, 58, 0.2), 0 6px 16px rgba(0, 0, 0, 0.5);
+  
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
   }
-
-  .slider::-moz-range-thumb {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: var(--fg);
-    border: 4px solid var(--accent);
+  
+  input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: var(--accent);
     cursor: pointer;
-    box-shadow: 0 0 0 4px rgba(212, 255, 58, 0.15);
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 0 1px var(--accent), 0 0 16px rgba(168, 255, 96, 0.6);
   }
-
+  
   .slider-ticks {
     display: flex;
     justify-content: space-between;
     margin-top: 10px;
-    font-family: "SF Mono", "JetBrains Mono", "Fira Code", Consolas, monospace;
-    font-size: 10px;
-    color: var(--dim);
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 1px;
   }
-
+  
   /* Toggle options */
   .options-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
+    margin-bottom: 16px;
   }
-
+  
+  @media (max-width: 480px) {
+    .options-grid { grid-template-columns: 1fr; }
+  }
+  
   .toggle {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 14px;
+    padding: 12px 14px;
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid var(--border);
-    border-radius: 12px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s;
     user-select: none;
   }
-
+  
   .toggle:hover {
-    background: rgba(0, 0, 0, 0.5);
     border-color: var(--border-strong);
+    background: rgba(0, 0, 0, 0.5);
   }
-
+  
   .toggle.active {
-    background: rgba(212, 255, 58, 0.08);
-    border-color: rgba(212, 255, 58, 0.4);
-  }
-
-  .toggle-checkbox {
-    width: 20px;
-    height: 20px;
-    border-radius: 6px;
-    border: 2px solid var(--dim);
-    background: transparent;
-    flex-shrink: 0;
-    position: relative;
-    transition: all 0.2s ease;
-    display: grid;
-    place-items: center;
-  }
-
-  .toggle.active .toggle-checkbox {
-    background: var(--accent);
     border-color: var(--accent);
+    background: var(--accent-dim);
   }
-
-  .toggle-checkbox svg {
-    width: 12px;
-    height: 12px;
-    opacity: 0;
-    transform: scale(0.5);
-    transition: all 0.2s ease;
-    color: var(--bg);
+  
+  .toggle input {
+    display: none;
   }
-
-  .toggle.active .toggle-checkbox svg {
-    opacity: 1;
-    transform: scale(1);
+  
+  .toggle-indicator {
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid var(--muted);
+    margin-right: 12px;
+    position: relative;
+    transition: all 0.2s;
+    flex-shrink: 0;
   }
-
-  .toggle-info {
+  
+  .toggle.active .toggle-indicator {
+    border-color: var(--accent);
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent-dim);
+  }
+  
+  .toggle.active .toggle-indicator::after {
+    content: '';
+    position: absolute;
+    left: 3px; top: 0px;
+    width: 4px; height: 8px;
+    border: solid var(--bg);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  
+  .toggle-label {
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 500;
     flex: 1;
-    min-width: 0;
   }
-
-  .toggle-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--fg);
-    margin-bottom: 2px;
-  }
-
+  
   .toggle-sample {
-    font-family: "SF Mono", "JetBrains Mono", "Fira Code", Consolas, monospace;
-    font-size: 10px;
+    font-size: 11px;
     color: var(--muted);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    margin-left: 8px;
+    letter-spacing: 1px;
   }
-
-  .toggle.full-width {
-    grid-column: span 2;
+  
+  .toggle.active .toggle-sample {
+    color: var(--accent);
   }
-
+  
+  /* Ambiguous toggle full width */
+  .toggle-full {
+    grid-column: 1 / -1;
+  }
+  
   /* History */
   .history-panel {
     margin-top: 24px;
   }
-
-  .history-list {
+  
+  .history-header {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-    max-height: 380px;
-    overflow-y: auto;
-    padding-right: 4px;
-  }
-
-  .history-list::-webkit-scrollbar { width: 6px; }
-  .history-list::-webkit-scrollbar-track { background: transparent; }
-  .history-list::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
-
-  .history-item {
-    display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    transition: all 0.2s ease;
-    animation: slideIn 0.4s ease;
+    margin-bottom: 16px;
   }
-
-  @keyframes slideIn {
-    0% { opacity: 0; transform: translateX(-12px); }
-    100% { opacity: 1; transform: translateX(0); }
-  }
-
-  .history-item:hover {
-    background: rgba(0, 0, 0, 0.5);
-    border-color: var(--border-strong);
-  }
-
-  .history-index {
-    font-family: "SF Mono", "JetBrains Mono", "Fira Code", Consolas, monospace;
-    font-size: 10px;
-    color: var(--dim);
-    width: 24px;
-    flex-shrink: 0;
-  }
-
-  .history-password {
-    flex: 1;
-    font-family: "SF Mono", "JetBrains Mono", "Fira Code", Consolas, monospace;
-    font-size: 13px;
-    color: var(--fg);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .history-meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-  }
-
-  .history-strength-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-  }
-
-  .history-copy {
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
+  
+  .clear-btn {
     background: transparent;
     border: 1px solid var(--border);
     color: var(--muted);
+    padding: 6px 12px;
+    font-family: inherit;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
     cursor: pointer;
-    display: grid;
-    place-items: center;
-    transition: all 0.2s ease;
+    transition: all 0.2s;
   }
-
-  .history-copy:hover {
-    background: var(--accent);
+  
+  .clear-btn:hover {
+    color: var(--danger);
+    border-color: var(--danger);
+  }
+  
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 420px;
+    overflow-y: auto;
+  }
+  
+  .history-list::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .history-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .history-list::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+  }
+  
+  .history-item {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s;
+    animation: slideIn 0.3s ease-out;
+  }
+  
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  
+  .history-item:hover {
     border-color: var(--accent);
-    color: var(--bg);
+    background: rgba(0, 0, 0, 0.5);
   }
-
-  .history-copy svg { width: 12px; height: 12px; }
-
-  .empty-state {
+  
+  .history-index {
+    font-size: 10px;
+    color: var(--muted);
+    width: 24px;
+    text-align: right;
+  }
+  
+  .history-pwd {
+    flex: 1;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    color: var(--text);
+    word-break: break-all;
+    cursor: pointer;
+  }
+  
+  .history-pwd:hover {
+    color: var(--accent);
+  }
+  
+  .history-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+  
+  .history-strength {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  
+  .history-time {
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+  
+  .history-empty {
     text-align: center;
     padding: 40px 20px;
     color: var(--muted);
-    font-size: 13px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
   }
-
+  
   /* Toast */
   .toast {
     position: fixed;
-    bottom: 32px;
+    bottom: 30px;
     left: 50%;
-    transform: translateX(-50%) translateY(120%);
-    background: var(--card-solid);
-    border: 1px solid var(--accent);
-    color: var(--fg);
-    padding: 14px 24px;
-    border-radius: 12px;
-    font-size: 13px;
-    font-weight: 600;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(212, 255, 58, 0.2);
+    transform: translateX(-50%) translateY(20px);
+    background: var(--accent);
+    color: var(--bg);
+    padding: 12px 24px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s;
     z-index: 1000;
-    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    box-shadow: 0 0 30px rgba(168, 255, 96, 0.4);
   }
-
+  
   .toast.show {
+    opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
-
-  .toast svg { width: 16px; height: 16px; color: var(--accent); }
-
-  /* Footer */
-  .footer {
-    margin-top: 48px;
-    padding-top: 24px;
-    border-top: 1px solid var(--border);
+  
+  /* Footer note */
+  .footer-note {
     text-align: center;
+    margin-top: 32px;
+    font-size: 10px;
     color: var(--muted);
-    font-size: 12px;
-    letter-spacing: 0.05em;
+    letter-spacing: 2px;
+    text-transform: uppercase;
   }
-
-  .footer kbd {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid var(--border);
-    border-radius: 4px;
+  
+  .footer-note kbd {
+    display: inline-block;
     padding: 2px 6px;
-    font-family: "SF Mono", "JetBrains Mono", "Fira Code", Consolas, monospace;
-    font-size: 11px;
-    color: var(--fg);
+    border: 1px solid var(--border-strong);
+    margin: 0 2px;
+    font-family: inherit;
+    font-size: 9px;
+    color: var(--text);
   }
-
-  @media (max-width: 600px) {
-    .container { padding: 20px 16px 40px; }
-    .panel { padding: 20px; }
-    .password-text { font-size: 16px; }
-    .stats-row { grid-template-columns: 1fr; }
-    .options-grid { grid-template-columns: 1fr; }
-    .toggle.full-width { grid-column: span 1; }
-    header { flex-direction: column; gap: 16px; align-items: flex-start; }
+  
+  /* Scanline effect on password */
+  .password-display.generating::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(180deg, transparent 0%, rgba(168, 255, 96, 0.1) 50%, transparent 100%);
+    animation: scan 0.8s ease-out;
+    pointer-events: none;
   }
-
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      transition-duration: 0.01ms !important;
-    }
+  
+  @keyframes scan {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100%); }
   }
 </style>
 </head>
 <body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+  <div class="particles" id="particles"></div>
+  
   <div class="container">
     <header>
       <div class="brand">
-        <div class="brand-mark">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="11" width="18" height="11" rx="2" stroke="#d4ff3a"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#ff5e3a"/>
-          </svg>
-        </div>
+        <div class="logo">⌬</div>
         <div class="brand-text">
           <h1>CIPHER</h1>
-          <p>Entropy Generator</p>
+          <p>Password Forge v2.4</p>
         </div>
       </div>
-      <div class="status-pill">
+      <div class="header-status">
         <span class="status-dot"></span>
-        <span>Cryptographically secure</span>
+        <span>Cryptographic Engine Online</span>
       </div>
     </header>
-
+    
     <div class="main-grid">
-      <!-- Left: Password display + strength -->
-      <div class="panel password-panel">
-        <div class="panel-label">
-          <span>Generated Password</span>
-          <span class="meta" id="charsetMeta">— charset</span>
-        </div>
-
-        <div class="password-display" id="passwordDisplay">
-          <div class="password-text" id="passwordText">Click generate to begin</div>
-          <button class="copy-btn" id="copyBtn" title="Copy to clipboard" aria-label="Copy password">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2"/>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-            </svg>
+      <!-- Left: Generator -->
+      <div>
+        <div class="panel">
+          <div class="panel-label">Generated Output</div>
+          
+          <div class="password-display" id="passwordDisplay">
+            <div class="password-text placeholder" id="passwordText">Awaiting Generation</div>
+            <button class="copy-btn" id="copyBtn" title="Copy to clipboard">
+              <span>Copy</span>
+            </button>
+          </div>
+          
+          <div class="strength-section">
+            <div class="strength-header">
+              <span class="strength-label">Security Strength</span>
+              <span class="strength-value" id="strengthValue" style="color: var(--muted);">— None —</span>
+            </div>
+            <div class="strength-bar">
+              <div class="strength-segment" data-seg="1"></div>
+              <div class="strength-segment" data-seg="2"></div>
+              <div class="strength-segment" data-seg="3"></div>
+              <div class="strength-segment" data-seg="4"></div>
+            </div>
+          </div>
+          
+          <div class="metrics">
+            <div class="metric">
+              <div class="metric-value" id="metricLength">0</div>
+              <div class="metric-label">Characters</div>
+            </div>
+            <div class="metric">
+              <div class="metric-value" id="metricEntropy">0</div>
+              <div class="metric-label">Entropy Bits</div>
+            </div>
+            <div class="metric">
+              <div class="metric-value" id="metricPool">0</div>
+              <div class="metric-label">Pool Size</div>
+            </div>
+          </div>
+          
+          <button class="generate-btn" id="generateBtn">
+            <span>⚡ Forge Password</span>
+            <span class="key-hint">SPACE</span>
           </button>
         </div>
-
-        <div class="strength-section">
-          <div class="strength-header">
-            <span class="label">Strength</span>
-            <span class="strength-value" id="strengthValue">—</span>
+        
+        <div class="panel" style="margin-top: 24px;">
+          <div class="panel-label">Configuration</div>
+          
+          <div class="control-group">
+            <div class="control-header">
+              <span class="control-title">Password Length</span>
+              <span class="length-value" id="lengthValue">16</span>
+            </div>
+            <div class="slider-wrapper">
+              <input type="range" id="lengthSlider" min="8" max="64" value="16">
+              <div class="slider-ticks">
+                <span>8</span>
+                <span>20</span>
+                <span>32</span>
+                <span>44</span>
+                <span>64</span>
+              </div>
+            </div>
           </div>
-          <div class="strength-bar" id="strengthBar">
-            <div class="strength-segment"></div>
-            <div class="strength-segment"></div>
-            <div class="strength-segment"></div>
-            <div class="strength-segment"></div>
-          </div>
-        </div>
-
-        <div class="stats-row">
-          <div class="stat">
-            <div class="stat-label">Length</div>
-            <div class="stat-value"><span id="charCount">0</span><span class="unit">chars</span></div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Entropy</div>
-            <div class="stat-value"><span id="entropyValue">0</span><span class="unit">bits</span></div>
-          </div>
-          <div class="stat">
-            <div class="stat-label">Pool Size</div>
-            <div class="stat-value"><span id="poolSize">0</span></div>
-          </div>
-        </div>
-
-        <button class="generate-btn" id="generateBtn">
-          <span class="generate-btn-content">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/>
-              <path d="M21 3v5h-5"/>
-            </svg>
-            Generate Password
-          </span>
-        </button>
-      </div>
-
-      <!-- Right: Controls -->
-      <div class="panel controls-panel">
-        <div class="panel-label">
-          <span>Configuration</span>
-          <span class="meta">client-side</span>
-        </div>
-
-        <div class="control-group">
-          <div class="length-header">
-            <span class="label">Password Length</span>
-            <span class="length-value" id="lengthValue">16</span>
-          </div>
-          <div class="slider-wrap">
-            <input type="range" min="8" max="64" value="16" class="slider" id="lengthSlider">
-          </div>
-          <div class="slider-ticks">
-            <span>8</span>
-            <span>20</span>
-            <span>32</span>
-            <span>44</span>
-            <span>56</span>
-            <span>64</span>
-          </div>
-        </div>
-
-        <div class="control-group">
-          <div class="length-header">
-            <span class="label">Character Sets</span>
-          </div>
+          
           <div class="options-grid">
-            <div class="toggle active" data-option="lowercase">
-              <div class="toggle-checkbox">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"/>
-                </svg>
-              </div>
-              <div class="toggle-info">
-                <div class="toggle-title">Lowercase</div>
-                <div class="toggle-sample">a b c d e f</div>
-              </div>
-            </div>
-
-            <div class="toggle active" data-option="uppercase">
-              <div class="toggle-checkbox">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"/>
-                </svg>
-              </div>
-              <div class="toggle-info">
-                <div class="toggle-title">Uppercase</div>
-                <div class="toggle-sample">A B C D E F</div>
-              </div>
-            </div>
-
-            <div class="toggle active" data-option="numbers">
-              <div class="toggle-checkbox">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"/>
-                </svg>
-              </div>
-              <div class="toggle-info">
-                <div class="toggle-title">Numbers</div>
-                <div class="toggle-sample">0 1 2 3 4 5</div>
-              </div>
-            </div>
-
-            <div class="toggle active" data-option="symbols">
-              <div class="toggle-checkbox">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"/>
-                </svg>
-              </div>
-              <div class="toggle-info">
-                <div class="toggle-title">Symbols</div>
-                <div class="toggle-sample">! @ # $ % ^</div>
-              </div>
-            </div>
-
-            <div class="toggle full-width" data-option="excludeAmbiguous">
-              <div class="toggle-checkbox">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"/>
-                </svg>
-              </div>
-              <div class="toggle-info">
-                <div class="toggle-title">Exclude ambiguous characters</div>
-                <div class="toggle-sample">Removes: 0 O 1 l I | ` ' " { } [ ] ( ) / \ ; :</div>
-              </div>
-            </div>
+            <label class="toggle active" data-option="uppercase">
+              <input type="checkbox" checked>
+              <span class="toggle-indicator"></span>
+              <span class="toggle-label">Uppercase</span>
+              <span class="toggle-sample">A-Z</span>
+            </label>
+            
+            <label class="toggle active" data-option="lowercase">
+              <input type="checkbox" checked>
+              <span class="toggle-indicator"></span>
+              <span class="toggle-label">Lowercase</span>
+              <span class="toggle-sample">a-z</span>
+            </label>
+            
+            <label class="toggle active" data-option="numbers">
+              <input type="checkbox" checked>
+              <span class="toggle-indicator"></span>
+              <span class="toggle-label">Numbers</span>
+              <span class="toggle-sample">0-9</span>
+            </label>
+            
+            <label class="toggle active" data-option="symbols">
+              <input type="checkbox" checked>
+              <span class="toggle-indicator"></span>
+              <span class="toggle-label">Symbols</span>
+              <span class="toggle-sample">!@#$</span>
+            </label>
+            
+            <label class="toggle toggle-full" data-option="excludeAmbiguous">
+              <input type="checkbox">
+              <span class="toggle-indicator"></span>
+              <span class="toggle-label">Exclude Ambiguous</span>
+              <span class="toggle-sample">No 0/O/1/l/I</span>
+            </label>
           </div>
         </div>
       </div>
-
-      <!-- History panel (full width below) -->
-      <div class="panel history-panel" style="grid-column: 1 / -1;">
-        <div class="panel-label">
-          <span>Recent Passwords</span>
-          <span class="meta" id="historyCount">0 of 10</span>
+      
+      <!-- Right: History -->
+      <div class="panel history-panel">
+        <div class="history-header">
+          <div class="panel-label" style="margin-bottom: 0;">Generation History</div>
+          <button class="clear-btn" id="clearBtn">Clear</button>
         </div>
         <div class="history-list" id="historyList">
-          <div class="empty-state">Generated passwords will appear here for quick recall.</div>
+          <div class="history-empty">No passwords generated yet</div>
         </div>
       </div>
     </div>
-
-    <div class="footer">
-      Press <kbd>Space</kbd> or <kbd>Enter</kbd> to generate · All processing happens locally in your browser
+    
+    <div class="footer-note">
+      Press <kbd>SPACE</kbd> to generate · <kbd>C</kbd> to copy · Click any history item to reuse
     </div>
   </div>
-
-  <div class="toast" id="toast">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="20 6 9 17 4 12"/>
-    </svg>
-    <span id="toastMsg">Copied to clipboard</span>
-  </div>
+  
+  <div class="toast" id="toast">Copied to clipboard</div>
 
 <script>
-(function() {
-  'use strict';
-
-  // Character sets
-  const CHARSETS = {
-    lowercase: 'abcdefghijklmnopqrstuvwxyz',
+  // Character pools
+  const CHAR_SETS = {
     uppercase: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    lowercase: 'abcdefghijklmnopqrstuvwxyz',
     numbers: '0123456789',
-    symbols: '!@#$%^&*()-_=+[]{}|;:,.<>?~'
+    symbols: '!@#$%^&*()_+-=[]{}|;:,.<>?~'
   };
-
-  const AMBIGUOUS = /[0O1lI|`'"\{\}\[\]()\/\\;:]/g;
-
+  
+  const AMBIGUOUS = 'Il1O0o';
+  
   // State
   const state = {
     length: 16,
     options: {
-      lowercase: true,
       uppercase: true,
+      lowercase: true,
       numbers: true,
       symbols: true,
       excludeAmbiguous: false
     },
-    currentPassword: '',
+    password: '',
     history: []
   };
-
-  // DOM refs
+  
+  // DOM
   const $ = id => document.getElementById(id);
   const lengthSlider = $('lengthSlider');
   const lengthValue = $('lengthValue');
@@ -1038,276 +972,340 @@
   const copyBtn = $('copyBtn');
   const generateBtn = $('generateBtn');
   const strengthValue = $('strengthValue');
-  const strengthBar = $('strengthBar');
-  const charCount = $('charCount');
-  const entropyValue = $('entropyValue');
-  const poolSize = $('poolSize');
-  const charsetMeta = $('charsetMeta');
+  const strengthSegments = document.querySelectorAll('.strength-segment');
+  const metricLength = $('metricLength');
+  const metricEntropy = $('metricEntropy');
+  const metricPool = $('metricPool');
   const historyList = $('historyList');
-  const historyCount = $('historyCount');
+  const clearBtn = $('clearBtn');
   const toast = $('toast');
-  const toastMsg = $('toastMsg');
-
-  // Build character pool based on options
-  function buildPool() {
-    let pool = '';
-    const activeSets = [];
-    if (state.options.lowercase) { pool += CHARSETS.lowercase; activeSets.push('a-z'); }
-    if (state.options.uppercase) { pool += CHARSETS.uppercase; activeSets.push('A-Z'); }
-    if (state.options.numbers) { pool += CHARSETS.numbers; activeSets.push('0-9'); }
-    if (state.options.symbols) { pool += CHARSETS.symbols; activeSets.push('sym'); }
-    if (state.options.excludeAmbiguous) {
-      pool = pool.replace(AMBIGUOUS, '');
+  
+  // Crypto-safe random
+  function secureRandom(max) {
+    if (window.crypto && window.crypto.getRandomValues) {
+      const arr = new Uint32Array(1);
+      const range = 4294967296;
+      const limit = range - (range % max);
+      let r;
+      do {
+        window.crypto.getRandomValues(arr);
+        r = arr[0];
+      } while (r >= limit);
+      return r % max;
     }
-    return { pool, activeSets };
+    return Math.floor(Math.random() * max);
   }
-
-  // Secure random integer in [0, max)
-  function secureRandomInt(max) {
-    if (max <= 0) return 0;
-    const range = 256;
-    const buf = new Uint8Array(1);
-    const limit = Math.floor(range / max) * max;
-    let val;
-    do {
-      crypto.getRandomValues(buf);
-      val = buf[0];
-    } while (val >= limit);
-    return val % max;
+  
+  // Build character pool
+  function getPool() {
+    let pool = '';
+    const sets = [];
+    if (state.options.uppercase) sets.push(CHAR_SETS.uppercase);
+    if (state.options.lowercase) sets.push(CHAR_SETS.lowercase);
+    if (state.options.numbers) sets.push(CHAR_SETS.numbers);
+    if (state.options.symbols) sets.push(CHAR_SETS.symbols);
+    
+    pool = sets.join('');
+    
+    if (state.options.excludeAmbiguous) {
+      pool = pool.split('').filter(c => !AMBIGUOUS.includes(c)).join('');
+    }
+    
+    return pool;
   }
-
+  
   // Generate password
   function generatePassword() {
-    const { pool, activeSets } = buildPool();
-    if (!pool || activeSets.length === 0) {
-      showToast('Select at least one character set', false);
+    const pool = getPool();
+    if (pool.length === 0) {
+      showToast('Select at least one character type');
       return;
     }
-
-    const len = state.length;
-    const chars = [];
-    for (let i = 0; i < len; i++) {
-      chars.push(pool[secureRandomInt(pool.length)]);
+    
+    // Ensure at least one from each selected set
+    const mandatory = [];
+    const activeSets = [];
+    if (state.options.uppercase) {
+      let s = CHAR_SETS.uppercase;
+      if (state.options.excludeAmbiguous) s = s.split('').filter(c => !AMBIGUOUS.includes(c)).join('');
+      activeSets.push(s);
     }
-    const password = chars.join('');
-    state.currentPassword = password;
-
-    renderPassword(password);
-    updateStats(pool.length, activeSets);
-    updateStrength(password, pool.length);
-    addToHistory(password, pool.length);
-
-    passwordDisplay.classList.remove('flash');
-    void passwordDisplay.offsetWidth;
-    passwordDisplay.classList.add('flash');
+    if (state.options.lowercase) {
+      let s = CHAR_SETS.lowercase;
+      if (state.options.excludeAmbiguous) s = s.split('').filter(c => !AMBIGUOUS.includes(c)).join('');
+      activeSets.push(s);
+    }
+    if (state.options.numbers) {
+      let s = CHAR_SETS.numbers;
+      if (state.options.excludeAmbiguous) s = s.split('').filter(c => !AMBIGUOUS.includes(c)).join('');
+      activeSets.push(s);
+    }
+    if (state.options.symbols) {
+      activeSets.push(CHAR_SETS.symbols);
+    }
+    
+    const chars = [];
+    // Add one from each active set first
+    activeSets.forEach(set => {
+      chars.push(set[secureRandom(set.length)]);
+    });
+    
+    // Fill the rest
+    while (chars.length < state.length) {
+      chars.push(pool[secureRandom(pool.length)]);
+    }
+    
+    // Shuffle
+    for (let i = chars.length - 1; i > 0; i--) {
+      const j = secureRandom(i + 1);
+      [chars[i], chars[j]] = [chars[j], chars[i]];
+    }
+    
+    state.password = chars.slice(0, state.length).join('');
+    
+    // Animate
+    passwordDisplay.classList.add('generating');
+    setTimeout(() => passwordDisplay.classList.remove('generating'), 800);
+    
+    renderPassword();
+    updateMetrics();
+    updateStrength();
+    addToHistory();
   }
-
-  // Render password with character-level color coding and animation
-  function renderPassword(password) {
-    const html = password.split('').map((ch, i) => {
-      let cls = 'char';
-      if (/[0-9]/.test(ch)) cls += ' num';
-      else if (/[A-Z]/.test(ch)) cls += ' up';
-      else if (/[^a-zA-Z0-9]/.test(ch)) cls += ' sym';
-      const delay = Math.min(i * 12, 400);
-      const safe = ch === '<' ? '&lt;' : ch === '>' ? '&gt;' : ch === '&' ? '&amp;' : ch;
-      return `<span class="${cls}" style="animation-delay:${delay}ms">${safe}</span>`;
+  
+  // Render password with colored chars
+  function renderPassword() {
+    if (!state.password) {
+      passwordText.classList.add('placeholder');
+      passwordText.textContent = 'Awaiting Generation';
+      return;
+    }
+    passwordText.classList.remove('placeholder');
+    const html = state.password.split('').map(c => {
+      let cls = 'char-low';
+      if (/\d/.test(c)) cls = 'char-num';
+      else if (/[A-Z]/.test(c)) cls = 'char-up';
+      else if (/[^a-zA-Z0-9]/.test(c)) cls = 'char-sym';
+      return `<span class="${cls}">${escapeHtml(c)}</span>`;
     }).join('');
     passwordText.innerHTML = html;
   }
-
-  // Update stats
-  function updateStats(poolLen, activeSets) {
-    charCount.textContent = state.currentPassword.length;
-    const entropy = Math.round(state.currentPassword.length * Math.log2(poolLen));
-    entropyValue.textContent = entropy;
-    poolSize.textContent = poolLen;
-    charsetMeta.textContent = activeSets.join(' · ') + ' · ' + poolLen + ' chars';
+  
+  function escapeHtml(c) {
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    return map[c] || c;
   }
-
-  // Strength calculation
-  function calcStrength(password, poolLen) {
-    const entropy = password.length * Math.log2(poolLen);
-    if (entropy < 40) return { level: 'weak', label: 'Weak', segments: 1, score: 0 };
-    if (entropy < 60) return { level: 'medium', label: 'Medium', segments: 2, score: 1 };
-    if (entropy < 100) return { level: 'strong', label: 'Strong', segments: 3, score: 2 };
-    return { level: 'very-strong', label: 'Very Strong', segments: 4, score: 3 };
+  
+  // Calculate entropy
+  function calculateEntropy() {
+    const pool = getPool();
+    if (pool.length === 0) return 0;
+    return Math.round(state.length * Math.log2(pool.length));
   }
-
-  function updateStrength(password, poolLen) {
-    const s = calcStrength(password, poolLen);
-    strengthValue.textContent = s.label;
-    const colorVar = s.level === 'weak' ? 'var(--weak)' :
-                     s.level === 'medium' ? 'var(--medium)' :
-                     s.level === 'strong' ? 'var(--strong)' : 'var(--very-strong)';
-    strengthValue.style.color = colorVar;
-
-    const segments = strengthBar.children;
-    for (let i = 0; i < segments.length; i++) {
-      segments[i].className = 'strength-segment';
-      if (i < s.segments) {
-        segments[i].classList.add('active', s.level);
+  
+  // Update metrics
+  function updateMetrics() {
+    const pool = getPool();
+    metricLength.textContent = state.password.length;
+    metricEntropy.textContent = calculateEntropy();
+    metricPool.textContent = pool.length;
+  }
+  
+  // Strength
+  function getStrengthLevel(entropy) {
+    if (entropy < 40) return { level: 1, label: 'Weak', color: 'var(--weak)' };
+    if (entropy < 70) return { level: 2, label: 'Medium', color: 'var(--medium)' };
+    if (entropy < 100) return { level: 3, label: 'Strong', color: 'var(--good)' };
+    return { level: 4, label: 'Very Strong', color: 'var(--excellent)' };
+  }
+  
+  function updateStrength() {
+    const entropy = calculateEntropy();
+    const { level, label, color } = getStrengthLevel(entropy);
+    
+    strengthValue.textContent = `— ${label} —`;
+    strengthValue.style.color = color;
+    
+    strengthSegments.forEach((seg, i) => {
+      if (i < level) {
+        seg.classList.add('active');
+        seg.style.setProperty('--current-color', color);
+      } else {
+        seg.classList.remove('active');
       }
-    }
+    });
   }
-
+  
   // History
-  function addToHistory(password, poolLen) {
+  function addToHistory() {
+    const entropy = calculateEntropy();
+    const { label, color } = getStrengthLevel(entropy);
     const entry = {
-      password,
-      strength: calcStrength(password, poolLen),
-      time: Date.now()
+      password: state.password,
+      entropy,
+      strength: label,
+      color,
+      time: new Date()
     };
     state.history.unshift(entry);
     if (state.history.length > 10) state.history.pop();
     renderHistory();
   }
-
+  
   function renderHistory() {
     if (state.history.length === 0) {
-      historyList.innerHTML = '<div class="empty-state">Generated passwords will appear here for quick recall.</div>';
-      historyCount.textContent = '0 of 10';
+      historyList.innerHTML = '<div class="history-empty">No passwords generated yet</div>';
       return;
     }
-    historyCount.textContent = state.history.length + ' of 10';
-    historyList.innerHTML = state.history.map((entry, idx) => {
-      const colorVar = entry.strength.level === 'weak' ? 'var(--weak)' :
-                       entry.strength.level === 'medium' ? 'var(--medium)' :
-                       entry.strength.level === 'strong' ? 'var(--strong)' : 'var(--very-strong)';
-      const safe = entry.password
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
+    
+    historyList.innerHTML = state.history.map((entry, i) => {
+      const timeStr = formatTime(entry.time);
       return `
-        <div class="history-item">
-          <span class="history-index">${String(idx + 1).padStart(2, '0')}</span>
-          <span class="history-password">${safe}</span>
+        <div class="history-item" data-pwd="${escapeHtml(entry.password)}">
+          <div class="history-index">${String(i + 1).padStart(2, '0')}</div>
+          <div class="history-pwd">${escapeHtml(entry.password)}</div>
           <div class="history-meta">
-            <span class="history-strength-dot" style="background:${colorVar};box-shadow:0 0 8px ${colorVar}"></span>
-            <button class="history-copy" data-idx="${idx}" title="Copy" aria-label="Copy password">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2"/>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-              </svg>
-            </button>
+            <div class="history-strength" style="color: ${entry.color}">${entry.strength}</div>
+            <div class="history-time">${entry.entropy} bit · ${timeStr}</div>
           </div>
         </div>
       `;
     }).join('');
-
-    // Attach copy handlers
-    historyList.querySelectorAll('.history-copy').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const idx = parseInt(btn.dataset.idx);
-        copyToClipboard(state.history[idx].password);
+    
+    // Click to reuse
+    historyList.querySelectorAll('.history-item').forEach(item => {
+      item.addEventListener('click', () => {
+        state.password = item.dataset.pwd;
+        renderPassword();
+        updateMetrics();
+        updateStrength();
+        copyToClipboard(state.password);
       });
     });
   }
-
-  // Copy to clipboard
+  
+  function formatTime(date) {
+    const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (diff < 60) return 'just now';
+    if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    return Math.floor(diff / 86400) + 'd ago';
+  }
+  
+  // Copy
   async function copyToClipboard(text) {
     if (!text) {
-      showToast('Nothing to copy yet', false);
+      showToast('Nothing to copy');
       return;
     }
     try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        const ta = document.createElement('textarea');
-        ta.value = text;
-        ta.style.position = 'fixed';
-        ta.style.left = '-9999px';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-      }
-      showToast('Copied to clipboard', true);
+      await navigator.clipboard.writeText(text);
+      showToast('✓ Copied to clipboard');
     } catch (e) {
-      showToast('Copy failed', false);
+      // Fallback
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast('✓ Copied to clipboard');
+      } catch {
+        showToast('Copy failed');
+      }
+      document.body.removeChild(ta);
     }
   }
-
+  
   // Toast
   let toastTimer;
-  function showToast(msg, success = true) {
-    toastMsg.textContent = msg;
-    toast.style.borderColor = success ? 'var(--accent)' : 'var(--accent-2)';
+  function showToast(msg) {
+    toast.textContent = msg;
     toast.classList.add('show');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toast.classList.remove('show'), 2200);
   }
-
-  // Update slider visual
-  function updateSliderTrack() {
-    const min = parseInt(lengthSlider.min);
-    const max = parseInt(lengthSlider.max);
-    const val = parseInt(lengthSlider.value);
-    const pct = ((val - min) / (max - min)) * 100;
-    lengthSlider.style.backgroundSize = pct + '% 100%';
-  }
-
-  // Event handlers
-  lengthSlider.addEventListener('input', () => {
-    state.length = parseInt(lengthSlider.value);
+  
+  // Events
+  lengthSlider.addEventListener('input', e => {
+    state.length = parseInt(e.target.value);
     lengthValue.textContent = state.length;
-    updateSliderTrack();
-  });
-
-  // Initialize slider track
-  updateSliderTrack();
-
-  // Toggle handlers
-  document.querySelectorAll('.toggle').forEach(toggle => {
-    toggle.addEventListener('click', () => {
-      const opt = toggle.dataset.option;
-      // Prevent disabling the last active charset
-      if (!state.options[opt]) {
-        state.options[opt] = true;
-      } else {
-        // Count active charsets (exclude excludeAmbiguous)
-        const activeCount = ['lowercase', 'uppercase', 'numbers', 'symbols']
-          .filter(k => state.options[k]).length;
-        if (activeCount <= 1 && ['lowercase', 'uppercase', 'numbers', 'symbols'].includes(opt)) {
-          showToast('At least one character set required', false);
-          return;
-        }
-        state.options[opt] = false;
-      }
-      toggle.classList.toggle('active', state.options[opt]);
-    });
-  });
-
-  generateBtn.addEventListener('click', generatePassword);
-  copyBtn.addEventListener('click', () => copyToClipboard(state.currentPassword));
-
-  // Mouse glow on password display
-  passwordDisplay.addEventListener('mousemove', e => {
-    const rect = passwordDisplay.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    passwordDisplay.style.setProperty('--mx', x + '%');
-    passwordDisplay.style.setProperty('--my', y + '%');
-  });
-
-  // Keyboard shortcuts
-  document.addEventListener('keydown', e => {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    if (e.code === 'Space' || e.code === 'Enter') {
-      e.preventDefault();
-      generatePassword();
-    } else if (e.code === 'KeyC' && (e.ctrlKey || e.metaKey)) {
-      if (state.currentPassword && window.getSelection().toString() === '') {
-        e.preventDefault();
-        copyToClipboard(state.currentPassword);
-      }
+    if (state.password) {
+      updateMetrics();
+      updateStrength();
     }
   });
-
-  // Generate initial password
+  
+  document.querySelectorAll('.toggle').forEach(toggle => {
+    toggle.addEventListener('click', e => {
+      e.preventDefault();
+      const option = toggle.dataset.option;
+      // Don't allow all 4 char types to be off
+      if (['uppercase', 'lowercase', 'numbers', 'symbols'].includes(option)) {
+        const otherActive = ['uppercase', 'lowercase', 'numbers', 'symbols']
+          .filter(o => o !== option)
+          .some(o => state.options[o]);
+        if (state.options[option] && !otherActive) {
+          showToast('At least one type required');
+          return;
+        }
+      }
+      state.options[option] = !state.options[option];
+      toggle.classList.toggle('active');
+      toggle.querySelector('input').checked = state.options[option];
+      if (state.password) {
+        updateMetrics();
+        updateStrength();
+      }
+    });
+  });
+  
+  generateBtn.addEventListener('click', generatePassword);
+  
+  copyBtn.addEventListener('click', () => {
+    copyToClipboard(state.password);
+  });
+  
+  clearBtn.addEventListener('click', () => {
+    state.history = [];
+    renderHistory();
+    showToast('History cleared');
+  });
+  
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    if (e.code === 'Space') {
+      e.preventDefault();
+      generatePassword();
+    } else if (e.key.toLowerCase() === 'c' && !e.ctrlKey && !e.metaKey) {
+      copyToClipboard(state.password);
+    }
+  });
+  
+  // Particles
+  function createParticles() {
+    const container = $('particles');
+    const chars = '01';
+    const count = 30;
+    for (let i = 0; i < count; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.textContent = chars[Math.floor(Math.random() * chars.length)];
+      p.style.left = Math.random() * 100 + '%';
+      p.style.animationDuration = (15 + Math.random() * 20) + 's';
+      p.style.animationDelay = (Math.random() * 20) + 's';
+      p.style.fontSize = (8 + Math.random() * 8) + 'px';
+      if (Math.random() > 0.5) {
+        p.style.color = '#00e0c6';
+      }
+      container.appendChild(p);
+    }
+  }
+  
+  // Init
+  createParticles();
   generatePassword();
-})();
 </script>
 </body>
 </html>

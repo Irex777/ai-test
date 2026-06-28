@@ -1,637 +1,304 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown Editor</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Markdown Editor</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg-primary:#1a1b26;--bg-secondary:#16161e;--bg-tertiary:#1f2335;
+--text-primary:#c0caf5;--text-secondary:#565f89;--text-highlight:#7aa2f7;
+--border:#292e42;--accent:#7aa2f7;--accent-hover:#89b4fa;
+--green:#9ece6a;--purple:#bb9af7;--orange:#ff9e64;--red:#f7768e;
+--yellow:#e0af68;--cyan:#7dcfff;--pink:#f7768e;
+--toolbar-bg:#16161e;--editor-bg:#1a1b26;--preview-bg:#16161e;
+--scrollbar:#292e42;--scrollbar-thumb:#414868;
+--shadow:0 4px 24px rgba(0,0,0,0.3);
+}
+body{
+font-family:'SF Mono',SFMono-Regular,Consolas,'Liberation Mono',Menlo,monospace;
+background:var(--bg-primary);color:var(--text-primary);
+min-height:100vh;overflow:hidden;
+}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:var(--scrollbar)}
+::-webkit-scrollbar-thumb{background:var(--scrollbar-thumb);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-secondary)}
+
+.app{display:flex;flex-direction:column;height:100vh}
+
+.toolbar{
+background:var(--toolbar-bg);border-bottom:1px solid var(--border);
+padding:8px 16px;display:flex;align-items:center;gap:4px;flex-shrink:0;
+}
+.toolbar-group{display:flex;align-items:center;gap:2px}
+.toolbar-divider{width:1px;height:24px;background:var(--border);margin:0 8px}
+.tool-btn{
+background:none;border:1px solid transparent;color:var(--text-secondary);
+padding:6px 10px;border-radius:6px;cursor:pointer;font-size:13px;
+display:flex;align-items:center;gap:5px;transition:all 0.15s ease;
+font-family:inherit;
+}
+.tool-btn:hover{background:var(--bg-tertiary);color:var(--text-primary);border-color:var(--border)}
+.tool-btn:active{background:var(--border);transform:scale(0.96)}
+.tool-btn svg{width:16px;height:16px;fill:currentColor}
+.tool-btn.active{color:var(--accent);border-color:var(--accent);background:rgba(122,162,247,0.1)}
+
+.toolbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.word-count{font-size:12px;color:var(--text-secondary);white-space:nowrap}
+.copy-btn{
+background:var(--accent);color:#1a1b26;border:none;padding:6px 12px;
+border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;
+font-family:inherit;transition:all 0.15s ease;display:flex;align-items:center;gap:4px;
+}
+.copy-btn:hover{background:var(--accent-hover);transform:translateY(-1px)}
+.copy-btn:active{transform:scale(0.96)}
+.copy-btn.copied{background:var(--green);color:#1a1b26}
+
+.main{display:flex;flex:1;overflow:hidden}
+.editor-pane,.preview-pane{
+flex:1;display:flex;flex-direction:column;overflow:hidden;
+}
+.pane-header{
+padding:8px 16px;background:var(--bg-secondary);border-bottom:1px solid var(--border);
+font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px;
+color:var(--text-secondary);display:flex;align-items:center;gap:6px;flex-shrink:0;
+}
+.pane-header .dot{width:8px;height:8px;border-radius:50%}
+.pane-header .dot-editor{background:var(--accent)}
+.pane-header .dot-preview{background:var(--green)}
+
+.editor-container{flex:1;position:relative;overflow:hidden}
+#editor{
+width:100%;height:100%;background:var(--editor-bg);color:var(--text-primary);
+border:none;outline:none;resize:none;padding:24px;font-size:14px;
+line-height:1.7;tab-size:2;font-family:inherit;
+}
+#editor::placeholder{color:var(--text-secondary)}
+
+.preview-container{flex:1;overflow-y:auto;padding:24px}
+#preview{
+font-size:14px;line-height:1.75;color:var(--text-primary);word-wrap:break-word;
+}
+
+/* Markdown Preview Styles */
+#preview h1{font-size:2em;margin:0.8em 0 0.4em;padding-bottom:0.3em;border-bottom:2px solid var(--border);color:var(--text-highlight)}
+#preview h2{font-size:1.5em;margin:0.8em 0 0.4em;padding-bottom:0.2em;border-bottom:1px solid var(--border);color:var(--text-highlight)}
+#preview h3{font-size:1.25em;margin:0.8em 0 0.4em;color:var(--text-highlight)}
+#preview h4{font-size:1.1em;margin:0.8em 0 0.4em;color:var(--text-highlight)}
+#preview h5{font-size:1em;margin:0.8em 0 0.4em;color:var(--text-highlight)}
+#preview h6{font-size:0.9em;margin:0.8em 0 0.4em;color:var(--text-secondary)}
+
+#preview p{margin:0.6em 0}
+#preview strong{color:var(--orange);font-weight:700}
+#preview em{color:var(--purple);font-style:italic}
+#preview a{color:var(--accent);text-decoration:none;border-bottom:1px dashed var(--accent)}
+#preview a:hover{border-bottom-style:solid}
+
+#preview code{
+background:var(--bg-tertiary);color:var(--cyan);padding:2px 6px;
+border-radius:4px;font-size:0.9em;font-family:inherit;
+}
+#preview pre{
+background:var(--bg-tertiary);border:1px solid var(--border);
+border-radius:8px;padding:16px;margin:1em 0;overflow-x:auto;
+}
+#preview pre code{background:none;padding:0;color:var(--text-primary);font-size:13px;line-height:1.6}
+
+#preview blockquote{
+border-left:3px solid var(--yellow);padding:8px 16px;margin:1em 0;
+background:rgba(224,175,104,0.05);border-radius:0 6px 6px 0;color:var(--text-secondary);
+}
+#preview blockquote p{margin:0.3em 0}
+
+#preview ul,#preview ol{padding-left:2em;margin:0.6em 0}
+#preview li{margin:0.3em 0}
+#preview li::marker{color:var(--accent)}
+
+#preview hr{border:none;height:2px;background:var(--border);margin:2em 0;border-radius:1px}
+
+#preview img{max-width:100%;border-radius:8px}
+
+#preview table{border-collapse:collapse;margin:1em 0;width:100%}
+#preview th,#preview td{border:1px solid var(--border);padding:8px 12px;text-align:left}
+#preview th{background:var(--bg-tertiary);color:var(--text-highlight);font-weight:600}
+#preview tr:nth-child(even){background:rgba(255,255,255,0.02)}
+
+#preview input[type="checkbox"]{margin-right:6px;accent-color:var(--accent)}
+
+.resize-handle{
+width:4px;cursor:col-resize;background:var(--border);flex-shrink:0;
+transition:background 0.15s;
+}
+.resize-handle:hover,.resize-handle.active{background:var(--accent)}
+
+/* Mobile responsive */
+@media(max-width:768px){
+.main{flex-direction:column}
+.editor-pane,.preview-pane{flex:1;min-height:0}
+.resize-handle{
+width:100%;height:4px;cursor:row-resize;
+}
+.toolbar{flex-wrap:wrap;gap:2px;padding:6px 8px}
+.toolbar-divider{display:none}
+.toolbar-group{flex-wrap:wrap}
+.tool-btn{padding:6px 8px;font-size:12px}
+.tool-btn span.btn-label{display:none}
+.toolbar-right{width:100%;justify-content:flex-end;margin-top:4px}
+.word-count{display:none}
+#editor{padding:16px}
+.preview-container{padding:16px}
+}
+
+@media(max-width:480px){
+.tool-btn span.btn-label{display:none}
+.tool-btn{padding:6px 6px}
+}
+
+/* Toast notification */
+.toast{
+position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+background:var(--green);color:#1a1b26;padding:8px 20px;border-radius:8px;
+font-size:13px;font-weight:600;opacity:0;transition:opacity 0.3s;
+pointer-events:none;z-index:100;
+}
+.toast.show{opacity:1}
+</style>
 </head>
 <body>
-    <style>
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+<div class="app">
+<div class="toolbar">
+<div class="toolbar-group">
+<button class="tool-btn" onclick="insertFormat('bold')" title="Bold (Ctrl+B)">
+<svg viewBox="0 0 24 24"><path d="M15.6 10.79c.97-.67 1.65-1.77 1.65-2.79 0-2.26-1.75-4-4-4H7v14h7.04c2.09 0 3.71-1.7 3.71-3.79 0-1.52-.86-2.82-2.15-3.42zM10 6.5h3c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-3v-3zm3.5 9H10v-3h3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"/></svg>
+<span class="btn-label">Bold</span>
+</button>
+<button class="tool-btn" onclick="insertFormat('italic')" title="Italic (Ctrl+I)">
+<svg viewBox="0 0 24 24"><path d="M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4z"/></svg>
+<span class="btn-label">Italic</span>
+</button>
+<button class="tool-btn" onclick="insertFormat('strikethrough')" title="Strikethrough">
+<svg viewBox="0 0 24 24"><path d="M10 19h4v-3h-4v3zM5.45 7.17c-.18.18-.29.42-.29.68 0 .55.45 1 1 1h11.28c.26 0 .5-.11.68-.29.12-.12.19-.27.22-.43H4.55c-.55 0-1-.45-1-1 0-.26.11-.5.29-.68L10.29 4c.18-.18.42-.29.68-.29.55 0 1 .45 1 1v.55h7.27c.55 0 1 .45 1 1 0 .26-.11.5-.29.68L13.71 20c-.18.18-.42.29-.68.29-.55 0-1-.45-1-1v-.55H5.45c-.55 0-1-.45-1-1 0-.26.11-.5.29-.68L10.29 4.55z"/></svg>
+<span class="btn-label">Strike</span>
+</button>
+</div>
+<div class="toolbar-divider"></div>
+<div class="toolbar-group">
+<button class="tool-btn" onclick="insertFormat('h1')" title="Heading 1">
+<svg viewBox="0 0 24 24"><path d="M5 4v3h5.5v10h3V7H19V4z"/></svg>
+<span class="btn-label">H1</span>
+</button>
+<button class="tool-btn" onclick="insertFormat('h2')" title="Heading 2">
+<svg viewBox="0 0 24 24"><path d="M5 4v3h5.5v10h3V7H19V4z"/></svg>
+<span class="btn-label">H2</span>
+</button>
+<button class="tool-btn" onclick="insertFormat('h3')" title="Heading 3">
+<svg viewBox="0 0 24 24"><path d="M5 4v3h5.5v10h3V7H19V4z"/></svg>
+<span class="btn-label">H3</span>
+</button>
+</div>
+<div class="toolbar-divider"></div>
+<div class="toolbar-group">
+<button class="tool-btn" onclick="insertFormat('link')" title="Link (Ctrl+K)">
+<svg viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>
+<span class="btn-label">Link</span>
+</button>
+<button class="tool-btn" onclick="insertFormat('image')" title="Image">
+<svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+<span class="btn-label">Image</span>
+</button>
+<button class="tool-btn" onclick="insertFormat('code')" title="Inline Code">
+<svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
+<span class="btn-label">Code</span>
+</button>
+<button class="tool-btn" onclick="insertFormat('codeblock')" title="Code Block">
+<svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V8h16v10zM7 10h2v4H7v-4zm4 0h2v4h-2v-4zm4 0h2v4h-2v-4z"/></svg>
+<span class="btn-label">Code Block</span>
+</button>
+</div>
+<div class="toolbar-divider"></div>
+<div class="toolbar-group">
+<button class="tool-btn" onclick="insertFormat('ul')" title="Unordered List">
+<svg viewBox="0 0 24 24"><path d="M4 10.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm0-6c-.83 0-1.5.67-1.5 1.5S3.17 7.5 4 7.5 5.5 6.83 5.5 6 4.83 4.5 4 4.5zm0 12c-.83 0-1.5.68-1.5 1.5s.68 1.5 1.5 1.5 1.5-.68 1.5-1.5-.67-1.5-1.5-1.5zM20 18h-7v-1.5h7V18zm0-4h-9v-1.5h9V14zm0-4h-7v-1.5h7V10zm0-4h-9V4h9v2.5z"/></svg>
+<span class="btn-label">List</span>
+</button>
+<button class="tool-btn" onclick="insertFormat('ol')" title="Ordered List">
+<svg viewBox="0 0 24 24"><path d="M2 17h2v.5H3v1h1v.5H2v1h3v-4H2v1zm1-9h1V4H2v1h1v3zm-1 5h1V8H2v1h1v3zm1 5h1v-3H3v1h1v3zM20 6v2h-6V6h6zm0 4v2h-6v-2h6zm0 4v2h-6v-2h6zm0 4v2h-6v-2h6zm0-16v2H9V6h11z"/></svg>
+<span class="btn-label">Numbered</span>
+</button>
+<button class="tool-btn" onclick="insertFormat('quote')" title="Blockquote">
+<svg viewBox="0 0 24 24"><path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z"/></svg>
+<span class="btn-label">Quote</span>
+</button>
+<button class="tool-btn" onclick="insertFormat('hr')" title="Horizontal Rule">
+<svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
+<span class="btn-label">HR</span>
+</button>
+</div>
+<div class="toolbar-right">
+<span class="word-count" id="wordCount">0 words · 0 characters</span>
+<button class="copy-btn" id="copyBtn" onclick="copyMarkdown()">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+Copy
+</button>
+</div>
+</div>
+<div class="main">
+<div class="editor-pane">
+<div class="pane-header"><span class="dot dot-editor"></span>Editor</div>
+<div class="editor-container">
+<textarea id="editor" placeholder="Start writing markdown..."></textarea>
+</div>
+</div>
+<div class="resize-handle" id="resizeHandle"></div>
+<div class="preview-pane">
+<div class="pane-header"><span class="dot dot-preview"></span>Preview</div>
+<div class="preview-container">
+<div id="preview"></div>
+</div>
+</div>
+</div>
+<div class="toast" id="toast">Copied to clipboard!</div>
+</div>
+<script>
+const editor = document.getElementById('editor');
+const preview = document.getElementById('preview');
+const wordCountEl = document.getElementById('wordCount');
+const copyBtn = document.getElementById('copyBtn');
+const toast = document.getElementById('toast');
+const resizeHandle = document.getElementById('resizeHandle');
 
-        :root {
-            --bg-primary: #1a1a2e;
-            --bg-secondary: #16213e;
-            --bg-tertiary: #0f3460;
-            --bg-editor: #1e1e3a;
-            --bg-preview: #1a1a2e;
-            --text-primary: #e0e0e0;
-            --text-secondary: #a0a0b0;
-            --text-muted: #6c6c80;
-            --accent: #e94560;
-            --accent-hover: #ff6b81;
-            --accent-secondary: #533483;
-            --border: #2a2a4a;
-            --toolbar-bg: #16213e;
-            --hover-bg: #2a2a4a;
-            --scrollbar-thumb: #3a3a5a;
-            --scrollbar-track: #1a1a2e;
-            --code-bg: #0d1117;
-            --blockquote-border: #e94560;
-            --link-color: #6cb4ee;
-            --heading-color: #f0f0f0;
-            --shadow: rgba(0, 0, 0, 0.3);
-            --font-mono: 'Courier New', Consolas, monospace;
-            --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
+const sampleContent = `# Welcome to Markdown Editor ✨
 
-        html, body {
-            height: 100%;
-            font-family: var(--font-sans);
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            overflow: hidden;
-        }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: var(--scrollbar-track);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--scrollbar-thumb);
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #4a4a6a;
-        }
-
-        /* Header / Toolbar */
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: var(--toolbar-bg);
-            border-bottom: 1px solid var(--border);
-            padding: 0 16px;
-            height: 48px;
-            flex-shrink: 0;
-            z-index: 100;
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .logo {
-            font-size: 16px;
-            font-weight: 700;
-            color: var(--accent);
-            letter-spacing: -0.5px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .logo svg {
-            width: 20px;
-            height: 20px;
-        }
-
-        .toolbar {
-            display: flex;
-            align-items: center;
-            gap: 2px;
-        }
-
-        .toolbar-btn {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 500;
-            transition: all 0.15s ease;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            white-space: nowrap;
-        }
-
-        .toolbar-btn:hover {
-            background: var(--hover-bg);
-            color: var(--text-primary);
-        }
-
-        .toolbar-btn:active {
-            background: var(--bg-tertiary);
-        }
-
-        .toolbar-btn svg {
-            width: 15px;
-            height: 15px;
-            fill: currentColor;
-        }
-
-        .toolbar-separator {
-            width: 1px;
-            height: 20px;
-            background: var(--border);
-            margin: 0 6px;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .word-count {
-            font-size: 12px;
-            color: var(--text-muted);
-            padding: 4px 10px;
-            background: var(--bg-primary);
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            white-space: nowrap;
-        }
-
-        .action-btn {
-            background: var(--accent);
-            border: none;
-            color: white;
-            cursor: pointer;
-            padding: 6px 14px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            transition: all 0.15s ease;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            white-space: nowrap;
-        }
-
-        .action-btn:hover {
-            background: var(--accent-hover);
-            transform: translateY(-1px);
-        }
-
-        .action-btn:active {
-            transform: translateY(0);
-        }
-
-        .action-btn svg {
-            width: 13px;
-            height: 13px;
-            fill: currentColor;
-        }
-
-        .action-btn.copied {
-            background: #2ecc71;
-        }
-
-        /* Main Layout */
-        .main {
-            display: flex;
-            height: calc(100vh - 48px);
-            overflow: hidden;
-        }
-
-        .pane {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            min-width: 0;
-        }
-
-        .pane-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 8px 16px;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border);
-            flex-shrink: 0;
-        }
-
-        .pane-title {
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-muted);
-        }
-
-        .pane-icon {
-            width: 16px;
-            height: 16px;
-            fill: var(--text-muted);
-        }
-
-        .divider {
-            width: 4px;
-            background: var(--border);
-            cursor: col-resize;
-            flex-shrink: 0;
-            transition: background 0.15s ease;
-        }
-
-        .divider:hover {
-            background: var(--accent);
-        }
-
-        /* Editor */
-        .editor-container {
-            flex: 1;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        #editor {
-            flex: 1;
-            width: 100%;
-            background: var(--bg-editor);
-            color: var(--text-primary);
-            border: none;
-            outline: none;
-            resize: none;
-            padding: 20px;
-            font-family: var(--font-mono);
-            font-size: 14px;
-            line-height: 1.7;
-            tab-size: 4;
-            overflow-y: auto;
-        }
-
-        #editor::placeholder {
-            color: var(--text-muted);
-        }
-
-        /* Preview */
-        .preview-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px 24px;
-        }
-
-        #preview {
-            line-height: 1.75;
-            font-size: 14px;
-        }
-
-        /* Preview Typography */
-        #preview h1, #preview h2, #preview h3,
-        #preview h4, #preview h5, #preview h6 {
-            color: var(--heading-color);
-            margin: 1.2em 0 0.6em;
-            font-weight: 700;
-            line-height: 1.3;
-        }
-
-        #preview h1 { font-size: 2em; border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
-        #preview h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
-        #preview h3 { font-size: 1.25em; }
-        #preview h4 { font-size: 1.1em; }
-        #preview h5 { font-size: 1em; }
-        #preview h6 { font-size: 0.9em; color: var(--text-secondary); }
-
-        #preview p {
-            margin: 0.8em 0;
-            color: var(--text-primary);
-        }
-
-        #preview a {
-            color: var(--link-color);
-            text-decoration: none;
-            border-bottom: 1px solid transparent;
-            transition: border-color 0.15s;
-        }
-
-        #preview a:hover {
-            border-bottom-color: var(--link-color);
-        }
-
-        #preview strong {
-            font-weight: 700;
-            color: #fff;
-        }
-
-        #preview em {
-            font-style: italic;
-        }
-
-        #preview blockquote {
-            margin: 1em 0;
-            padding: 8px 16px;
-            border-left: 4px solid var(--blockquote-border);
-            background: rgba(233, 69, 96, 0.05);
-            border-radius: 0 8px 8px 0;
-            color: var(--text-secondary);
-        }
-
-        #preview blockquote p {
-            margin: 0.4em 0;
-        }
-
-        #preview code {
-            font-family: var(--font-mono);
-            font-size: 0.88em;
-            background: var(--code-bg);
-            padding: 2px 6px;
-            border-radius: 4px;
-            color: #e06c75;
-            border: 1px solid var(--border);
-        }
-
-        #preview pre {
-            margin: 1em 0;
-            padding: 16px;
-            background: var(--code-bg);
-            border-radius: 8px;
-            overflow-x: auto;
-            border: 1px solid var(--border);
-        }
-
-        #preview pre code {
-            background: none;
-            padding: 0;
-            border: none;
-            color: var(--text-primary);
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        #preview ul, #preview ol {
-            margin: 0.8em 0;
-            padding-left: 2em;
-        }
-
-        #preview li {
-            margin: 0.3em 0;
-            color: var(--text-primary);
-        }
-
-        #preview li::marker {
-            color: var(--accent);
-        }
-
-        #preview hr {
-            border: none;
-            height: 1px;
-            background: var(--border);
-            margin: 2em 0;
-        }
-
-        #preview table {
-            border-collapse: collapse;
-            width: 100%;
-            margin: 1em 0;
-        }
-
-        #preview th, #preview td {
-            border: 1px solid var(--border);
-            padding: 8px 12px;
-            text-align: left;
-        }
-
-        #preview th {
-            background: var(--bg-tertiary);
-            font-weight: 600;
-        }
-
-        #preview img {
-            max-width: 100%;
-            border-radius: 8px;
-        }
-
-        #preview input[type="checkbox"] {
-            margin-right: 6px;
-            accent-color: var(--accent);
-        }
-
-        /* Toast notification */
-        .toast {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            background: #2ecc71;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 600;
-            box-shadow: 0 4px 12px var(--shadow);
-            opacity: 0;
-            transform: translateY(10px);
-            transition: all 0.3s ease;
-            z-index: 1000;
-            pointer-events: none;
-        }
-
-        .toast.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        /* Mobile responsive */
-        @media (max-width: 768px) {
-            .main {
-                flex-direction: column;
-            }
-
-            .divider {
-                width: 100%;
-                height: 4px;
-                cursor: row-resize;
-            }
-
-            .pane {
-                flex: 1;
-                min-height: 0;
-            }
-
-            .header {
-                padding: 0 8px;
-                height: auto;
-                flex-wrap: wrap;
-                padding: 6px 8px;
-                gap: 4px;
-            }
-
-            .toolbar {
-                overflow-x: auto;
-                flex-wrap: nowrap;
-                padding: 2px 0;
-            }
-
-            .toolbar-btn span {
-                display: none;
-            }
-
-            .header-right {
-                gap: 6px;
-            }
-
-            .word-count {
-                font-size: 11px;
-                padding: 3px 8px;
-            }
-
-            #editor {
-                padding: 14px;
-                font-size: 13px;
-            }
-
-            .preview-container {
-                padding: 14px;
-            }
-
-            .logo span {
-                display: none;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .action-btn span {
-                display: none;
-            }
-        }
-    </style>
-
-    <!-- Header / Toolbar -->
-    <header class="header">
-        <div class="header-left">
-            <div class="logo">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 20h9"/>
-                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                </svg>
-                <span>MD Editor</span>
-            </div>
-            <div class="toolbar">
-                <button class="toolbar-btn" onclick="insertFormat('bold')" title="Bold (Ctrl+B)">
-                    <svg viewBox="0 0 24 24"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
-                    <span>Bold</span>
-                </button>
-                <button class="toolbar-btn" onclick="insertFormat('italic')" title="Italic (Ctrl+I)">
-                    <svg viewBox="0 0 24 24"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>
-                    <span>Italic</span>
-                </button>
-                <button class="toolbar-btn" onclick="insertFormat('heading')" title="Heading">
-                    <svg viewBox="0 0 24 24"><path d="M6 4v16M18 4v16M6 12h12"/></svg>
-                    <span>H</span>
-                </button>
-                <div class="toolbar-separator"></div>
-                <button class="toolbar-btn" onclick="insertFormat('link')" title="Link (Ctrl+K)">
-                    <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                    <span>Link</span>
-                </button>
-                <button class="toolbar-btn" onclick="insertFormat('list')" title="Bullet List">
-                    <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1" fill="currentColor"/><circle cx="4" cy="12" r="1" fill="currentColor"/><circle cx="4" cy="18" r="1" fill="currentColor"/></svg>
-                    <span>List</span>
-                </button>
-                <button class="toolbar-btn" onclick="insertFormat('orderedlist')" title="Ordered List">
-                    <svg viewBox="0 0 24 24"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><text x="3" y="8" font-size="7" fill="currentColor" font-weight="bold">1</text><text x="3" y="14" font-size="7" fill="currentColor" font-weight="bold">2</text><text x="3" y="20" font-size="7" fill="currentColor" font-weight="bold">3</text></svg>
-                    <span>OL</span>
-                </button>
-                <div class="toolbar-separator"></div>
-                <button class="toolbar-btn" onclick="insertFormat('code')" title="Inline Code">
-                    <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="8 6 2 12 8 18" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-                    <span>Code</span>
-                </button>
-                <button class="toolbar-btn" onclick="insertFormat('codeblock')" title="Code Block">
-                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="9 8 5 12 9 16" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="15 8 19 12 15 16" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-                    <span>Block</span>
-                </button>
-                <button class="toolbar-btn" onclick="insertFormat('quote')" title="Blockquote">
-                    <svg viewBox="0 0 24 24"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" fill="currentColor" opacity="0.7"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z" fill="currentColor" opacity="0.7"/></svg>
-                    <span>Quote</span>
-                </button>
-                <button class="toolbar-btn" onclick="insertFormat('hr')" title="Horizontal Rule">
-                    <svg viewBox="0 0 24 24"><line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2"/></svg>
-                    <span>HR</span>
-                </button>
-            </div>
-        </div>
-        <div class="header-right">
-            <div class="word-count" id="wordCount">0 words · 0 chars</div>
-            <button class="action-btn" id="copyBtn" onclick="copyMarkdown()">
-                <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" fill="none" stroke="currentColor" stroke-width="2"/></svg>
-                <span>Copy Markdown</span>
-            </button>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <div class="main">
-        <!-- Editor Pane -->
-        <div class="pane" id="editorPane">
-            <div class="pane-header">
-                <span class="pane-title">
-                    <svg class="pane-icon" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                    Editor
-                </span>
-            </div>
-            <div class="editor-container">
-                <textarea id="editor" placeholder="Start writing markdown..."></textarea>
-            </div>
-        </div>
-
-        <!-- Divider -->
-        <div class="divider" id="divider"></div>
-
-        <!-- Preview Pane -->
-        <div class="pane" id="previewPane">
-            <div class="pane-header">
-                <span class="pane-title">
-                    <svg class="pane-icon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    Preview
-                </span>
-            </div>
-            <div class="preview-container">
-                <div id="preview"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast -->
-    <div class="toast" id="toast">✓ Copied to clipboard!</div>
-
-    <script>
-        // Default content
-        const defaultContent = `# Welcome to Markdown Editor ✨
-
-A **powerful** and *lightweight* markdown editor with live preview.
+A **powerful** and *elegant* markdown editor with live preview.
 
 ## Features
 
-- 🎨 Dark theme with elegant design
-- ⚡ Live preview as you type
-- 📋 Formatting toolbar
-- 📱 Fully responsive
-- 🔤 Word & character count
+- 🎨 **Dark theme** with a beautiful color palette
+- ⚡ **Live preview** as you type
+- 🛠️ **Formatting toolbar** for quick formatting
+- 📱 **Responsive** design for all devices
+- 📋 **Copy markdown** with one click
+- 📊 **Word count** and character count
 
-## Getting Started
+## Quick Start
 
-Simply start typing in the editor on the left. Your changes will appear in real-time on the right.
+Start typing in the editor on the left. The preview on the right updates in real-time.
 
 ### Text Formatting
 
-You can write **bold text**, *italic text*, or even ***bold and italic*** text. Use \`inline code\` for code snippets.
+You can write **bold text**, *italic text*, and ~~strikethrough text~~.
 
-### Code Blocks
+### Code
+
+Inline \`code\` looks great. Here's a code block:
 
 \`\`\`javascript
 function greet(name) {
-    console.log(\`Hello, \${name}!\`);
-    return { message: "Welcome to MD Editor" };
+  console.log(\`Hello, \${name}!\`);
 }
-
-greet("World");
+greet('World');
 \`\`\`
 
 ### Blockquotes
@@ -639,71 +306,337 @@ greet("World");
 > "The best way to predict the future is to invent it."
 > — Alan Kay
 
-### Links & Images
+### Links
 
-Visit [GitHub](https://github.com) for more information.
+Check out [GitHub](https://github.com) for more awesome projects.
 
 ### Lists
 
-**Ordered List:**
-1. First item
-2. Second item
-3. Third item
-
-**Unordered List:**
-- Apples
-- Oranges
-- Bananas
-
-**Task List:**
-- [x] Create the editor
-- [x] Add live preview
-- [ ] Take over the world
+1. Open the editor
+2. Write your markdown
+3. See the magic happen!
 
 ### Tables
 
 | Feature | Status |
 |---------|--------|
-| Bold    | ✅ Done |
-| Italic  | ✅ Done |
-| Links   | ✅ Done |
-| Code    | ✅ Done |
+| Live Preview | ✅ Done |
+| Dark Theme | ✅ Done |
+| Toolbar | ✅ Done |
+| Responsive | ✅ Done |
 
 ---
 
 *Happy writing!* 🚀
 `;
 
-        // DOM elements
-        const editor = document.getElementById('editor');
-        const preview = document.getElementById('preview');
-        const wordCountEl = document.getElementById('wordCount');
-        const copyBtn = document.getElementById('copyBtn');
-        const toast = document.getElementById('toast');
+editor.value = sampleContent;
 
-        // Initialize
-        editor.value = defaultContent;
-        updatePreview();
-        updateWordCount();
+// Markdown Parser
+function parseMarkdown(md) {
+    let html = md;
 
-        // Live preview
-        let debounceTimer;
-        editor.addEventListener('input', () => {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                updatePreview();
-                updateWordCount();
-            }, 50);
-        });
+    // Escape HTML (but preserve markdown)
+    html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-        // Markdown parser
-        function parseMarkdown(md) {
-            // Escape HTML entities first (but preserve markdown)
-            let html = md
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;');
+    // Code blocks (fenced)
+    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+        return `<pre><code class="language-${lang}">${code.trim()}</code></pre>`;
+    });
 
-            // Code blocks (fenced) - protect from further processing
-            const codeBlocks = [];
-            html = html.replace(/
+    // Inline code (must come after code blocks to avoid conflicts)
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    // Headings
+    html = html.replace(/^######\s+(.+)$/gm, '<h6>$1</h6>');
+    html = html.replace(/^#####\s+(.+)$/gm, '<h5>$1</h5>');
+    html = html.replace(/^####\s+(.+)$/gm, '<h4>$1</h4>');
+    html = html.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>');
+    html = html.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>');
+    html = html.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
+
+    // Horizontal rules
+    html = html.replace(/^(?:---|\*\*\*|___)\s*$/gm, '<hr>');
+
+    // Images
+    html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">');
+
+    // Links
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+
+    // Blockquotes
+    html = html.replace(/^(?:>\s?(.*)(?:\n|$))+/gm, (match) => {
+        const lines = match.trim().split('\n').map(l => l.replace(/^>\s?/, ''));
+        return '<blockquote>' + lines.join('<br>') + '</blockquote>';
+    });
+
+    // Bold + Italic
+    html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+    html = html.replace(/___(.+?)___/g, '<strong><em>$1</em></strong>');
+
+    // Bold
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+
+    // Italic
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    html = html.replace(/_(.+?)_/g, '<em>$1</em>');
+
+    // Strikethrough
+    html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
+
+    // Checkbox lists
+    html = html.replace(/^- \[x\]\s+(.+)$/gim, '<li><input type="checkbox" checked disabled> $1</li>');
+    html = html.replace(/^- \[ \]\s+(.+)$/gim, '<li><input type="checkbox" disabled> $1</li>');
+
+    // Unordered lists
+    html = html.replace(/^[\-\*+]\s+(.+)$/gm, '<li>$1</li>');
+    html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
+
+    // Ordered lists
+    html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+
+    // Paragraphs - wrap remaining lines
+    html = html.replace(/^(?!<[hupobdl]|<hr|<pre|<blockquote|<img|<del)(.+)$/gm, '<p>$1</p>');
+
+    // Clean up double-wrapped paragraphs
+    html = html.replace(/<p><p>/g, '<p>');
+    html = html.replace(/<\/p><\/p>/g, '</p>');
+
+    // Clean up extra line breaks
+    html = html.replace(/<br><br>/g, '<br>');
+
+    // Fix empty paragraphs
+    html = html.replace(/<p>\s*<\/p>/g, '');
+
+    // Fix list items that weren't wrapped
+    html = html.replace(/<li>([^<]+)<\/li>/g, (match, content) => {
+        if (content.startsWith('<input')) return match;
+        return `<li>${content}</li>`;
+    });
+
+    // Fix standalone list items to be wrapped in ul
+    html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, (match) => {
+        if (match.includes('<input')) return `<ul>${match}</ul>`;
+        return `<ul>${match}</ul>`;
+    });
+
+    return html;
+}
+
+function updatePreview() {
+    preview.innerHTML = parseMarkdown(editor.value);
+    updateWordCount();
+}
+
+function updateWordCount() {
+    const text = editor.value.trim();
+    const chars = text.length;
+    const words = text ? text.split(/\s+/).length : 0;
+    wordCountEl.textContent = `${words} word${words !== 1 ? 's' : ''} · ${chars} character${chars !== 1 ? 's' : ''}`;
+}
+
+// Toolbar insert functions
+function insertFormat(type) {
+    const start = editor.selectionStart;
+    const end = editor.selectionEnd;
+    const selected = editor.value.substring(start, end);
+    let replacement = '';
+    let cursorOffset = 0;
+
+    switch(type) {
+        case 'bold':
+            replacement = `**${selected || 'bold text'}**`;
+            cursorOffset = selected ? 0 : -2;
+            break;
+        case 'italic':
+            replacement = `*${selected || 'italic text'}*`;
+            cursorOffset = selected ? 0 : -1;
+            break;
+        case 'strikethrough':
+            replacement = `~~${selected || 'strikethrough text'}~~`;
+            cursorOffset = selected ? 0 : -2;
+            break;
+        case 'h1':
+            replacement = `# ${selected || 'Heading 1'}`;
+            cursorOffset = selected ? 0 : -3;
+            break;
+        case 'h2':
+            replacement = `## ${selected || 'Heading 2'}`;
+            cursorOffset = selected ? 0 : -4;
+            break;
+        case 'h3':
+            replacement = `### ${selected || 'Heading 3'}`;
+            cursorOffset = selected ? 0 : -5;
+            break;
+        case 'link':
+            if (!selected) {
+                replacement = `[link text](url)`;
+                cursorOffset = -1;
+            } else {
+                replacement = `[${selected}](url)`;
+            }
+            break;
+        case 'image':
+            replacement = `![alt text](image-url)`;
+            cursorOffset = -1;
+            break;
+        case 'code':
+            replacement = `\`${selected || 'code'}\``;
+            cursorOffset = selected ? 0 : -1;
+            break;
+        case 'codeblock':
+            replacement = `\`\`\`javascript\n${selected || '// code here'}\n\`\`\``;
+            cursorOffset = -4;
+            break;
+        case 'ul':
+            replacement = `- ${selected || 'list item'}`;
+            cursorOffset = selected ? 0 : -3;
+            break;
+        case 'ol':
+            replacement = `1. ${selected || 'list item'}`;
+            cursorOffset = selected ? 0 : -4;
+            break;
+        case 'quote':
+            replacement = `> ${selected || 'quote'}`;
+            cursorOffset = selected ? 0 : -2;
+            break;
+        case 'hr':
+            replacement = `\n---\n`;
+            break;
+    }
+
+    editor.focus();
+    document.execCommand('insertText', false, replacement);
+
+    if (cursorOffset < 0 && !selected) {
+        const newPos = start + replacement.length + cursorOffset;
+        editor.setSelectionRange(newPos, newPos);
+    }
+
+    updatePreview();
+}
+
+// Copy markdown
+async function copyMarkdown() {
+    try {
+        await navigator.clipboard.writeText(editor.value);
+        copyBtn.classList.add('copied');
+        copyBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Copied!`;
+        toast.classList.add('show');
+        setTimeout(() => {
+            copyBtn.classList.remove('copied');
+            copyBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg> Copy`;
+            toast.classList.remove('show');
+        }, 2000);
+    } catch(err) {
+        // Fallback
+        const textarea = document.createElement('textarea');
+        textarea.value = editor.value;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        copyBtn.classList.add('copied');
+        toast.classList.add('show');
+        setTimeout(() => {
+            copyBtn.classList.remove('copied');
+            toast.classList.remove('show');
+        }, 2000);
+    }
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey) {
+        switch(e.key.toLowerCase()) {
+            case 'b':
+                e.preventDefault();
+                insertFormat('bold');
+                break;
+            case 'i':
+                e.preventDefault();
+                insertFormat('italic');
+                break;
+            case 'k':
+                e.preventDefault();
+                insertFormat('link');
+                break;
+        }
+    }
+});
+
+// Tab key in editor
+editor.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+        e.preventDefault();
+        document.execCommand('insertText', false, '  ');
+    }
+});
+
+// Live preview on input
+editor.addEventListener('input', updatePreview);
+
+// Resize handle
+let isResizing = false;
+resizeHandle.addEventListener('mousedown', (e) => {
+    isResizing = true;
+    resizeHandle.classList.add('active');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+});
+
+document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+    const main = document.querySelector('.main');
+    const rect = main.getBoundingClientRect();
+    const percentage = ((e.clientX - rect.left) / rect.width) * 100;
+    const clamped = Math.min(Math.max(percentage, 20), 80);
+    const editorPane = document.querySelector('.editor-pane');
+    const previewPane = document.querySelector('.preview-pane');
+    editorPane.style.flex = 'none';
+    editorPane.style.width = clamped + '%';
+    previewPane.style.flex = '1';
+});
+
+document.addEventListener('mouseup', () => {
+    if (isResizing) {
+        isResizing = false;
+        resizeHandle.classList.remove('active');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+    }
+});
+
+// Touch resize support
+let isTouchResizing = false;
+resizeHandle.addEventListener('touchstart', (e) => {
+    isTouchResizing = true;
+    resizeHandle.classList.add('active');
+    e.preventDefault();
+});
+
+document.addEventListener('touchmove', (e) => {
+    if (!isTouchResizing) return;
+    const touch = e.touches[0];
+    const main = document.querySelector('.main');
+    const rect = main.getBoundingClientRect();
+    const percentage = ((touch.clientX - rect.left) / rect.width) * 100;
+    const clamped = Math.min(Math.max(percentage, 20), 80);
+    const editorPane = document.querySelector('.editor-pane');
+    editorPane.style.width = clamped + '%';
+});
+
+document.addEventListener('touchend', () => {
+    if (isTouchResizing) {
+        isTouchResizing = false;
+        resizeHandle.classList.remove('active');
+    }
+});
+
+// Initial render
+updatePreview();
+</script>
+</body>
+</html>

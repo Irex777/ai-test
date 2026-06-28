@@ -5,568 +5,802 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Calculator</title>
 <style>
-  :root {
-    --bg: #0a0a0f;
-    --surface: #14141c;
-    --surface-2: #1c1c28;
-    --display-bg: #08080d;
-    --accent: #ff6b35;
-    --accent-glow: rgba(255, 107, 53, 0.4);
-    --accent-2: #4ade80;
-    --text: #f5f5fa;
-    --text-dim: #6b6b80;
-    --border: #2a2a3a;
-    --danger: #ef4444;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    min-height: 100vh;
-    background: var(--bg);
-    background-image:
-      radial-gradient(ellipse 600px 400px at 15% 10%, rgba(255, 107, 53, 0.08), transparent 60%),
-      radial-gradient(ellipse 500px 500px at 85% 90%, rgba(74, 222, 128, 0.05), transparent 60%),
-      radial-gradient(ellipse 400px 300px at 50% 50%, rgba(120, 80, 200, 0.04), transparent 70%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-    color: var(--text);
-    padding: 20px;
-    overflow: hidden;
-  }
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
-  .calculator {
-    width: 100%;
-    max-width: 420px;
-    background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
-    border-radius: 24px;
-    padding: 22px;
-    box-shadow:
-      0 30px 80px rgba(0, 0, 0, 0.6),
-      0 0 0 1px var(--border),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    position: relative;
-    z-index: 1;
-    animation: appear 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  @keyframes appear {
-    from { opacity: 0; transform: translateY(20px) scale(0.98); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-  }
-  .display {
-    background: var(--display-bg);
-    border-radius: 16px;
-    padding: 20px 22px;
-    margin-bottom: 16px;
-    min-height: 130px;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    align-items: flex-end;
-    position: relative;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
-  }
-  .display::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -20%;
-    width: 60%;
-    height: 100%;
-    background: radial-gradient(ellipse, rgba(255, 107, 53, 0.06), transparent 70%);
-    pointer-events: none;
-  }
-  .memory-indicator {
-    position: absolute;
-    top: 14px;
-    left: 18px;
-    font-size: 10px;
-    color: var(--accent-2);
-    font-weight: 700;
-    letter-spacing: 2px;
-    opacity: 0;
-    transition: opacity 0.3s;
-    padding: 3px 8px;
-    background: rgba(74, 222, 128, 0.1);
-    border-radius: 4px;
-    border: 1px solid rgba(74, 222, 128, 0.3);
-  }
-  .memory-indicator.active { opacity: 1; }
-  .history {
-    color: var(--text-dim);
-    font-size: 15px;
-    min-height: 22px;
-    font-weight: 400;
-    text-align: right;
-    width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    letter-spacing: 0.5px;
-  }
-  .current {
-    color: var(--text);
-    font-size: 46px;
-    font-weight: 300;
-    text-align: right;
-    width: 100%;
-    line-height: 1.1;
-    margin-top: 6px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    letter-spacing: -1px;
-    transition: color 0.2s;
-  }
-  .current.error {
-    color: var(--danger);
-    font-size: 28px;
-    animation: shake 0.4s;
-  }
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    20%, 60% { transform: translateX(-6px); }
-    40%, 80% { transform: translateX(6px); }
-  }
-  .memory-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    margin-bottom: 8px;
-  }
-  .buttons {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 8px;
-  }
-  button {
-    height: 60px;
-    border: 1px solid var(--border);
-    background: linear-gradient(180deg, #232333 0%, #1a1a26 100%);
-    color: var(--text);
-    font-size: 19px;
-    font-weight: 500;
-    border-radius: 14px;
-    cursor: pointer;
-    transition: transform 0.08s ease, background 0.15s ease, box-shadow 0.15s ease;
-    font-family: inherit;
-    position: relative;
-    overflow: hidden;
-  }
-  button::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at center, rgba(255,255,255,0.1), transparent 70%);
-    opacity: 0;
-    transition: opacity 0.15s;
-  }
-  button:hover {
-    background: linear-gradient(180deg, #2c2c3c 0%, #22222e 100%);
-    transform: translateY(-1px);
-  }
-  button:hover::after { opacity: 1; }
-  button:active {
-    transform: translateY(0) scale(0.96);
-  }
-  button.mem {
-    background: linear-gradient(180deg, #1a1a26 0%, #14141e 100%);
-    color: var(--accent-2);
-    font-size: 13px;
-    font-weight: 700;
-    height: 42px;
-    letter-spacing: 1px;
-    border-color: rgba(74, 222, 128, 0.15);
-  }
-  button.mem:hover {
-    background: linear-gradient(180deg, #1f1f2e 0%, #181822 100%);
-    box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.3);
-  }
-  button.op {
-    color: var(--accent);
-    background: linear-gradient(180deg, #2a1f1a 0%, #1f1812 100%);
-    border-color: rgba(255, 107, 53, 0.2);
-    font-weight: 600;
-  }
-  button.op:hover {
-    background: linear-gradient(180deg, #3a2a20 0%, #2a1f18 100%);
-    box-shadow: 0 0 0 1px rgba(255, 107, 53, 0.4);
-  }
-  button.op.active {
-    background: linear-gradient(180deg, var(--accent) 0%, #e85525 100%);
-    color: white;
-    box-shadow: 0 0 20px var(--accent-glow);
-  }
-  button.equals {
-    background: linear-gradient(180deg, var(--accent) 0%, #d94f1f 100%);
-    color: white;
-    font-weight: 700;
-    box-shadow: 0 4px 16px var(--accent-glow);
-    border-color: transparent;
-  }
-  button.equals:hover {
-    background: linear-gradient(180deg, #ff7a45 0%, #e85a2a 100%);
-    box-shadow: 0 6px 24px var(--accent-glow);
-  }
-  button.fn {
-    color: var(--text-dim);
-    background: linear-gradient(180deg, #1a1a26 0%, #14141e 100%);
-    font-size: 16px;
-  }
-  button.fn:hover {
-    color: var(--text);
-    background: linear-gradient(180deg, #232333 0%, #1c1c28 100%);
-  }
-  button.danger:hover {
-    color: var(--danger);
-    box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.3);
-  }
-  .footer {
-    text-align: center;
-    margin-top: 14px;
-    font-size: 10px;
-    color: var(--text-dim);
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    opacity: 0.6;
-  }
-  @media (max-width: 400px) {
-    .calculator { padding: 16px; border-radius: 20px; }
-    button { height: 52px; font-size: 17px; border-radius: 12px; }
-    button.mem { height: 38px; font-size: 12px; }
-    .current { font-size: 38px; }
-    .display { padding: 16px 18px; min-height: 110px; }
-    .buttons { gap: 6px; }
-    .memory-row { gap: 6px; }
-  }
+:root {
+  --bg: #0a0e14;
+  --bg-2: #0f1419;
+  --card: #141a22;
+  --border: #1e2730;
+  --fg: #e6edf3;
+  --muted: #6b7785;
+  --accent: #ff6b35;
+  --accent-glow: rgba(255, 107, 53, 0.35);
+  --teal: #2ec4b6;
+  --teal-glow: rgba(46, 196, 182, 0.3);
+  --danger: #e63946;
+  --warn: #ffb703;
+  --btn: #1a2230;
+  --btn-hover: #232d3d;
+  --btn-active: #2d3a4d;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  position: relative;
+}
+
+/* Ambient background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 800px 600px at 15% 20%, rgba(255, 107, 53, 0.12), transparent 60%),
+    radial-gradient(ellipse 700px 500px at 85% 85%, rgba(46, 196, 182, 0.08), transparent 60%),
+    radial-gradient(ellipse 500px 400px at 50% 50%, rgba(255, 183, 3, 0.04), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  animation: bgShift 20s ease-in-out infinite alternate;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+}
+
+@keyframes bgShift {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(2%, -1%) scale(1.05); }
+}
+
+/* Brand */
+.brand {
+  position: fixed;
+  top: 28px;
+  left: 32px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 10;
+  letter-spacing: 0.3em;
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.brand-dot {
+  width: 8px; height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+  box-shadow: 0 0 12px var(--accent-glow);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+/* Calculator */
+.calculator {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
+  background: linear-gradient(180deg, var(--card), var(--bg-2));
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 22px;
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.02) inset,
+    0 -2px 20px rgba(255, 107, 53, 0.05) inset;
+}
+
+/* Display */
+.display {
+  background: linear-gradient(180deg, rgba(0,0,0,0.4), rgba(0,0,0,0.2));
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 22px;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+  min-height: 130px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.display::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,107,53,0.3), transparent);
+}
+
+.history {
+  color: var(--muted);
+  font-size: 15px;
+  min-height: 22px;
+  text-align: right;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-all;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+}
+
+.current {
+  font-size: 46px;
+  font-weight: 300;
+  text-align: right;
+  color: var(--fg);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-all;
+  line-height: 1.1;
+  letter-spacing: -1px;
+  transition: color 0.2s;
+}
+.current.error { color: var(--danger); }
+.current.flash { animation: flash 0.4s ease; }
+@keyframes flash {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.04); color: var(--accent); }
+  100% { transform: scale(1); }
+}
+
+.display-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.memory-tag {
+  color: var(--teal);
+  font-weight: 600;
+  padding: 3px 9px;
+  background: rgba(46, 196, 182, 0.1);
+  border: 1px solid rgba(46, 196, 182, 0.25);
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.memory-tag.active { opacity: 1; }
+.memory-value {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* Buttons */
+.buttons {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+
+.btn {
+  border: none;
+  background: var(--btn);
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 500;
+  padding: 16px 0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.08s ease, background 0.15s ease, box-shadow 0.15s ease, color 0.15s;
+  position: relative;
+  user-select: none;
+  letter-spacing: 0.5px;
+}
+.btn:hover { background: var(--btn-hover); }
+.btn:active {
+  transform: scale(0.94);
+  background: var(--btn-active);
+}
+.btn.pressed {
+  background: var(--btn-active);
+  transform: scale(0.94);
+}
+
+.btn-op {
+  background: linear-gradient(180deg, #2a3441, #1f2832);
+  color: var(--teal);
+  font-weight: 600;
+}
+.btn-op:hover {
+  background: linear-gradient(180deg, #313d4c, #252f3a);
+  box-shadow: 0 0 0 1px rgba(46, 196, 182, 0.25);
+}
+
+.btn-fn {
+  background: linear-gradient(180deg, #1f242c, #181d24);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.btn-fn:hover {
+  color: var(--fg);
+  background: linear-gradient(180deg, #252b34, #1d2229);
+}
+
+.btn-mem {
+  background: linear-gradient(180deg, #1a2128, #141a20);
+  color: var(--warn);
+  font-size: 13px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 183, 3, 0.15);
+}
+.btn-mem:hover {
+  background: linear-gradient(180deg, #221e10, #1a1810);
+  box-shadow: 0 0 0 1px rgba(255, 183, 3, 0.3);
+}
+
+.btn-equals {
+  background: linear-gradient(180deg, var(--accent), #d4541c);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 4px 16px rgba(255, 107, 53, 0.3), 0 0 0 1px rgba(255,107,53,0.4) inset;
+}
+.btn-equals:hover {
+  background: linear-gradient(180deg, #ff7a48, #e25c1f);
+  box-shadow: 0 6px 24px rgba(255, 107, 53, 0.5), 0 0 0 1px rgba(255,107,53,0.5) inset;
+}
+
+.btn-danger {
+  color: var(--danger);
+}
+
+/* Kbd hint */
+.kbd-hint {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.kbd-hint kbd {
+  background: var(--btn);
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  margin: 0 2px;
+  font-family: inherit;
+  color: var(--fg);
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--teal);
+  padding: 12px 22px;
+  border-radius: 8px;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 100;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.error { border-left-color: var(--danger); }
+.toast.warn { border-left-color: var(--warn); }
+
+@media (max-width: 480px) {
+  .brand { top: 16px; left: 16px; font-size: 10px; }
+  .calculator { padding: 16px; border-radius: 20px; }
+  .display { padding: 16px 18px; min-height: 110px; }
+  .current { font-size: 36px; }
+  .history { font-size: 13px; }
+  .btn { font-size: 15px; padding: 13px 0; }
+  .btn-fn, .btn-mem { font-size: 11px; }
+  .buttons { gap: 6px; }
+}
+
+@media (max-width: 380px) {
+  .btn { font-size: 13px; padding: 11px 0; }
+  .current { font-size: 30px; }
+}
 </style>
 </head>
 <body>
-  <div class="calculator">
-    <div class="display">
-      <div class="memory-indicator" id="memInd">M</div>
-      <div class="history" id="history"></div>
-      <div class="current" id="current">0</div>
+
+<div class="brand">
+  <span class="brand-dot"></span>
+  <span>NEXUS · CALC</span>
+</div>
+
+<div class="calculator" role="application" aria-label="Calculator">
+  <div class="display">
+    <div class="history" id="history" aria-live="polite"></div>
+    <div class="current" id="current" aria-live="polite">0</div>
+    <div class="display-meta">
+      <span class="memory-tag" id="memoryTag">M</span>
+      <span class="memory-value" id="memoryValue"></span>
     </div>
-    <div class="memory-row">
-      <button class="mem" data-action="mc">MC</button>
-      <button class="mem" data-action="mr">MR</button>
-      <button class="mem" data-action="mplus">M+</button>
-      <button class="mem" data-action="mminus">M−</button>
-    </div>
-    <div class="buttons">
-      <button class="fn danger" data-action="ce">CE</button>
-      <button class="fn danger" data-action="c">C</button>
-      <button class="fn" data-action="backspace">⌫</button>
-      <button class="fn" data-action="percent">%</button>
-      <button class="op" data-op="/">÷</button>
-
-      <button data-num="7">7</button>
-      <button data-num="8">8</button>
-      <button data-num="9">9</button>
-      <button class="fn" data-action="negate">±</button>
-      <button class="op" data-op="*">×</button>
-
-      <button data-num="4">4</button>
-      <button data-num="5">5</button>
-      <button data-num="6">6</button>
-      <button class="op" data-op="^">xʸ</button>
-      <button class="op" data-op="-">−</button>
-
-      <button data-num="1">1</button>
-      <button data-num="2">2</button>
-      <button data-num="3">3</button>
-      <button class="op" data-action="sqrt">√</button>
-      <button class="op" data-op="+">+</button>
-
-      <button data-num="0" style="grid-column: span 2;">0</button>
-      <button data-action="decimal">.</button>
-      <button class="op" data-action="reciprocal">1/x</button>
-      <button class="equals" data-action="equals">=</button>
-    </div>
-    <div class="footer">Keyboard ready · Enter = · Esc = C</div>
   </div>
 
+  <div class="buttons">
+    <button class="btn btn-mem" data-action="mc" aria-label="Memory Clear">MC</button>
+    <button class="btn btn-mem" data-action="mr" aria-label="Memory Recall">MR</button>
+    <button class="btn btn-mem" data-action="m-plus" aria-label="Memory Add">M+</button>
+    <button class="btn btn-mem" data-action="m-minus" aria-label="Memory Subtract">M-</button>
+    <button class="btn btn-danger btn-fn" data-action="ce">CE</button>
+    <button class="btn btn-danger btn-fn" data-action="clear">C</button>
+
+    <button class="btn btn-fn" data-action="backspace" aria-label="Backspace">⌫</button>
+    <button class="btn btn-fn" data-action="negate">±</button>
+    <button class="btn btn-fn" data-action="percent">%</button>
+    <button class="btn btn-op" data-op="/">÷</button>
+    <button class="btn btn-op" data-op="*">×</button>
+    <button class="btn btn-op" data-op="-">−</button>
+
+    <button class="btn" data-num="7">7</button>
+    <button class="btn" data-num="8">8</button>
+    <button class="btn" data-num="9">9</button>
+    <button class="btn btn-op" data-op="+">+</button>
+    <button class="btn" data-num="4">4</button>
+    <button class="btn" data-num="5">5</button>
+
+    <button class="btn" data-num="6">6</button>
+    <button class="btn" data-num="1">1</button>
+    <button class="btn" data-num="2">2</button>
+    <button class="btn" data-num="3">3</button>
+    <button class="btn" data-num="0">0</button>
+    <button class="btn" data-action="decimal">.</button>
+
+    <button class="btn btn-equals" data-action="equals" style="grid-column: span 2;">=</button>
+  </div>
+
+  <div class="kbd-hint">
+    <kbd>0-9</kbd> numbers · <kbd>+−*/</kbd> ops · <kbd>Enter</kbd>= · <kbd>Esc</kbd>C · <kbd>⌫</kbd> back
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script>
+(function() {
+  'use strict';
+
   const state = {
     current: '0',
-    history: '',
-    operator: null,
-    waitingForOperand: false,
-    justEvaluated: false,
+    expression: [],
+    lastWasOperator: false,
+    lastWasEquals: false,
     memory: 0,
-    hasError: false
+    hasError: false,
   };
 
-  const currentEl = document.getElementById('current');
-  const historyEl = document.getElementById('history');
-  const memInd = document.getElementById('memInd');
+  const $current = document.getElementById('current');
+  const $history = document.getElementById('history');
+  const $memoryTag = document.getElementById('memoryTag');
+  const $memoryValue = document.getElementById('memoryValue');
+  const $toast = document.getElementById('toast');
 
-  const opSymbols = { '+': '+', '-': '−', '*': '×', '/': '÷', '^': '^' };
-
-  function format(num) {
-    if (!isFinite(num) || isNaN(num)) return 'Error';
-    if (num === 0) return '0';
-    const absNum = Math.abs(num);
-    if (absNum < 1e-10 || absNum >= 1e15) return num.toExponential(8).replace(/\.?0+e/, 'e');
-    let str = (Math.round((num + Number.EPSILON) * 1e12) / 1e12).toString();
-    if (str.includes('.') && !str.includes('e') && str.length > 14) {
-      const [int, dec] = str.split('.');
-      str = int + '.' + dec.slice(0, Math.max(0, 14 - int.length));
+  // ---------- Formatting ----------
+  function formatNumber(n) {
+    if (!isFinite(n)) return 'Error';
+    if (n === 0) return '0';
+    const abs = Math.abs(n);
+    if (abs >= 1e15 || (abs < 1e-9 && abs > 0)) {
+      return n.toExponential(6).replace(/\.?0+e/, 'e');
     }
-    return str;
+    // Keep up to 12 significant digits, strip trailing zeros
+    let s = parseFloat(n.toPrecision(12)).toString();
+    return s;
   }
 
-  function updateDisplay() {
-    currentEl.textContent = state.current;
-    historyEl.textContent = state.history;
-    currentEl.classList.toggle('error', state.hasError);
-    memInd.classList.toggle('active', state.memory !== 0);
-    document.querySelectorAll('button.op').forEach(btn => {
-      const op = btn.dataset.op;
-      btn.classList.toggle('active', op === state.operator && state.waitingForOperand);
-    });
+  function displayCurrent(s) {
+    $current.textContent = s;
   }
 
-  function inputNumber(num) {
-    if (state.hasError) clearAll();
-    if (state.justEvaluated) { state.current = '0'; state.justEvaluated = false; }
-    if (state.waitingForOperand) { state.current = num; state.waitingForOperand = false; }
-    else {
-      if (state.current.replace('-', '').replace('.', '').length >= 15) return;
-      state.current = state.current === '0' ? num : state.current + num;
+  function displayHistory(s) {
+    $history.textContent = s;
+  }
+
+  function setError(msg) {
+    state.hasError = true;
+    state.current = 'Error';
+    state.expression = [];
+    displayCurrent('Error');
+    $current.classList.add('error');
+    if (msg) showToast(msg, 'error');
+  }
+
+  function clearError() {
+    if (state.hasError) {
+      state.hasError = false;
+      $current.classList.remove('error');
     }
+  }
+
+  function flashDisplay() {
+    $current.classList.remove('flash');
+    void $current.offsetWidth;
+    $current.classList.add('flash');
+  }
+
+  // ---------- Core actions ----------
+  function inputNumber(n) {
+    clearError();
+    if (state.lastWasEquals) {
+      state.current = n;
+      state.expression = [];
+      state.lastWasEquals = false;
+      displayHistory('');
+    } else if (state.lastWasOperator) {
+      state.current = n;
+      state.lastWasOperator = false;
+    } else {
+      if (state.current === '0') state.current = n;
+      else if (state.current === '-0') state.current = '-' + n;
+      else state.current += n;
+    }
+    displayCurrent(state.current);
   }
 
   function inputDecimal() {
-    if (state.hasError) clearAll();
-    if (state.justEvaluated) { state.current = '0'; state.justEvaluated = false; }
-    if (state.waitingForOperand) { state.current = '0.'; state.waitingForOperand = false; return; }
-    if (!state.current.includes('.')) state.current += '.';
-  }
-
-  function compute(a, b, op) {
-    switch (op) {
-      case '+': return a + b;
-      case '-': return a - b;
-      case '*': return a * b;
-      case '/': if (b === 0) return null; return a / b;
-      case '^': return Math.pow(a, b);
+    clearError();
+    if (state.lastWasEquals) {
+      state.current = '0.';
+      state.expression = [];
+      state.lastWasEquals = false;
+      displayHistory('');
+    } else if (state.lastWasOperator) {
+      state.current = '0.';
+      state.lastWasOperator = false;
+    } else if (!state.current.includes('.')) {
+      state.current += '.';
     }
+    displayCurrent(state.current);
   }
 
-  function precedence(op) { return (op === '+' || op === '-') ? 1 : 2; }
+  function applyOperator(op) {
+    clearError();
+    if (state.current === 'Error') return;
 
-  function evaluateChain() {
-    if (!state.history) return parseFloat(state.current);
-    let expr = state.history + ' ' + state.current;
-    const tokens = expr.split(/\s+/).filter(Boolean);
-    if (tokens.length === 0) return parseFloat(state.current);
-    if (tokens.length === 1) return parseFloat(tokens[0]);
+    if (state.lastWasOperator && state.expression.length > 0) {
+      // Replace previous operator
+      state.expression[state.expression.length - 1] = op;
+    } else {
+      state.expression.push(state.current);
+    }
 
-    let values = [parseFloat(tokens[0])];
-    let ops = [];
-    for (let i = 1; i < tokens.length; i += 2) {
-      const op = tokens[i];
-      const num = parseFloat(tokens[i + 1]);
-      while (ops.length && precedence(ops[ops.length - 1]) >= precedence(op)) {
-        const prevOp = ops.pop();
-        const b = values.pop();
-        const a = values.pop();
-        const r = compute(a, b, prevOp);
-        if (r === null || !isFinite(r)) return null;
-        values.push(r);
+    state.lastWasOperator = true;
+    state.lastWasEquals = false;
+    updateExpressionDisplay();
+  }
+
+  function updateExpressionDisplay() {
+    const parts = state.expression.map(p => {
+      if (['+', '-', '*', '/'].includes(p)) {
+        const sym = { '+': '+', '-': '−', '*': '×', '/': '÷' }[p];
+        return ' ' + sym + ' ';
       }
-      ops.push(op);
-      values.push(num);
-    }
-    while (ops.length) {
-      const op = ops.pop();
-      const b = values.pop();
-      const a = values.pop();
-      const r = compute(a, b, op);
-      if (r === null || !isFinite(r)) return null;
-      values.push(r);
-    }
-    return values[0];
+      return p;
+    });
+    displayHistory(parts.join(''));
   }
 
-  function inputOperator(op) {
-    if (state.hasError) return;
-    const current = parseFloat(state.current);
-    if (state.waitingForOperand && state.history) {
-      state.history = state.history.replace(/[\+\-\*\/\^]\s*$/, '') + opSymbols[op] + ' ';
-      state.operator = op;
-      updateDisplay();
+  function evaluate(exprArr) {
+    if (exprArr.length === 0) return null;
+    const tokens = exprArr.slice();
+
+    // First pass: * and /
+    let i = 1;
+    while (i < tokens.length - 1) {
+      if (tokens[i] === '*' || tokens[i] === '/') {
+        const a = parseFloat(tokens[i - 1]);
+        const b = parseFloat(tokens[i + 1]);
+        let r;
+        if (tokens[i] === '*') r = a * b;
+        else {
+          if (b === 0) throw new Error('divide-zero');
+          r = a / b;
+        }
+        tokens.splice(i - 1, 3, r);
+      } else {
+        i += 2;
+      }
+    }
+
+    // Second pass: + and -
+    i = 1;
+    while (i < tokens.length - 1) {
+      if (tokens[i] === '+' || tokens[i] === '-') {
+        const a = parseFloat(tokens[i - 1]);
+        const b = parseFloat(tokens[i + 1]);
+        const r = tokens[i] === '+' ? a + b : a - b;
+        tokens.splice(i - 1, 3, r);
+      } else {
+        i += 2;
+      }
+    }
+
+    return tokens[0];
+  }
+
+  function equals() {
+    clearError();
+    if (state.expression.length === 0) return;
+
+    if (!state.lastWasOperator) {
+      state.expression.push(state.current);
+    } else {
+      // Trailing operator: drop it
+      state.expression.pop();
+      if (state.expression.length === 0) return;
+    }
+
+    updateExpressionDisplay();
+
+    let result;
+    try {
+      result = evaluate(state.expression);
+      if (result === null) return;
+      if (!isFinite(result)) {
+        setError('Math error');
+        return;
+      }
+    } catch (e) {
+      if (e.message === 'divide-zero') {
+        setError('Cannot divide by zero');
+      } else {
+        setError('Error');
+      }
       return;
     }
-    if (state.justEvaluated) {
-      state.history = format(current) + ' ' + opSymbols[op] + ' ';
-      state.justEvaluated = false;
-    } else if (state.history) {
-      const result = evaluateChain();
-      if (result === null) { showError(); return; }
-      state.history = format(result) + ' ' + opSymbols[op] + ' ';
-    } else {
-      state.history = format(current) + ' ' + opSymbols[op] + ' ';
-    }
-    state.operator = op;
-    state.waitingForOperand = true;
-  }
 
-  function evaluate() {
-    if (state.hasError) return;
-    if (!state.history) return;
-    const result = evaluateChain();
-    if (result === null) { showError(); return; }
-    const fullExpr = state.history + state.current + ' =';
-    state.current = format(result);
-    state.history = fullExpr;
-    state.justEvaluated = true;
-    state.waitingForOperand = false;
-    state.operator = null;
-  }
+    const formatted = formatNumber(result);
+    state.current = formatted;
+    state.lastWasEquals = true;
+    state.lastWasOperator = false;
 
-  function showError() {
-    state.hasError = true;
-    state.current = 'Error';
-    state.history = '';
-    state.waitingForOperand = false;
-    state.operator = null;
-    updateDisplay();
+    // Show result in history with =
+    const exprText = $history.textContent;
+    displayHistory(exprText + ' =');
+    displayCurrent(formatted);
+    flashDisplay();
+    state.expression = [];
   }
 
   function clearAll() {
     state.current = '0';
-    state.history = '';
-    state.operator = null;
-    state.waitingForOperand = false;
-    state.justEvaluated = false;
-    state.hasError = false;
+    state.expression = [];
+    state.lastWasOperator = false;
+    state.lastWasEquals = false;
+    clearError();
+    displayCurrent('0');
+    displayHistory('');
   }
 
   function clearEntry() {
     if (state.hasError) { clearAll(); return; }
     state.current = '0';
-    state.justEvaluated = false;
-    state.waitingForOperand = false;
+    displayCurrent('0');
+    // If last was operator, also drop the trailing operator so user can re-enter
+    if (state.lastWasOperator && state.expression.length > 0) {
+      state.expression.pop();
+      state.lastWasOperator = false;
+      updateExpressionDisplay();
+    }
   }
 
   function backspace() {
     if (state.hasError) { clearAll(); return; }
-    if (state.justEvaluated || state.waitingForOperand) return;
-    if (state.current.length <= 1 || (state.current.length === 2 && state.current.startsWith('-'))) {
-      state.current = '0';
-    } else {
+    if (state.lastWasEquals) {
+      // After equals, backspace clears all
+      clearAll();
+      return;
+    }
+    if (state.current.length > 1) {
       state.current = state.current.slice(0, -1);
       if (state.current === '-') state.current = '0';
-    }
-  }
-
-  function percent() {
-    if (state.hasError) return;
-    let result;
-    if (state.history) {
-      const base = parseFloat(state.history);
-      result = base * parseFloat(state.current) / 100;
     } else {
-      result = parseFloat(state.current) / 100;
+      state.current = '0';
     }
-    state.current = format(result);
-    state.justEvaluated = false;
+    displayCurrent(state.current);
   }
 
   function negate() {
-    if (state.hasError) return;
-    if (state.current === '0') return;
+    clearError();
+    if (state.current === '0' || state.current === 'Error') return;
     state.current = state.current.startsWith('-')
       ? state.current.slice(1)
       : '-' + state.current;
+    displayCurrent(state.current);
   }
 
-  function sqrt() {
-    if (state.hasError) return;
-    const val = parseFloat(state.current);
-    if (val < 0) { showError(); return; }
-    state.current = format(Math.sqrt(val));
-    state.justEvaluated = false;
+  function percent() {
+    clearError();
+    if (state.current === 'Error') return;
+    // If we have a pending operation with a previous value, compute % of that value
+    let base = 1;
+    if (state.expression.length > 0) {
+      const lastNum = state.expression[state.expression.length - 1];
+      if (!['+','-','*','/'].includes(lastNum)) {
+        base = parseFloat(lastNum);
+      }
+    }
+    const v = parseFloat(state.current);
+    const result = (v / 100) * base;
+    state.current = formatNumber(result);
+    displayCurrent(state.current);
   }
 
-  function reciprocal() {
-    if (state.hasError) return;
-    const val = parseFloat(state.current);
-    if (val === 0) { showError(); return; }
-    state.current = format(1 / val);
-    state.justEvaluated = false;
+  // ---------- Memory ----------
+  function memoryClear() {
+    state.memory = 0;
+    updateMemoryDisplay();
+    showToast('Memory cleared');
   }
 
   function memoryRecall() {
-    if (state.hasError) return;
-    state.current = format(state.memory);
-    state.waitingForOperand = false;
-    state.justEvaluated = false;
+    clearError();
+    state.current = formatNumber(state.memory);
+    displayCurrent(state.current);
+    state.lastWasOperator = false;
+    state.lastWasEquals = false;
   }
 
-  function memoryAdd(sign) {
-    if (state.hasError) return;
-    state.memory += sign * parseFloat(state.current);
-    state.justEvaluated = false;
+  function memoryAdd() {
+    clearError();
+    if (state.current === 'Error') return;
+    state.memory += parseFloat(state.current) || 0;
+    updateMemoryDisplay();
+    flashDisplay();
+    showToast('Added to memory');
   }
 
-  function memoryClear() { state.memory = 0; }
+  function memorySubtract() {
+    clearError();
+    if (state.current === 'Error') return;
+    state.memory -= parseFloat(state.current) || 0;
+    updateMemoryDisplay();
+    flashDisplay();
+    showToast('Subtracted from memory');
+  }
 
+  function updateMemoryDisplay() {
+    if (state.memory !== 0) {
+      $memoryTag.classList.add('active');
+      $memoryValue.textContent = 'M = ' + formatNumber(state.memory);
+    } else {
+      $memoryTag.classList.remove('active');
+      $memoryValue.textContent = '';
+    }
+  }
+
+  // ---------- Toast ----------
+  let toastTimer = null;
+  function showToast(msg, type) {
+    $toast.textContent = msg;
+    $toast.className = 'toast show' + (type ? ' ' + type : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      $toast.classList.remove('show');
+    }, 1800);
+  }
+
+  // ---------- Event wiring ----------
   document.querySelector('.calculator').addEventListener('click', (e) => {
-    const btn = e.target.closest('button');
-    if (!btn) return;
-    if (btn.dataset.num !== undefined) inputNumber(btn.dataset.num);
-    else if (btn.dataset.op) inputOperator(btn.dataset.op);
-    else if (btn.dataset.action) {
-      switch (btn.dataset.action) {
-        case 'equals': evaluate(); break;
-        case 'c': clearAll(); break;
+    const t = e.target.closest('button');
+    if (!t) return;
+    handleAction(t.dataset);
+  });
+
+  function handleAction(data) {
+    if (data.num !== undefined) inputNumber(data.num);
+    else if (data.op) applyOperator(data.op);
+    else if (data.action) {
+      switch (data.action) {
+        case 'decimal': inputDecimal(); break;
+        case 'equals': equals(); break;
+        case 'clear': clearAll(); break;
         case 'ce': clearEntry(); break;
         case 'backspace': backspace(); break;
-        case 'decimal': inputDecimal(); break;
-        case 'percent': percent(); break;
         case 'negate': negate(); break;
-        case 'sqrt': sqrt(); break;
-        case 'reciprocal': reciprocal(); break;
+        case 'percent': percent(); break;
         case 'mc': memoryClear(); break;
         case 'mr': memoryRecall(); break;
-        case 'mplus': memoryAdd(1); break;
-        case 'mminus': memoryAdd(-1); break;
+        case 'm-plus': memoryAdd(); break;
+        case 'm-minus': memorySubtract(); break;
       }
     }
-    updateDisplay();
-  });
+  }
 
+  // Visual feedback for key press
+  function flashButton(selector) {
+    const btn = document.querySelector(selector);
+    if (!btn) return;
+    btn.classList.add('pressed');
+    setTimeout(() => btn.classList.remove('pressed'), 120);
+  }
+
+  // ---------- Keyboard ----------
   document.addEventListener('keydown', (e) => {
     const k = e.key;
-    if (k >= '0' && k <= '9') { inputNumber(k); e.preventDefault(); }
-    else if (k === '.') { inputDecimal(); e.preventDefault(); }
-    else if (k === '+' || k === '-' || k === '*' || k === '/') { inputOperator(k); e.preventDefault(); }
-    else if (k === '^') { inputOperator('^'); e.preventDefault(); }
-    else if (k === 'Enter' || k === '=') { evaluate(); e.preventDefault(); }
-    else if (k === 'Escape') { clearAll(); e.preventDefault(); }
-    else if (k === 'Backspace') { backspace(); e.preventDefault(); }
-    else if (k === '%') { percent(); e.preventDefault(); }
-    else if (k === '_') { negate(); e.preventDefault(); }
-    updateDisplay();
+
+    if (k >= '0' && k <= '9') {
+      inputNumber(k);
+      flashButton(`[data-num="${k}"]`);
+      e.preventDefault();
+    } else if (k === '.') {
+      inputDecimal();
+      flashButton('[data-action="decimal"]');
+      e.preventDefault();
+    } else if (k === '+' || k === '-' || k === '*' || k === '/') {
+      applyOperator(k);
+      flashButton(`[data-op="${k}"]`);
+      e.preventDefault();
+    } else if (k === 'Enter' || k === '=') {
+      equals();
+      flashButton('[data-action="equals"]');
+      e.preventDefault();
+    } else if (k === 'Backspace') {
+      backspace();
+      flashButton('[data-action="backspace"]');
+      e.preventDefault();
+    } else if (k === 'Escape') {
+      clearAll();
+      flashButton('[data-action="clear"]');
+      e.preventDefault();
+    } else if (k === 'Delete') {
+      clearEntry();
+      flashButton('[data-action="ce"]');
+      e.preventDefault();
+    } else if (k === '%') {
+      percent();
+      flashButton('[data-action="percent"]');
+      e.preventDefault();
+    } else if (k === '_') {
+      negate();
+      flashButton('[data-action="negate"]');
+      e.preventDefault();
+    }
+    // Memory shortcuts via Ctrl/Alt
+    else if ((e.ctrlKey || e.altKey) && k.toLowerCase() === 'm') {
+      memoryAdd();
+      flashButton('[data-action="m-plus"]');
+      e.preventDefault();
+    }
   });
 
-  updateDisplay();
+  // Initialize
+  displayCurrent('0');
+  updateMemoryDisplay();
+})();
 </script>
 </body>
 </html>
